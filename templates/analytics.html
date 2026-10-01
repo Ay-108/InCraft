@@ -1,0 +1,1366 @@
+{% extends "base.html" %}
+
+{% block title %}
+Analytics | InCraft
+{% endblock %}
+
+{% block content %}
+
+<main class="main-content">
+
+    <!-- Page Header -->
+    <section class="page-header">
+
+        <div class="page-header-content">
+
+            <div class="page-eyebrow">
+                ANALYTICS
+            </div>
+
+            <h1>
+                Analytics
+            </h1>
+
+            <p>
+                Visualize sales and inventory performance.
+            </p>
+
+        </div>
+
+        <div class="page-header-actions">
+
+            <button
+                type="button"
+                class="btn btn-secondary"
+                id="exportReportBtn"
+            >
+                Export Report
+            </button>
+
+        </div>
+
+    </section>
+
+
+    <!-- Analytics Filters -->
+    <section class="dashboard-card analytics-filter-card">
+
+        <div class="card-header">
+
+            <div>
+                <h2>Analytics Filters</h2>
+
+                <p>
+                    Select the data you want to analyze.
+                </p>
+            </div>
+
+        </div>
+
+
+        <div class="analytics-filters">
+
+            <!-- Date -->
+            <div class="filter-item">
+
+                <label for="analyticsDate">
+                    Date Range
+                </label>
+
+                <select id="analyticsDate">
+
+                    <option value="7">
+                        Last 7 Days
+                    </option>
+
+                    <option value="30" selected>
+                        Last 30 Days
+                    </option>
+
+                    <option value="90">
+                        Last 3 Months
+                    </option>
+
+                    <option value="365">
+                        This Year
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <!-- Category -->
+            <div class="filter-item">
+
+                <label for="analyticsCategory">
+                    Category
+                </label>
+
+                <select id="analyticsCategory">
+
+                    <option value="">
+                        All Categories
+                    </option>
+
+                    {% if categories %}
+
+                        {% for category in categories %}
+
+                            <option value="{{ category }}">
+                                {{ category }}
+                            </option>
+
+                        {% endfor %}
+
+                    {% else %}
+
+                        <option value="Electronics">
+                            Electronics
+                        </option>
+
+                        <option value="Accessories">
+                            Accessories
+                        </option>
+
+                        <option value="Office">
+                            Office
+                        </option>
+
+                    {% endif %}
+
+                </select>
+
+            </div>
+
+
+            <!-- Product -->
+            <div class="filter-item">
+
+                <label for="analyticsProduct">
+                    Product
+                </label>
+
+                <select id="analyticsProduct">
+
+                    <option value="">
+                        All Products
+                    </option>
+
+                    {% if products %}
+
+                        {% for product in products %}
+
+                            <option
+                                value="{{ product.product_id|default('') }}"
+                            >
+                                {{ product.name|default('Unnamed Product') }}
+                            </option>
+
+                        {% endfor %}
+
+                    {% endif %}
+
+                </select>
+
+            </div>
+
+
+            <!-- Apply -->
+            <div class="filter-item filter-action">
+
+                <button
+                    type="button"
+                    class="btn btn-primary"
+                    id="applyAnalyticsFilters"
+                >
+                    Apply Filters
+                </button>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- KPI Cards -->
+    <section class="dashboard-stats">
+
+        <!-- Revenue -->
+        <div class="stat-card">
+
+            <div class="stat-card-header">
+
+                <span class="stat-title">
+                    Revenue
+                </span>
+
+                <span class="stat-icon">
+                    ₹
+                </span>
+
+            </div>
+
+            <div class="stat-value">
+                ₹{{ revenue|default('0') }}
+            </div>
+
+            <div class="stat-footer positive">
+
+                ↑ {{ revenue_growth|default(0) }}%
+
+                <span>
+                    vs previous period
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <!-- Orders -->
+        <div class="stat-card">
+
+            <div class="stat-card-header">
+
+                <span class="stat-title">
+                    Orders
+                </span>
+
+                <span class="stat-icon">
+                    #
+                </span>
+
+            </div>
+
+            <div class="stat-value">
+                {{ orders|default(0) }}
+            </div>
+
+            <div class="stat-footer positive">
+
+                ↑ {{ orders_growth|default(0) }}%
+
+                <span>
+                    vs previous period
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <!-- Products Sold -->
+        <div class="stat-card">
+
+            <div class="stat-card-header">
+
+                <span class="stat-title">
+                    Products Sold
+                </span>
+
+                <span class="stat-icon">
+                    📦
+                </span>
+
+            </div>
+
+            <div class="stat-value">
+                {{ products_sold|default(0) }}
+            </div>
+
+            <div class="stat-footer positive">
+
+                ↑ {{ products_sold_growth|default(0) }}%
+
+                <span>
+                    vs previous period
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <!-- Average Order Value -->
+        <div class="stat-card">
+
+            <div class="stat-card-header">
+
+                <span class="stat-title">
+                    Average Order Value
+                </span>
+
+                <span class="stat-icon">
+                    ₹
+                </span>
+
+            </div>
+
+            <div class="stat-value">
+                ₹{{ average_order_value|default('0') }}
+            </div>
+
+            <div class="stat-footer positive">
+
+                ↑ {{ aov_growth|default(0) }}%
+
+                <span>
+                    vs previous period
+                </span>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- Revenue + Category -->
+    <section class="analytics-chart-grid">
+
+        <!-- Revenue Trend -->
+        <div class="dashboard-card chart-card">
+
+            <div class="card-header">
+
+                <div>
+
+                    <h2>
+                        Revenue Trend
+                    </h2>
+
+                    <p>
+                        Revenue performance over the selected period.
+                    </p>
+
+                </div>
+
+                <select id="revenueChartPeriod">
+
+                    <option value="revenue">
+                        Revenue
+                    </option>
+
+                    <option value="orders">
+                        Orders
+                    </option>
+
+                </select>
+
+            </div>
+
+            <div class="chart-container large-chart">
+
+                <canvas id="revenueTrendChart"></canvas>
+
+            </div>
+
+        </div>
+
+
+        <!-- Sales by Category -->
+        <div class="dashboard-card chart-card">
+
+            <div class="card-header">
+
+                <div>
+
+                    <h2>
+                        Sales by Category
+                    </h2>
+
+                    <p>
+                        Category contribution to total sales.
+                    </p>
+
+                </div>
+
+            </div>
+
+            <div class="chart-container">
+
+                <canvas id="categorySalesChart"></canvas>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- Top Products + Inventory Health -->
+    <section class="analytics-chart-grid">
+
+        <!-- Top Selling Products -->
+        <div class="dashboard-card chart-card">
+
+            <div class="card-header">
+
+                <div>
+
+                    <h2>
+                        Top Selling Products
+                    </h2>
+
+                    <p>
+                        Products generating the most sales.
+                    </p>
+
+                </div>
+
+            </div>
+
+            <div class="chart-container large-chart">
+
+                <canvas id="topProductsChart"></canvas>
+
+            </div>
+
+        </div>
+
+
+        <!-- Inventory Health -->
+        <div class="dashboard-card chart-card">
+
+            <div class="card-header">
+
+                <div>
+
+                    <h2>
+                        Inventory Health
+                    </h2>
+
+                    <p>
+                        Current stock status across products.
+                    </p>
+
+                </div>
+
+            </div>
+
+            <div class="chart-container">
+
+                <canvas id="inventoryHealthChart"></canvas>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- Insights -->
+    <section class="dashboard-card analytics-insights">
+
+        <div class="card-header">
+
+            <div>
+
+                <h2>
+                    Insights
+                </h2>
+
+                <p>
+                    Key observations from your inventory data.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="insights-grid">
+
+            <!-- Best Performing Product -->
+            <div class="insight-card">
+
+                <div class="insight-icon">
+                    ↑
+                </div>
+
+                <div>
+
+                    <span class="insight-label">
+                        Best Performing Product
+                    </span>
+
+                    <h3>
+                        {{ best_product|default('No data available') }}
+                    </h3>
+
+                    <p>
+                        {{ best_product_sales|default(0) }}
+                        units sold during the selected period.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <!-- Needs Attention -->
+            <div class="insight-card warning-insight">
+
+                <div class="insight-icon">
+                    !
+                </div>
+
+                <div>
+
+                    <span class="insight-label">
+                        Needs Attention
+                    </span>
+
+                    <h3>
+                        {{ attention_product|default('No immediate issues') }}
+                    </h3>
+
+                    <p>
+                        {{ attention_message|default(
+                            'Inventory is currently within normal levels.'
+                        ) }}
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <!-- Low Stock Forecast -->
+            <div class="insight-card">
+
+                <div class="insight-icon">
+                    #
+                </div>
+
+                <div>
+
+                    <span class="insight-label">
+                        Low Stock Forecast
+                    </span>
+
+                    <h3>
+                        {{ forecast_count|default(0) }}
+                        Products
+                    </h3>
+
+                    <p>
+                        Products may require restocking soon.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <!-- Monthly Comparison -->
+            <div class="insight-card">
+
+                <div class="insight-icon">
+                    %
+                </div>
+
+                <div>
+
+                    <span class="insight-label">
+                        Monthly Sales Comparison
+                    </span>
+
+                    <h3>
+                        {{ monthly_change|default(0) }}%
+                    </h3>
+
+                    <p>
+                        Change compared with the previous month.
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- Product Performance -->
+    <section class="dashboard-card">
+
+        <div class="card-header">
+
+            <div>
+
+                <h2>
+                    Product Performance
+                </h2>
+
+                <p>
+                    Sales performance by product.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="table-container">
+
+            <table class="data-table">
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            Product
+                        </th>
+
+                        <th>
+                            Category
+                        </th>
+
+                        <th>
+                            Units Sold
+                        </th>
+
+                        <th>
+                            Revenue
+                        </th>
+
+                        <th>
+                            Current Stock
+                        </th>
+
+                        <th>
+                            Performance
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    {% if product_performance %}
+
+                        {% for product in product_performance %}
+
+                            {% set performance =
+                                product.performance|default(0, true)|float
+                            %}
+
+                            <tr>
+
+                                <!-- Product -->
+                                <td>
+
+                                    <div class="table-product">
+
+                                        <div class="product-icon">
+                                            📦
+                                        </div>
+
+                                        <strong>
+                                            {{ product.name|default('Unnamed Product') }}
+                                        </strong>
+
+                                    </div>
+
+                                </td>
+
+
+                                <!-- Category -->
+                                <td>
+                                    {{ product.category|default('Uncategorized') }}
+                                </td>
+
+
+                                <!-- Units Sold -->
+                                <td>
+                                    {{ product.units_sold|default(0) }}
+                                </td>
+
+
+                                <!-- Revenue -->
+                                <td>
+                                    ₹{{ product.revenue|default('0') }}
+                                </td>
+
+
+                                <!-- Stock -->
+                                <td>
+                                    {{ product.stock|default(0) }}
+                                </td>
+
+
+                                <!-- Performance -->
+                                <td>
+
+                                    {% if performance >= 70 %}
+
+                                        <span class="status-badge success">
+                                            Strong
+                                        </span>
+
+                                    {% elif performance >= 40 %}
+
+                                        <span class="status-badge warning">
+                                            Average
+                                        </span>
+
+                                    {% else %}
+
+                                        <span class="status-badge danger">
+                                            Low
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    {% else %}
+
+                        <tr>
+
+                            <td
+                                colspan="6"
+                                class="empty-table-cell"
+                            >
+
+                                <div class="empty-state">
+
+                                    <div class="empty-state-icon">
+                                        📊
+                                    </div>
+
+                                    <h3>
+                                        No Performance Data
+                                    </h3>
+
+                                    <p>
+                                        Sales data will appear here
+                                        once transactions are recorded.
+                                    </p>
+
+                                </div>
+
+                            </td>
+
+                        </tr>
+
+                    {% endif %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+</main>
+
+{% endblock %}
+
+
+{% block extra_js %}
+
+<!-- Chart.js -->
+<script
+    src="https://cdn.jsdelivr.net/npm/chart.js"
+></script>
+
+
+<!-- Analytics JavaScript -->
+<script
+    src="{{ url_for('static', filename='js/analytics.js') }}"
+></script>
+
+
+<!-- Analytics Data -->
+<div
+    id="analyticsData"
+
+    data-revenue-labels='{{ revenue_labels|default([])|tojson }}'
+
+    data-revenue-values='{{ revenue_data|default([])|tojson }}'
+
+    data-category-labels='{{ category_labels|default([])|tojson }}'
+
+    data-category-values='{{ category_data|default([])|tojson }}'
+
+    data-top-product-labels='{{ top_product_labels|default([])|tojson }}'
+
+    data-top-product-values='{{ top_product_data|default([])|tojson }}'
+
+    data-inventory-in-stock="{{ inventory_in_stock|default(0) }}"
+
+    data-inventory-low-stock="{{ inventory_low_stock|default(0) }}"
+
+    data-inventory-out-stock="{{ inventory_out_stock|default(0) }}"
+></div>
+
+
+<script>
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+        const analyticsData =
+            document.getElementById(
+                "analyticsData"
+            );
+
+
+        if (!analyticsData) {
+            return;
+        }
+
+
+        /* Read Analytics Data */
+
+        let revenueLabels = [];
+
+        let revenueValues = [];
+
+        let categoryLabels = [];
+
+        let categoryValues = [];
+
+        let topProductLabels = [];
+
+        let topProductValues = [];
+
+
+        try {
+
+            revenueLabels =
+                JSON.parse(
+                    analyticsData.dataset.revenueLabels
+                );
+
+
+            revenueValues =
+                JSON.parse(
+                    analyticsData.dataset.revenueValues
+                );
+
+
+            categoryLabels =
+                JSON.parse(
+                    analyticsData.dataset.categoryLabels
+                );
+
+
+            categoryValues =
+                JSON.parse(
+                    analyticsData.dataset.categoryValues
+                );
+
+
+            topProductLabels =
+                JSON.parse(
+                    analyticsData.dataset.topProductLabels
+                );
+
+
+            topProductValues =
+                JSON.parse(
+                    analyticsData.dataset.topProductValues
+                );
+
+        } catch (error) {
+
+            console.error(
+                "Unable to read analytics data:",
+                error
+            );
+
+        }
+
+
+        /* Demo Fallback Data */
+
+        if (!revenueLabels.length) {
+
+            revenueLabels = [
+                "1",
+                "5",
+                "10",
+                "15",
+                "20",
+                "25",
+                "30"
+            ];
+
+        }
+
+
+        if (!revenueValues.length) {
+
+            revenueValues = [
+                12000,
+                18000,
+                15000,
+                23000,
+                21000,
+                28000,
+                32000
+            ];
+
+        }
+
+
+        if (!categoryLabels.length) {
+
+            categoryLabels = [
+                "Electronics",
+                "Accessories",
+                "Office",
+                "Other"
+            ];
+
+        }
+
+
+        if (!categoryValues.length) {
+
+            categoryValues = [
+                45,
+                25,
+                20,
+                10
+            ];
+
+        }
+
+
+        if (!topProductLabels.length) {
+
+            topProductLabels = [
+                "Wireless Mouse",
+                "Keyboard",
+                "Monitor",
+                "USB Cable",
+                "Headset"
+            ];
+
+        }
+
+
+        if (!topProductValues.length) {
+
+            topProductValues = [
+                145,
+                120,
+                95,
+                82,
+                65
+            ];
+
+        }
+
+
+        const inventoryInStock =
+            Number(
+                analyticsData.dataset.inventoryInStock || 0
+            );
+
+
+        const inventoryLowStock =
+            Number(
+                analyticsData.dataset.inventoryLowStock || 0
+            );
+
+
+        const inventoryOutStock =
+            Number(
+                analyticsData.dataset.inventoryOutStock || 0
+            );
+
+
+        /* Revenue Trend Chart */
+
+        const revenueCanvas =
+            document.getElementById(
+                "revenueTrendChart"
+            );
+
+
+        if (
+            revenueCanvas &&
+            typeof Chart !== "undefined"
+        ) {
+
+            new Chart(
+                revenueCanvas,
+                {
+
+                    type: "line",
+
+                    data: {
+
+                        labels: revenueLabels,
+
+                        datasets: [
+
+                            {
+
+                                label: "Revenue",
+
+                                data: revenueValues,
+
+                                borderColor:
+                                    "#f47521",
+
+                                backgroundColor:
+                                    "rgba(244, 117, 33, 0.08)",
+
+                                borderWidth: 2,
+
+                                tension: 0.4,
+
+                                fill: true,
+
+                                pointRadius: 3,
+
+                                pointHoverRadius: 5
+
+                            }
+
+                        ]
+
+                    },
+
+                    options: {
+
+                        responsive: true,
+
+                        maintainAspectRatio: false,
+
+                        plugins: {
+
+                            legend: {
+                                display: false
+                            }
+
+                        },
+
+                        scales: {
+
+                            y: {
+
+                                beginAtZero: true
+
+                            }
+
+                        }
+
+                    }
+
+                }
+            );
+
+        }
+
+
+        /* Category Sales Chart */
+
+        const categoryCanvas =
+            document.getElementById(
+                "categorySalesChart"
+            );
+
+
+        if (
+            categoryCanvas &&
+            typeof Chart !== "undefined"
+        ) {
+
+            new Chart(
+                categoryCanvas,
+                {
+
+                    type: "doughnut",
+
+                    data: {
+
+                        labels: categoryLabels,
+
+                        datasets: [
+
+                            {
+
+                                data: categoryValues,
+
+                                backgroundColor: [
+                                    "#f47521",
+                                    "#333333",
+                                    "#777777",
+                                    "#cccccc"
+                                ],
+
+                                borderWidth: 0
+
+                            }
+
+                        ]
+
+                    },
+
+                    options: {
+
+                        responsive: true,
+
+                        maintainAspectRatio: false,
+
+                        cutout: "60%",
+
+                        plugins: {
+
+                            legend: {
+                                position: "bottom"
+                            }
+
+                        }
+
+                    }
+
+                }
+            );
+
+        }
+
+
+        /* Top Products Chart */
+
+        const topProductsCanvas =
+            document.getElementById(
+                "topProductsChart"
+            );
+
+
+        if (
+            topProductsCanvas &&
+            typeof Chart !== "undefined"
+        ) {
+
+            new Chart(
+                topProductsCanvas,
+                {
+
+                    type: "bar",
+
+                    data: {
+
+                        labels: topProductLabels,
+
+                        datasets: [
+
+                            {
+
+                                label: "Units Sold",
+
+                                data: topProductValues,
+
+                                backgroundColor:
+                                    "#f47521",
+
+                                borderRadius: 5
+
+                            }
+
+                        ]
+
+                    },
+
+                    options: {
+
+                        responsive: true,
+
+                        maintainAspectRatio: false,
+
+                        plugins: {
+
+                            legend: {
+                                display: false
+                            }
+
+                        },
+
+                        scales: {
+
+                            y: {
+
+                                beginAtZero: true
+
+                            }
+
+                        }
+
+                    }
+
+                }
+            );
+
+        }
+
+
+        /* Inventory Health Chart */
+
+        const inventoryCanvas =
+            document.getElementById(
+                "inventoryHealthChart"
+            );
+
+
+        if (
+            inventoryCanvas &&
+            typeof Chart !== "undefined"
+        ) {
+
+            new Chart(
+                inventoryCanvas,
+                {
+
+                    type: "doughnut",
+
+                    data: {
+
+                        labels: [
+                            "In Stock",
+                            "Low Stock",
+                            "Out of Stock"
+                        ],
+
+                        datasets: [
+
+                            {
+
+                                data: [
+                                    inventoryInStock,
+                                    inventoryLowStock,
+                                    inventoryOutStock
+                                ],
+
+                                backgroundColor: [
+                                    "#f47521",
+                                    "#777777",
+                                    "#333333"
+                                ],
+
+                                borderWidth: 0
+
+                            }
+
+                        ]
+
+                    },
+
+                    options: {
+
+                        responsive: true,
+
+                        maintainAspectRatio: false,
+
+                        cutout: "60%",
+
+                        plugins: {
+
+                            legend: {
+                                position: "bottom"
+                            }
+
+                        }
+
+                    }
+
+                }
+            );
+
+        }
+
+
+        /* Apply Analytics Filters */
+
+        const applyFilters =
+            document.getElementById(
+                "applyAnalyticsFilters"
+            );
+
+
+        if (applyFilters) {
+
+            applyFilters.addEventListener(
+                "click",
+                function () {
+
+                    const date =
+                        document.getElementById(
+                            "analyticsDate"
+                        ).value;
+
+
+                    const category =
+                        document.getElementById(
+                            "analyticsCategory"
+                        ).value;
+
+
+                    const product =
+                        document.getElementById(
+                            "analyticsProduct"
+                        ).value;
+
+
+                    console.log(
+                        "Analytics filters:",
+                        {
+                            date,
+                            category,
+                            product
+                        }
+                    );
+
+                }
+            );
+
+        }
+
+
+        /* Export Report */
+
+        const exportReport =
+            document.getElementById(
+                "exportReportBtn"
+            );
+
+
+        if (exportReport) {
+
+            exportReport.addEventListener(
+                "click",
+                function () {
+
+                    window.print();
+
+                }
+            );
+
+        }
+
+    }
+
+);
+
+</script>
+
+{% endblock %}

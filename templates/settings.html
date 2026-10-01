@@ -1,0 +1,1533 @@
+{% extends "base.html" %}
+
+{% block title %}
+Settings | InCraft
+{% endblock %}
+
+{% block content %}
+
+<main class="main-content">
+
+    <!-- =========================================
+         PAGE HEADER
+         ========================================= -->
+
+    <section class="page-header settings-page-header">
+
+        <div class="page-header-content">
+
+            <span class="page-eyebrow">ACCOUNT & PREFERENCES</span>
+
+            <div class="page-header-title-row">
+
+                <div class="page-header-icon">
+                    ⚙
+                </div>
+
+                <div>
+                    <h1>Settings</h1>
+
+                    <p>
+                        Manage your account and application preferences.
+                    </p>
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================
+         FLASH MESSAGES
+         ========================================= -->
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+
+        {% if messages %}
+
+            <div class="flash-messages">
+
+                {% for category, message in messages %}
+
+                    <div class="flash-message {{ category }}">
+                        {{ message }}
+                    </div>
+
+                {% endfor %}
+
+            </div>
+
+        {% endif %}
+
+    {% endwith %}
+
+
+    <!-- =========================================
+         SETTINGS LAYOUT
+         ========================================= -->
+
+    <div class="settings-layout">
+
+
+        <!-- =====================================
+             SETTINGS NAVIGATION
+             ===================================== -->
+
+        <aside class="settings-nav">
+
+            <div class="settings-nav-header">
+
+                <span class="settings-nav-label">
+                    SETTINGS
+                </span>
+
+            </div>
+
+
+            <button
+                type="button"
+                class="settings-nav-item active"
+                data-section="general"
+            >
+
+                <span class="settings-nav-icon">
+                    👤
+                </span>
+
+                <span>
+                    General
+                </span>
+
+            </button>
+
+
+            <button
+                type="button"
+                class="settings-nav-item"
+                data-section="account"
+            >
+
+                <span class="settings-nav-icon">
+                    🔐
+                </span>
+
+                <span>
+                    Account
+                </span>
+
+            </button>
+
+
+            <button
+                type="button"
+                class="settings-nav-item"
+                data-section="notifications"
+            >
+
+                <span class="settings-nav-icon">
+                    🔔
+                </span>
+
+                <span>
+                    Notifications
+                </span>
+
+            </button>
+
+
+            <button
+                type="button"
+                class="settings-nav-item"
+                data-section="inventory"
+            >
+
+                <span class="settings-nav-icon">
+                    📦
+                </span>
+
+                <span>
+                    Inventory
+                </span>
+
+            </button>
+
+
+            <button
+                type="button"
+                class="settings-nav-item"
+                data-section="appearance"
+            >
+
+                <span class="settings-nav-icon">
+                    🎨
+                </span>
+
+                <span>
+                    Appearance
+                </span>
+
+            </button>
+
+
+            <button
+                type="button"
+                class="settings-nav-item"
+                data-section="about"
+            >
+
+                <span class="settings-nav-icon">
+                    ℹ
+                </span>
+
+                <span>
+                    About
+                </span>
+
+            </button>
+
+
+            <div class="settings-nav-footer">
+
+                <div class="settings-nav-footer-icon">
+                    IC
+                </div>
+
+                <div>
+                    <strong>InCraft</strong>
+                    <span>Version 1.0.0</span>
+                </div>
+
+            </div>
+
+        </aside>
+
+
+        <!-- =====================================
+             SETTINGS CONTENT
+             ===================================== -->
+
+        <div class="settings-content">
+
+
+            <!-- =================================
+                 GENERAL
+                 ================================= -->
+
+            <section
+                class="settings-section active"
+                id="general"
+            >
+
+                <div class="dashboard-card settings-card">
+
+                    <div class="settings-card-header">
+
+                        <div class="settings-card-heading">
+
+                            <div class="settings-section-icon">
+                                👤
+                            </div>
+
+                            <div>
+
+                                <h2>
+                                    General
+                                </h2>
+
+                                <p>
+                                    Manage your account information.
+                                </p>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!--
+                        The current Flask backend expects:
+                        username
+                        email
+
+                        It does not currently process:
+                        phone
+                        profile_image
+                    -->
+
+                    <form
+                        method="POST"
+                        action="{{ url_for('main.settings') }}"
+                    >
+
+                        <div class="form-grid">
+
+
+                            <!-- Username -->
+
+                            <div class="form-group">
+
+                                <label for="username">
+                                    Username
+                                </label>
+
+                                <input
+                                    type="text"
+                                    id="username"
+                                    name="username"
+                                    placeholder="Enter your username"
+                                    value="{{ user.username|default('') if user else '' }}"
+                                    required
+                                >
+
+                            </div>
+
+
+                            <!-- Email -->
+
+                            <div class="form-group">
+
+                                <label for="email">
+                                    Email
+                                </label>
+
+                                <input
+                                    type="email"
+                                    id="email"
+                                    name="email"
+                                    placeholder="Enter your email"
+                                    value="{{ user.email|default('') if user else '' }}"
+                                    required
+                                >
+
+                            </div>
+
+
+                            <!-- Role -->
+
+                            <div class="form-group">
+
+                                <label for="role">
+                                    Role
+                                </label>
+
+                                <input
+                                    type="text"
+                                    id="role"
+                                    value="{{ user.role|default('User') if user else 'User' }}"
+                                    readonly
+                                >
+
+                                <small>
+                                    Your account role is managed by the system.
+                                </small>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="form-actions">
+
+                            <button
+                                type="submit"
+                                class="btn btn-primary"
+                            >
+                                Save Changes
+                            </button>
+
+                        </div>
+
+                    </form>
+
+                </div>
+
+            </section>
+
+
+            <!-- =================================
+                 ACCOUNT
+                 ================================= -->
+
+            <section
+                class="settings-section"
+                id="account"
+            >
+
+
+                <!-- Password -->
+
+                <div class="dashboard-card settings-card">
+
+                    <div class="settings-card-header">
+
+                        <div class="settings-card-heading">
+
+                            <div class="settings-section-icon">
+                                🔐
+                            </div>
+
+                            <div>
+
+                                <h2>
+                                    Account Security
+                                </h2>
+
+                                <p>
+                                    Change your account password.
+                                </p>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <form
+                        method="POST"
+                        action="{{ url_for('main.settings') }}"
+                    >
+
+
+                        <!--
+                            The backend requires username and email
+                            on every POST request.
+
+                            Therefore they are submitted as hidden
+                            fields when changing the password.
+                        -->
+
+                        <input
+                            type="hidden"
+                            name="username"
+                            value="{{ user.username|default('') if user else '' }}"
+                        >
+
+                        <input
+                            type="hidden"
+                            name="email"
+                            value="{{ user.email|default('') if user else '' }}"
+                        >
+
+
+                        <div class="form-grid">
+
+
+                            <!-- Current Password -->
+
+                            <div class="form-group full-width">
+
+                                <label for="current_password">
+                                    Current Password
+                                </label>
+
+                                <input
+                                    type="password"
+                                    id="current_password"
+                                    name="current_password"
+                                    placeholder="Enter current password"
+                                    autocomplete="current-password"
+                                >
+
+                            </div>
+
+
+                            <!-- New Password -->
+
+                            <div class="form-group">
+
+                                <label for="new_password">
+                                    New Password
+                                </label>
+
+                                <input
+                                    type="password"
+                                    id="new_password"
+                                    name="new_password"
+                                    placeholder="Enter new password"
+                                    autocomplete="new-password"
+                                >
+
+                            </div>
+
+
+                            <!-- Confirm Password -->
+
+                            <div class="form-group">
+
+                                <label for="confirm_password">
+                                    Confirm Password
+                                </label>
+
+                                <input
+                                    type="password"
+                                    id="confirm_password"
+                                    name="confirm_password"
+                                    placeholder="Confirm new password"
+                                    autocomplete="new-password"
+                                >
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="form-actions">
+
+                            <button
+                                type="submit"
+                                class="btn btn-primary"
+                            >
+                                Update Password
+                            </button>
+
+                        </div>
+
+                    </form>
+
+                </div>
+
+
+                <!-- Security Status -->
+
+                <div class="dashboard-card settings-card">
+
+                    <div class="settings-card-header">
+
+                        <div class="settings-card-heading">
+
+                            <div class="settings-section-icon">
+                                🛡
+                            </div>
+
+                            <div>
+
+                                <h2>
+                                    Security
+                                </h2>
+
+                                <p>
+                                    Review your current account security status.
+                                </p>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="settings-option">
+
+                        <div class="settings-option-content">
+
+                            <div class="settings-option-icon">
+                                🔒
+                            </div>
+
+                            <div>
+
+                                <strong>
+                                    Session Security
+                                </strong>
+
+                                <p>
+                                    Your authenticated session is protected
+                                    by the application.
+                                </p>
+
+                            </div>
+
+                        </div>
+
+
+                        <span class="status-badge success">
+                            Active
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- =================================
+                 NOTIFICATIONS
+                 ================================= -->
+
+            <section
+                class="settings-section"
+                id="notifications"
+            >
+
+                <div class="dashboard-card settings-card">
+
+                    <div class="settings-card-header">
+
+                        <div class="settings-card-heading">
+
+                            <div class="settings-section-icon">
+                                🔔
+                            </div>
+
+                            <div>
+
+                                <h2>
+                                    Notifications
+                                </h2>
+
+                                <p>
+                                    Choose which inventory notifications
+                                    you want to receive.
+                                </p>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="settings-options">
+
+
+                        <!-- Low Stock -->
+
+                        <div class="settings-option">
+
+                            <div class="settings-option-content">
+
+                                <div class="settings-option-icon warning">
+                                    !
+                                </div>
+
+                                <div>
+
+                                    <strong>
+                                        Low Stock Alerts
+                                    </strong>
+
+                                    <p>
+                                        Get notified when products reach
+                                        their reorder level.
+                                    </p>
+
+                                </div>
+
+                            </div>
+
+
+                            <label class="switch">
+
+                                <input
+                                    type="checkbox"
+                                    id="lowStockAlerts"
+                                    checked
+                                >
+
+                                <span class="slider"></span>
+
+                            </label>
+
+                        </div>
+
+
+                        <!-- Out of Stock -->
+
+                        <div class="settings-option">
+
+                            <div class="settings-option-content">
+
+                                <div class="settings-option-icon danger">
+                                    !
+                                </div>
+
+                                <div>
+
+                                    <strong>
+                                        Out of Stock Alerts
+                                    </strong>
+
+                                    <p>
+                                        Get notified when a product reaches
+                                        zero stock.
+                                    </p>
+
+                                </div>
+
+                            </div>
+
+
+                            <label class="switch">
+
+                                <input
+                                    type="checkbox"
+                                    id="outOfStockAlerts"
+                                    checked
+                                >
+
+                                <span class="slider"></span>
+
+                            </label>
+
+                        </div>
+
+
+                        <!-- Sale -->
+
+                        <div class="settings-option">
+
+                            <div class="settings-option-content">
+
+                                <div class="settings-option-icon success">
+                                    ✓
+                                </div>
+
+                                <div>
+
+                                    <strong>
+                                        Sale Completed
+                                    </strong>
+
+                                    <p>
+                                        Receive a notification after
+                                        a sale is recorded.
+                                    </p>
+
+                                </div>
+
+                            </div>
+
+
+                            <label class="switch">
+
+                                <input
+                                    type="checkbox"
+                                    id="saleCompleted"
+                                    checked
+                                >
+
+                                <span class="slider"></span>
+
+                            </label>
+
+                        </div>
+
+
+                        <!-- Security -->
+
+                        <div class="settings-option">
+
+                            <div class="settings-option-content">
+
+                                <div class="settings-option-icon">
+                                    🔐
+                                </div>
+
+                                <div>
+
+                                    <strong>
+                                        Security Alerts
+                                    </strong>
+
+                                    <p>
+                                        Receive important account and
+                                        security notifications.
+                                    </p>
+
+                                </div>
+
+                            </div>
+
+
+                            <label class="switch">
+
+                                <input
+                                    type="checkbox"
+                                    id="securityAlerts"
+                                    checked
+                                >
+
+                                <span class="slider"></span>
+
+                            </label>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="form-actions">
+
+                        <button
+                            type="button"
+                            class="btn btn-primary"
+                            id="saveNotifications"
+                        >
+                            Save Preferences
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- =================================
+                 INVENTORY
+                 ================================= -->
+
+            <section
+                class="settings-section"
+                id="inventory"
+            >
+
+                <div class="dashboard-card settings-card">
+
+                    <div class="settings-card-header">
+
+                        <div class="settings-card-heading">
+
+                            <div class="settings-section-icon">
+                                📦
+                            </div>
+
+                            <div>
+
+                                <h2>
+                                    Inventory
+                                </h2>
+
+                                <p>
+                                    Configure your inventory preferences.
+                                </p>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="form-grid">
+
+
+                        <!-- Reorder Level -->
+
+                        <div class="form-group">
+
+                            <label for="default_reorder">
+                                Default Reorder Level
+                            </label>
+
+                            <input
+                                type="number"
+                                id="default_reorder"
+                                name="default_reorder"
+                                min="0"
+                                value="10"
+                            >
+
+                            <small>
+                                Default threshold for new products.
+                            </small>
+
+                        </div>
+
+
+                        <!-- Currency -->
+
+                        <div class="form-group">
+
+                            <label for="currency">
+                                Currency
+                            </label>
+
+                            <select
+                                id="currency"
+                                name="currency"
+                            >
+
+                                <option
+                                    value="INR"
+                                    selected
+                                >
+                                    INR — ₹ Indian Rupee
+                                </option>
+
+                                <option value="USD">
+                                    USD — $ US Dollar
+                                </option>
+
+                                <option value="EUR">
+                                    EUR — € Euro
+                                </option>
+
+                            </select>
+
+                        </div>
+
+
+                        <!-- Default Tax -->
+
+                        <div class="form-group">
+
+                            <label for="default_tax">
+                                Default Tax
+                            </label>
+
+                            <div class="input-with-suffix">
+
+                                <input
+                                    type="number"
+                                    id="default_tax"
+                                    name="default_tax"
+                                    min="0"
+                                    step="0.01"
+                                    value="18"
+                                >
+
+                                <span>
+                                    %
+                                </span>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- Date Format -->
+
+                        <div class="form-group">
+
+                            <label for="date_format">
+                                Date Format
+                            </label>
+
+                            <select
+                                id="date_format"
+                                name="date_format"
+                            >
+
+                                <option value="DD-MM-YYYY">
+                                    DD-MM-YYYY
+                                </option>
+
+                                <option value="MM-DD-YYYY">
+                                    MM-DD-YYYY
+                                </option>
+
+                                <option value="YYYY-MM-DD">
+                                    YYYY-MM-DD
+                                </option>
+
+                            </select>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="form-actions">
+
+                        <button
+                            type="button"
+                            class="btn btn-primary"
+                            id="saveInventorySettings"
+                        >
+                            Save Settings
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- =================================
+                 APPEARANCE
+                 ================================= -->
+
+            <section
+                class="settings-section"
+                id="appearance"
+            >
+
+                <div class="dashboard-card settings-card">
+
+                    <div class="settings-card-header">
+
+                        <div class="settings-card-heading">
+
+                            <div class="settings-section-icon">
+                                🎨
+                            </div>
+
+                            <div>
+
+                                <h2>
+                                    Appearance
+                                </h2>
+
+                                <p>
+                                    Customize how InCraft looks and feels.
+                                </p>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- Theme -->
+
+                    <div class="settings-option">
+
+                        <div class="settings-option-content">
+
+                            <div class="settings-option-icon">
+                                ◐
+                            </div>
+
+                            <div>
+
+                                <strong>
+                                    Theme
+                                </strong>
+
+                                <p>
+                                    Choose your preferred appearance.
+                                </p>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="theme-options">
+
+                            <label class="theme-option">
+
+                                <input
+                                    type="radio"
+                                    name="theme"
+                                    value="light"
+                                    checked
+                                >
+
+                                <span>
+                                    Light
+                                </span>
+
+                            </label>
+
+
+                            <label class="theme-option">
+
+                                <input
+                                    type="radio"
+                                    name="theme"
+                                    value="dark"
+                                >
+
+                                <span>
+                                    Dark
+                                </span>
+
+                            </label>
+
+
+                            <label class="theme-option">
+
+                                <input
+                                    type="radio"
+                                    name="theme"
+                                    value="system"
+                                >
+
+                                <span>
+                                    System
+                                </span>
+
+                            </label>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- Compact Sidebar -->
+
+                    <div class="settings-option">
+
+                        <div class="settings-option-content">
+
+                            <div class="settings-option-icon">
+                                ☰
+                            </div>
+
+                            <div>
+
+                                <strong>
+                                    Compact Sidebar
+                                </strong>
+
+                                <p>
+                                    Use a compact sidebar layout.
+                                </p>
+
+                            </div>
+
+                        </div>
+
+
+                        <label class="switch">
+
+                            <input
+                                type="checkbox"
+                                id="compactSidebar"
+                            >
+
+                            <span class="slider"></span>
+
+                        </label>
+
+                    </div>
+
+
+                    <!-- Compact Tables -->
+
+                    <div class="settings-option">
+
+                        <div class="settings-option-content">
+
+                            <div class="settings-option-icon">
+                                ▤
+                            </div>
+
+                            <div>
+
+                                <strong>
+                                    Compact Tables
+                                </strong>
+
+                                <p>
+                                    Display more rows using reduced
+                                    table spacing.
+                                </p>
+
+                            </div>
+
+                        </div>
+
+
+                        <label class="switch">
+
+                            <input
+                                type="checkbox"
+                                id="compactTables"
+                            >
+
+                            <span class="slider"></span>
+
+                        </label>
+
+                    </div>
+
+
+                    <div class="form-actions">
+
+                        <button
+                            type="button"
+                            class="btn btn-primary"
+                            id="saveAppearance"
+                        >
+                            Save Preferences
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- =================================
+                 ABOUT
+                 ================================= -->
+
+            <section
+                class="settings-section"
+                id="about"
+            >
+
+                <div class="dashboard-card about-card">
+
+                    <div class="about-logo">
+                        IC
+                    </div>
+
+
+                    <span class="page-eyebrow">
+                        ABOUT INCRAFT
+                    </span>
+
+
+                    <h2>
+                        The Art of Intelligent Inventory
+                    </h2>
+
+
+                    <p class="about-description">
+
+                        A simple and intelligent inventory management
+                        system designed to help businesses manage
+                        products, stock, sales and analytics efficiently.
+
+                    </p>
+
+
+                    <div class="about-details">
+
+
+                        <div>
+
+                            <span>
+                                Version
+                            </span>
+
+                            <strong>
+                                1.0.0
+                            </strong>
+
+                        </div>
+
+
+                        <div>
+
+                            <span>
+                                Frontend
+                            </span>
+
+                            <strong>
+                                HTML • CSS • JavaScript
+                            </strong>
+
+                        </div>
+
+
+                        <div>
+
+                            <span>
+                                Backend
+                            </span>
+
+                            <strong>
+                                Python • Flask
+                            </strong>
+
+                        </div>
+
+
+                        <div>
+
+                            <span>
+                                Database
+                            </span>
+
+                            <strong>
+                                MySQL
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="about-footer">
+
+                        <span class="about-footer-dot"></span>
+
+                        <span>
+                            Intelligent inventory management
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+        </div>
+
+    </div>
+
+</main>
+
+{% endblock %}
+
+
+{% block extra_js %}
+
+<script
+    src="{{ url_for('static', filename='js/settings.js') }}"
+></script>
+
+
+<script>
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+
+        /* =========================================
+           SETTINGS NAVIGATION
+           ========================================= */
+
+        const navItems =
+            document.querySelectorAll(
+                ".settings-nav-item"
+            );
+
+
+        const sections =
+            document.querySelectorAll(
+                ".settings-section"
+            );
+
+
+        navItems.forEach(
+            function (item) {
+
+                item.addEventListener(
+                    "click",
+                    function () {
+
+                        const target =
+                            item.dataset.section;
+
+
+                        navItems.forEach(
+                            function (nav) {
+
+                                nav.classList.remove(
+                                    "active"
+                                );
+
+                            }
+                        );
+
+
+                        sections.forEach(
+                            function (section) {
+
+                                section.classList.remove(
+                                    "active"
+                                );
+
+                            }
+                        );
+
+
+                        item.classList.add(
+                            "active"
+                        );
+
+
+                        const targetSection =
+                            document.getElementById(
+                                target
+                            );
+
+
+                        if (targetSection) {
+
+                            targetSection.classList.add(
+                                "active"
+                            );
+
+                        }
+
+                    }
+                );
+
+            }
+        );
+
+
+        /* =========================================
+           SAVE NOTIFICATIONS
+           ========================================= */
+
+        const saveNotifications =
+            document.getElementById(
+                "saveNotifications"
+            );
+
+
+        if (saveNotifications) {
+
+            saveNotifications.addEventListener(
+                "click",
+                function () {
+
+                    alert(
+                        "Notification preferences are ready for backend integration."
+                    );
+
+                }
+            );
+
+        }
+
+
+        /* =========================================
+           SAVE INVENTORY SETTINGS
+           ========================================= */
+
+        const saveInventorySettings =
+            document.getElementById(
+                "saveInventorySettings"
+            );
+
+
+        if (saveInventorySettings) {
+
+            saveInventorySettings.addEventListener(
+                "click",
+                function () {
+
+                    alert(
+                        "Inventory preferences are ready for backend integration."
+                    );
+
+                }
+            );
+
+        }
+
+
+        /* =========================================
+           THEME
+           ========================================= */
+
+        const themeOptions =
+            document.querySelectorAll(
+                'input[name="theme"]'
+            );
+
+
+        themeOptions.forEach(
+            function (option) {
+
+                option.addEventListener(
+                    "change",
+                    function () {
+
+                        if (option.checked) {
+
+                            document.body.dataset.theme =
+                                option.value;
+
+                        }
+
+                    }
+                );
+
+            }
+        );
+
+
+        /* =========================================
+           SAVE APPEARANCE
+           ========================================= */
+
+        const saveAppearance =
+            document.getElementById(
+                "saveAppearance"
+            );
+
+
+        if (saveAppearance) {
+
+            saveAppearance.addEventListener(
+                "click",
+                function () {
+
+                    alert(
+                        "Appearance preferences are ready for backend integration."
+                    );
+
+                }
+            );
+
+        }
+
+
+        /* =========================================
+           COMPACT TABLES
+           ========================================= */
+
+        const compactTables =
+            document.getElementById(
+                "compactTables"
+            );
+
+
+        if (compactTables) {
+
+            compactTables.addEventListener(
+                "change",
+                function () {
+
+                    document.body.classList.toggle(
+                        "compact-tables",
+                        compactTables.checked
+                    );
+
+                }
+            );
+
+        }
+
+
+        /* =========================================
+           COMPACT SIDEBAR
+           ========================================= */
+
+        const compactSidebar =
+            document.getElementById(
+                "compactSidebar"
+            );
+
+
+        if (compactSidebar) {
+
+            compactSidebar.addEventListener(
+                "change",
+                function () {
+
+                    document.body.classList.toggle(
+                        "compact-sidebar",
+                        compactSidebar.checked
+                    );
+
+                }
+            );
+
+        }
+
+    }
+);
+
+</script>
+
+{% endblock %}

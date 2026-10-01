@@ -1,0 +1,400 @@
+/* =========================================
+   InCraft — Activity History Styles
+   ========================================= */
+
+/* ---------- Page Header ---------- */
+
+.activity-page-header {
+    margin-bottom: 18px;
+}
+
+.activity-page-header .page-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+
+/* ---------- Activity Filters ---------- */
+
+.activity-filters {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.activity-filters .form-group {
+    min-width: 170px;
+}
+
+.activity-filters label {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--ic-text-soft);
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.activity-filters select,
+.activity-filters input {
+    width: 100%;
+    min-height: 40px;
+    padding: 9px 11px;
+    background: #FFFFFF;
+    border: 1px solid var(--ic-border);
+    border-radius: 8px;
+    color: var(--ic-text);
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.activity-filters select:focus,
+.activity-filters input:focus {
+    border-color: var(--ic-orange);
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.10);
+}
+
+
+/* ---------- Activity Card ---------- */
+
+.activity-card {
+    overflow: hidden;
+}
+
+.activity-card .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.activity-card .card-header h3 {
+    color: var(--ic-text);
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.activity-card .card-header p {
+    margin-top: 3px;
+    color: var(--ic-muted);
+    font-size: 11px;
+}
+
+
+/* ---------- Activity List ---------- */
+
+.activity-history-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.activity-history-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 13px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--ic-border-soft);
+}
+
+.activity-history-item:last-child {
+    border-bottom: 0;
+}
+
+
+/* ---------- Activity Icon ---------- */
+
+.activity-history-icon {
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9px;
+    background: var(--ic-orange-soft);
+    color: var(--ic-orange);
+    font-size: 14px;
+}
+
+.activity-history-icon.success {
+    background: var(--ic-success-soft);
+    color: var(--ic-success);
+}
+
+.activity-history-icon.warning {
+    background: var(--ic-warning-soft);
+    color: var(--ic-warning);
+}
+
+.activity-history-icon.danger {
+    background: var(--ic-danger-soft);
+    color: var(--ic-danger);
+}
+
+
+/* ---------- Activity Details ---------- */
+
+.activity-history-details {
+    min-width: 0;
+    flex: 1;
+}
+
+.activity-history-title {
+    color: var(--ic-text);
+    font-size: 13px;
+    font-weight: 650;
+    line-height: 1.4;
+}
+
+.activity-history-description {
+    margin-top: 3px;
+    color: var(--ic-muted);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.activity-history-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 7px;
+    color: var(--ic-muted);
+    font-size: 10px;
+}
+
+.activity-history-meta span {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+
+/* ---------- Activity Action ---------- */
+
+.activity-action {
+    flex-shrink: 0;
+    color: var(--ic-text-soft);
+    font-size: 12px;
+    font-weight: 650;
+}
+
+
+/* ---------- Activity Table ---------- */
+
+.activity-table-card {
+    overflow: hidden;
+}
+
+.activity-table-card .table-container {
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.activity-table-card .data-table {
+    min-width: 750px;
+}
+
+.activity-table-card .data-table td {
+    vertical-align: middle;
+}
+
+
+/* ---------- Action Badges ---------- */
+
+.activity-action-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: #F1F5F9;
+    color: var(--ic-text-soft);
+    font-size: 10px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.activity-action-badge.add,
+.activity-action-badge.create {
+    background: var(--ic-success-soft);
+    color: var(--ic-success);
+}
+
+.activity-action-badge.update,
+.activity-action-badge.edit {
+    background: var(--ic-orange-soft);
+    color: var(--ic-orange);
+}
+
+.activity-action-badge.delete,
+.activity-action-badge.remove {
+    background: var(--ic-danger-soft);
+    color: var(--ic-danger);
+}
+
+.activity-action-badge.sale {
+    background: #EEF2FF;
+    color: #4F46E5;
+}
+
+
+/* ---------- Activity User ---------- */
+
+.activity-user {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.activity-user-avatar {
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--ic-orange-soft);
+    color: var(--ic-orange);
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.activity-user-name {
+    color: var(--ic-text);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+
+/* ---------- Date / Time ---------- */
+
+.activity-time {
+    color: var(--ic-muted);
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+.activity-date {
+    color: var(--ic-text-soft);
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+
+/* ---------- Empty State ---------- */
+
+.activity-empty {
+    padding: 55px 20px;
+    text-align: center;
+}
+
+.activity-empty-icon {
+    width: 52px;
+    height: 52px;
+    margin: 0 auto 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    background: #F1F5F9;
+    color: var(--ic-muted);
+    font-size: 20px;
+}
+
+.activity-empty h3 {
+    margin-bottom: 5px;
+    color: var(--ic-text);
+    font-size: 15px;
+}
+
+.activity-empty p {
+    max-width: 360px;
+    margin: 0 auto;
+    color: var(--ic-muted);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+
+/* ---------- Pagination ---------- */
+
+.activity-card .pagination,
+.activity-table-card .pagination {
+    border-top: 1px solid var(--ic-border-soft);
+}
+
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 800px) {
+    .activity-filters {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        align-items: end;
+    }
+
+    .activity-filters .form-group {
+        min-width: 0;
+    }
+}
+
+@media (max-width: 600px) {
+    .activity-page-header .page-header-actions {
+        width: 100%;
+    }
+
+    .activity-page-header .page-header-actions .btn {
+        flex: 1;
+    }
+
+    .activity-filters {
+        grid-template-columns: 1fr;
+    }
+
+    .activity-history-item {
+        padding: 14px 16px;
+        gap: 10px;
+    }
+
+    .activity-history-icon {
+        width: 34px;
+        height: 34px;
+    }
+
+    .activity-action {
+        display: none;
+    }
+
+    .activity-card .card-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 480px) {
+    .activity-page-header .page-header-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .activity-page-header .page-header-actions .btn {
+        width: 100%;
+    }
+
+    .activity-history-item {
+        padding: 13px;
+    }
+
+    .activity-history-meta {
+        gap: 5px;
+    }
+
+    .activity-empty {
+        padding: 40px 16px;
+    }
+}

@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        {% block title %}
+        InCraft | The Art of Intelligent Inventory
+        {% endblock %}
+    </title>
+
+
+    <!-- =========================================
+         GLOBAL CSS
+         ========================================= -->
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}"
+    >
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/navbar.css') }}"
+    >
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/sidebar.css') }}"
+    >
+
+
+    <!-- =========================================
+         PAGE-SPECIFIC CSS
+         ========================================= -->
+
+    {% block extra_css %}
+    {% endblock %}
+
+
+    {% block head %}
+    {% endblock %}
+
+</head>
+
+
+<body class="{% block body_class %}{% endblock %}">
+
+
+    {% if request.endpoint in ['main.login', 'main.register'] %}
+
+        <!-- =========================================
+             AUTHENTICATION LAYOUT
+             ========================================= -->
+
+        <div class="auth-layout">
+
+
+    {% else %}
+
+        <!-- =========================================
+             APPLICATION LAYOUT
+             ========================================= -->
+
+        <div class="app-layout">
+
+            <!-- Sidebar -->
+            {% include 'components/sidebar.html' %}
+
+
+            <!-- Main Area -->
+            <div class="main-area">
+
+                <!-- Navbar -->
+                {% include 'components/navbar.html' %}
+
+
+    {% endif %}
+
+
+    <!-- =========================================
+         PAGE CONTENT
+         ========================================= -->
+
+    {% block content %}
+    {% endblock %}
+
+
+    {% if request.endpoint in ['main.login', 'main.register'] %}
+
+        </div>
+
+
+    {% else %}
+
+            </div>
+
+        </div>
+
+    {% endif %}
+
+
+    <!-- =========================================
+         GLOBAL JAVASCRIPT
+         ========================================= -->
+
+    <script
+        src="{{ url_for('static', filename='js/main.js') }}"
+    ></script>
+
+
+    <!-- Page-specific JavaScript -->
+    {% block extra_js %}
+    {% endblock %}
+
+
+</body>
+
+</html>

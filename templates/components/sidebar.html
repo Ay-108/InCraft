@@ -1,0 +1,185 @@
+<!-- =========================================
+     InCraft Sidebar
+     Dark + Orange Theme
+     ========================================= -->
+
+<aside class="sidebar" id="sidebar">
+
+    <!-- Brand -->
+    <div class="sidebar-brand">
+
+        <a
+            href="{{ url_for('main.dashboard') }}"
+            class="brand-link"
+        >
+
+            <div class="brand-mark">
+                IC
+            </div>
+
+            <div class="brand-text">
+
+                <div class="brand-name">
+                    InCraft
+                </div>
+
+                <div class="brand-tagline">
+                    The Art of Intelligent Inventory
+                </div>
+
+            </div>
+
+        </a>
+
+    </div>
+
+
+    <!-- Navigation -->
+    <nav class="sidebar-nav">
+
+        <!-- Main -->
+        <div class="nav-section">
+
+            <span class="nav-section-title">
+                Main
+            </span>
+
+
+            <!-- Dashboard -->
+            <a
+                href="{{ url_for('main.dashboard') }}"
+                class="nav-item {% if request.endpoint == 'main.dashboard' %}active{% endif %}"
+            >
+                <span class="nav-icon">⌂</span>
+                <span class="nav-label">Dashboard</span>
+            </a>
+
+
+            <!-- Inventory -->
+            <a
+                href="{{ url_for('main.inventory') }}"
+                class="nav-item {% if request.endpoint == 'main.inventory' %}active{% endif %}"
+            >
+                <span class="nav-icon">▣</span>
+                <span class="nav-label">Inventory</span>
+            </a>
+
+
+            <!-- Sales -->
+            <a
+                href="{{ url_for('main.sales') }}"
+                class="nav-item {% if request.endpoint == 'main.sales' %}active{% endif %}"
+            >
+                <span class="nav-icon">₹</span>
+                <span class="nav-label">Sales</span>
+            </a>
+
+
+            <!-- Analytics -->
+            <a
+                href="{{ url_for('main.analytics') }}"
+                class="nav-item {% if request.endpoint == 'main.analytics' %}active{% endif %}"
+            >
+                <span class="nav-icon">◫</span>
+                <span class="nav-label">Analytics</span>
+            </a>
+
+
+            <!-- Activity -->
+            <a
+                href="{{ url_for('main.activity') }}"
+                class="nav-item {% if request.endpoint == 'main.activity' %}active{% endif %}"
+            >
+                <span class="nav-icon">◷</span>
+                <span class="nav-label">Activity</span>
+            </a>
+
+        </div>
+
+
+        <!-- Manage -->
+        <div class="nav-section">
+
+            <span class="nav-section-title">
+                Manage
+            </span>
+
+
+            <!-- Settings -->
+            <a
+                href="{{ url_for('main.settings') }}"
+                class="nav-item {% if request.endpoint == 'main.settings' %}active{% endif %}"
+            >
+                <span class="nav-icon">⚙</span>
+                <span class="nav-label">Settings</span>
+            </a>
+
+        </div>
+
+    </nav>
+
+
+    <!-- User / Logout -->
+    <div class="sidebar-bottom">
+
+        <!-- Current User -->
+        <div class="sidebar-user">
+
+            <div class="user-avatar">
+
+                {% if user and user.profile_image %}
+
+                    <img
+                        src="{{ url_for(
+                            'static',
+                            filename=user.profile_image
+                        ) }}"
+                        alt="Profile"
+                    >
+
+                {% else %}
+
+                    <span>
+                        {{ user.name[0]|upper
+                           if user and user.name
+                           else 'A' }}
+                    </span>
+
+                {% endif %}
+
+            </div>
+
+
+            <div class="sidebar-user-info">
+
+                <strong>
+                    {{ user.name
+                       if user and user.name
+                       else 'Admin' }}
+                </strong>
+
+                <span>
+                    {{ user.role
+                       if user and user.role
+                       else 'Administrator' }}
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <!-- Logout -->
+        <a
+            href="{{ url_for('main.logout') }}"
+            class="nav-item logout-item"
+        >
+
+            <span class="nav-icon">↪</span>
+            <span class="nav-label">Logout</span>
+
+        </a>
+
+    </div>
+
+</aside>

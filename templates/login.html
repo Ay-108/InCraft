@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+
+{% block title %}Login | InCraft{% endblock %}
+
+
+{% block extra_css %}
+
+<link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/login.css') }}"
+>
+
+{% endblock %}
+
+
+{% block content %}
+
+<main class="login-page">
+
+    <section class="login-card">
+
+        <!-- =========================================
+             Brand
+             ========================================= -->
+
+        <div class="login-brand">
+
+            <div class="login-logo">
+
+                <svg
+                    width="42"
+                    height="42"
+                    viewBox="0 0 40 40"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                >
+
+                    <rect
+                        x="3"
+                        y="3"
+                        width="34"
+                        height="34"
+                        rx="10"
+                        fill="#F47B20"
+                    />
+
+                    <path
+                        d="M12 11H27"
+                        stroke="white"
+                        stroke-width="2.5"
+                        stroke-linecap="round"
+                    />
+
+                    <path
+                        d="M12 20H24"
+                        stroke="white"
+                        stroke-width="2.5"
+                        stroke-linecap="round"
+                    />
+
+                    <path
+                        d="M12 29H27"
+                        stroke="white"
+                        stroke-width="2.5"
+                        stroke-linecap="round"
+                    />
+
+                </svg>
+
+            </div>
+
+
+            <h1>InCraft</h1>
+
+            <p>
+                The Art of Intelligent Inventory
+            </p>
+
+        </div>
+
+
+        <!-- =========================================
+             Login Heading
+             ========================================= -->
+
+        <div class="login-heading">
+
+            <h2>Welcome Back</h2>
+
+            <p>
+                Sign in to continue to your inventory dashboard.
+            </p>
+
+        </div>
+
+
+        <!-- =========================================
+             Flash Messages
+             ========================================= -->
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+
+            {% if messages %}
+
+                <div class="flash-messages">
+
+                    {% for category, message in messages %}
+
+                        <div class="flash-message {{ category }}">
+                            {{ message }}
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+            {% endif %}
+
+        {% endwith %}
+
+
+        <!-- =========================================
+             Login Form
+             ========================================= -->
+
+        <form
+            method="POST"
+            action="{{ url_for('main.login') }}"
+            class="login-form"
+        >
+
+            <!-- Email -->
+            <div class="form-group">
+
+                <label for="email">
+                    Email
+                </label>
+
+                <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    placeholder="Enter your email"
+                    autocomplete="email"
+                    required
+                >
+
+            </div>
+
+
+            <!-- Password -->
+            <div class="form-group">
+
+                <label for="password">
+                    Password
+                </label>
+
+                <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    placeholder="Enter your password"
+                    autocomplete="current-password"
+                    required
+                >
+
+            </div>
+
+
+            <!-- Submit -->
+            <button
+                type="submit"
+                class="login-button"
+            >
+                Sign In
+            </button>
+
+        </form>
+
+
+        <!-- =========================================
+             Register Link
+             ========================================= -->
+
+        <div class="login-footer">
+
+            <span>
+                Don't have an account?
+            </span>
+
+            <a href="{{ url_for('main.register') }}">
+                Create an account
+            </a>
+
+        </div>
+
+    </section>
+
+</main>
+
+{% endblock %}

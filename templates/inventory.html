@@ -1,0 +1,807 @@
+{% extends "base.html" %}
+
+{% block title %}Inventory | InCraft{% endblock %}
+
+
+{% block content %}
+
+<main class="main-content">
+
+    <!-- =========================================
+         PAGE HEADER
+         ========================================= -->
+
+    <section class="page-header inventory-page-header">
+
+        <div class="page-header-content">
+
+            <span class="page-eyebrow">
+                INVENTORY MANAGEMENT
+            </span>
+
+            <h1>Inventory</h1>
+
+            <p>
+                Manage products, stock levels and inventory operations.
+            </p>
+
+        </div>
+
+
+        <div class="page-header-actions">
+
+            <a
+                href="{{ url_for('main.add_product') }}"
+                class="btn btn-primary"
+            >
+                <span class="btn-icon">+</span>
+                Add Product
+            </a>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================
+         SEARCH + FILTERS
+         ========================================= -->
+
+    <section class="dashboard-card inventory-toolbar">
+
+        <div class="inventory-toolbar-main">
+
+            <!-- Search -->
+            <form
+                method="GET"
+                action="{{ url_for('main.inventory') }}"
+                class="inventory-search-form"
+            >
+
+                <div class="search-box">
+
+                    <span class="search-icon">
+                        🔍
+                    </span>
+
+                    <input
+                        type="search"
+                        id="inventorySearch"
+                        name="search"
+                        value="{{ search|default('') }}"
+                        placeholder="Search products, SKU or category..."
+                        autocomplete="off"
+                    >
+
+                </div>
+
+
+                <button
+                    type="submit"
+                    class="btn btn-primary"
+                >
+                    Search
+                </button>
+
+            </form>
+
+
+            <!-- Filters -->
+            <div class="inventory-filters">
+
+                <div class="filter-item">
+
+                    <label for="categoryFilter">
+                        Category
+                    </label>
+
+                    <select
+                        id="categoryFilter"
+                        class="inventory-filter"
+                    >
+
+                        <option value="">
+                            All Categories
+                        </option>
+
+                        <option value="electronics">
+                            Electronics
+                        </option>
+
+                        <option value="office">
+                            Office
+                        </option>
+
+                        <option value="furniture">
+                            Furniture
+                        </option>
+
+                        <option value="other">
+                            Other
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="filter-item">
+
+                    <label for="stockFilter">
+                        Stock
+                    </label>
+
+                    <select
+                        id="stockFilter"
+                        class="inventory-filter"
+                    >
+
+                        <option value="">
+                            All Stock
+                        </option>
+
+                        <option value="in-stock">
+                            In Stock
+                        </option>
+
+                        <option value="low-stock">
+                            Low Stock
+                        </option>
+
+                        <option value="out-of-stock">
+                            Out of Stock
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="filter-item">
+
+                    <label for="sortFilter">
+                        Sort
+                    </label>
+
+                    <select
+                        id="sortFilter"
+                        class="inventory-filter"
+                    >
+
+                        <option value="newest">
+                            Newest
+                        </option>
+
+                        <option value="oldest">
+                            Oldest
+                        </option>
+
+                        <option value="name-asc">
+                            Name A-Z
+                        </option>
+
+                        <option value="name-desc">
+                            Name Z-A
+                        </option>
+
+                        <option value="stock-low">
+                            Stock Low-High
+                        </option>
+
+                        <option value="stock-high">
+                            Stock High-Low
+                        </option>
+
+                        <option value="price-low">
+                            Price Low-High
+                        </option>
+
+                        <option value="price-high">
+                            Price High-Low
+                        </option>
+
+                    </select>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================
+         INVENTORY ACTIONS
+         ========================================= -->
+
+    <section class="inventory-actions">
+
+        <div class="inventory-action-left">
+
+            <!-- Import -->
+            <form
+                id="inventoryImportForm"
+                method="POST"
+                action="{{ url_for('main.import_inventory') }}"
+                enctype="multipart/form-data"
+                class="inline-form"
+            >
+
+                <input
+                    type="file"
+                    id="inventoryFile"
+                    name="file"
+                    accept=".csv"
+                    hidden
+                >
+
+                <button
+                    type="button"
+                    class="btn btn-secondary"
+                    id="importInventoryBtn"
+                >
+                    <span class="action-icon">↑</span>
+                    Import
+                </button>
+
+            </form>
+
+
+            <!-- Export -->
+            <a
+                href="{{ url_for('main.export_inventory') }}"
+                class="btn btn-secondary"
+                id="exportInventoryBtn"
+            >
+                <span class="action-icon">↓</span>
+                Export
+            </a>
+
+
+            <!-- Print -->
+            <button
+                type="button"
+                class="btn btn-secondary"
+                id="printInventoryBtn"
+            >
+                <span class="action-icon">⎙</span>
+                Print
+            </button>
+
+
+            <!-- Share -->
+            <button
+                type="button"
+                class="btn btn-secondary"
+                id="shareInventoryBtn"
+            >
+                <span class="action-icon">↗</span>
+                Share
+            </button>
+
+        </div>
+
+
+        <div class="inventory-action-right">
+
+            <button
+                type="button"
+                class="btn btn-danger"
+                id="deleteSelectedBtn"
+                disabled
+            >
+                <span class="action-icon">×</span>
+                Delete Selected
+            </button>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================
+         INVENTORY TABLE
+         ========================================= -->
+
+    <section class="dashboard-card inventory-table-card">
+
+        <div class="card-header">
+
+            <div class="card-heading">
+
+                <span class="card-eyebrow">
+                    PRODUCTS
+                </span>
+
+                <h2>
+                    Current Inventory
+                </h2>
+
+                <p>
+                    Manage your current inventory.
+                </p>
+
+            </div>
+
+
+            <div class="inventory-count">
+
+                <strong>
+                    {{ products|length }}
+                </strong>
+
+                <span>
+                    product{% if products|length != 1 %}s{% endif %}
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <!-- =========================================
+             DESKTOP TABLE
+             ========================================= -->
+
+        <div class="table-container inventory-desktop-table">
+
+            <table
+                class="data-table inventory-table"
+                id="inventoryTable"
+            >
+
+                <thead>
+
+                    <tr>
+
+                        <th class="checkbox-column">
+
+                            <input
+                                type="checkbox"
+                                id="selectAllProducts"
+                                aria-label="Select all products"
+                            >
+
+                        </th>
+
+                        <th>
+                            Product
+                        </th>
+
+                        <th>
+                            SKU
+                        </th>
+
+                        <th>
+                            Category
+                        </th>
+
+                        <th>
+                            Supplier
+                        </th>
+
+                        <th>
+                            Stock
+                        </th>
+
+                        <th>
+                            Reorder Level
+                        </th>
+
+                        <th>
+                            Price
+                        </th>
+
+                        <th>
+                            Inventory Value
+                        </th>
+
+                        <th>
+                            Status
+                        </th>
+
+                        <th>
+                            Actions
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="inventoryTableBody">
+
+                    {% if products %}
+
+                        {% for product in products %}
+
+                            {% set quantity =
+                                product.quantity|default(0, true)|int
+                            %}
+
+                            {% set minimum_stock =
+                                product.minimum_stock|default(10, true)|int
+                            %}
+
+                            {% set stock_status =
+                                product.stock_status|default('In Stock')
+                            %}
+
+
+                            <tr
+                                class="inventory-row"
+                                data-product-id="{{ product.product_id }}"
+                                data-category="{{ product.category|default('')|lower }}"
+                                data-stock="{{ quantity }}"
+                                data-status="{{ stock_status|lower|replace(' ', '-') }}"
+                                data-name="{{ product.name|default('')|lower }}"
+                                data-price="{{ product.price|default(0) }}"
+                                data-created="{{ product.created_at|default('') }}"
+                            >
+
+                                <!-- Checkbox -->
+                                <td class="checkbox-column">
+
+                                    <input
+                                        type="checkbox"
+                                        class="product-checkbox"
+                                        name="selected_products"
+                                        value="{{ product.product_id }}"
+                                        aria-label="Select {{ product.name }}"
+                                    >
+
+                                </td>
+
+
+                                <!-- Product -->
+                                <td>
+
+                                    <div class="table-product">
+
+                                        <div class="product-icon">
+                                            📦
+                                        </div>
+
+                                        <div class="table-product-info">
+
+                                            <strong>
+                                                {{ product.name|default('Unnamed Product') }}
+                                            </strong>
+
+                                            <small>
+                                                {{ product.product_code|default('N/A') }}
+                                            </small>
+
+                                        </div>
+
+                                    </div>
+
+                                </td>
+
+
+                                <!-- SKU -->
+                                <td>
+                                    <span class="table-secondary-text">
+                                        {{ product.product_code|default('N/A') }}
+                                    </span>
+                                </td>
+
+
+                                <!-- Category -->
+                                <td>
+                                    {{ product.category|default('Uncategorized') }}
+                                </td>
+
+
+                                <!-- Supplier -->
+                                <td>
+                                    {{ product.supplier|default('N/A') }}
+                                </td>
+
+
+                                <!-- Stock -->
+                                <td>
+
+                                    <strong class="stock-number">
+                                        {{ quantity }}
+                                    </strong>
+
+                                </td>
+
+
+                                <!-- Reorder -->
+                                <td>
+                                    {{ minimum_stock }}
+                                </td>
+
+
+                                <!-- Price -->
+                                <td>
+                                    <strong>
+                                        ₹{{ product.price|default(0) }}
+                                    </strong>
+                                </td>
+
+
+                                <!-- Inventory Value -->
+                                <td>
+                                    <strong>
+                                        ₹{{ product.stock_value|default(0) }}
+                                    </strong>
+                                </td>
+
+
+                                <!-- Status -->
+                                <td>
+
+                                    {% if stock_status|lower == 'out of stock' %}
+
+                                        <span class="status-badge danger">
+                                            Out of Stock
+                                        </span>
+
+                                    {% elif stock_status|lower == 'low stock' %}
+
+                                        <span class="status-badge warning">
+                                            Low Stock
+                                        </span>
+
+                                    {% else %}
+
+                                        <span class="status-badge success">
+                                            In Stock
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+
+                                <!-- Actions -->
+                                <td>
+
+                                    <div class="table-actions">
+
+                                        <a
+                                            href="{{ url_for('main.edit_product', product_id=product.product_id) }}"
+                                            class="action-btn"
+                                            title="Edit Product"
+                                        >
+                                            Edit
+                                        </a>
+
+
+                                        <button
+                                            type="button"
+                                            class="action-btn danger-text delete-product-btn"
+                                            data-product-id="{{ product.product_id }}"
+                                            data-product-name="{{ product.name|default('this product') }}"
+                                            title="Delete Product"
+                                        >
+                                            Delete
+                                        </button>
+
+                                    </div>
+
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    {% else %}
+
+                        <tr>
+
+                            <td
+                                colspan="11"
+                                class="empty-table-cell"
+                            >
+
+                                <div class="empty-state">
+
+                                    {% if search %}
+
+                                        <div class="empty-state-icon">
+                                            🔍
+                                        </div>
+
+                                        <h3>
+                                            No Results Found
+                                        </h3>
+
+                                        <p>
+                                            No products matched
+                                            "{{ search }}".
+                                        </p>
+
+                                        <a
+                                            href="{{ url_for('main.inventory') }}"
+                                            class="btn btn-secondary"
+                                        >
+                                            Clear Search
+                                        </a>
+
+                                    {% else %}
+
+                                        <div class="empty-state-icon">
+                                            📦
+                                        </div>
+
+                                        <h3>
+                                            No Products Found
+                                        </h3>
+
+                                        <p>
+                                            Add your first product to start
+                                            managing inventory.
+                                        </p>
+
+                                        <a
+                                            href="{{ url_for('main.add_product') }}"
+                                            class="btn btn-primary"
+                                        >
+                                            <span class="btn-icon">+</span>
+                                            Add Product
+                                        </a>
+
+                                    {% endif %}
+
+                                </div>
+
+                            </td>
+
+                        </tr>
+
+                    {% endif %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+
+        <!-- =========================================
+             PAGINATION
+             ========================================= -->
+
+        {% if products %}
+
+            <div class="inventory-pagination">
+
+                <button
+                    type="button"
+                    class="pagination-btn"
+                    id="previousPageBtn"
+                    disabled
+                >
+                    ← Previous
+                </button>
+
+
+                <span
+                    class="pagination-info"
+                    id="paginationInfo"
+                >
+                    Page 1
+                </span>
+
+
+                <button
+                    type="button"
+                    class="pagination-btn"
+                    id="nextPageBtn"
+                >
+                    Next →
+                </button>
+
+            </div>
+
+        {% endif %}
+
+    </section>
+
+
+    <!-- =========================================
+         DELETE CONFIRMATION MODAL
+         ========================================= -->
+
+    <div
+        class="modal-overlay"
+        id="deleteModal"
+        hidden
+    >
+
+        <div
+            class="modal-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="deleteModalTitle"
+        >
+
+            <div class="modal-header">
+
+                <div>
+
+                    <span class="modal-eyebrow">
+                        CONFIRM ACTION
+                    </span>
+
+                    <h2 id="deleteModalTitle">
+                        Delete Product?
+                    </h2>
+
+                </div>
+
+
+                <button
+                    type="button"
+                    class="modal-close"
+                    id="closeDeleteModal"
+                    aria-label="Close"
+                >
+                    ×
+                </button>
+
+            </div>
+
+
+            <div class="modal-body">
+
+                <div class="modal-warning-icon">
+                    !
+                </div>
+
+                <p>
+                    Are you sure you want to delete
+                    <strong id="deleteProductName">
+                        this product
+                    </strong>?
+                </p>
+
+                <p class="modal-warning">
+                    This action cannot be undone.
+                </p>
+
+            </div>
+
+
+            <div class="modal-actions">
+
+                <button
+                    type="button"
+                    class="btn btn-secondary"
+                    id="cancelDeleteBtn"
+                >
+                    Cancel
+                </button>
+
+
+                <button
+                    type="button"
+                    class="btn btn-danger"
+                    id="confirmDeleteBtn"
+                >
+                    Delete
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</main>
+
+{% endblock %}
+
+
+{% block extra_js %}
+
+<script
+    src="{{ url_for('static', filename='js/inventory.js') }}"
+></script>
+
+{% endblock %}

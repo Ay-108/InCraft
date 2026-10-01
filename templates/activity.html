@@ -1,0 +1,997 @@
+{% extends "base.html" %}
+
+{% block title %}
+Activity | InCraft
+{% endblock %}
+
+{% block content %}
+
+<main class="main-content">
+
+    <!-- Page Header -->
+    <section class="page-header">
+
+        <div class="page-header-content">
+
+            <div class="page-eyebrow">
+                ACTIVITY HISTORY
+            </div>
+
+            <h1>
+                Activity
+            </h1>
+
+            <p>
+                Track inventory, sales and system events.
+            </p>
+
+        </div>
+
+        <div class="page-header-actions">
+
+            <button
+                type="button"
+                class="btn btn-secondary"
+                id="exportActivityBtn"
+            >
+                Export Activity Log
+            </button>
+
+        </div>
+
+    </section>
+
+
+    <!-- Search and Filters -->
+    <section class="dashboard-card activity-filter-card">
+
+        <div class="card-header">
+
+            <div>
+
+                <h2>
+                    Activity Filters
+                </h2>
+
+                <p>
+                    Search and filter your activity history.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="activity-filters">
+
+            <!-- Search -->
+            <div class="inventory-search">
+
+                <span class="search-icon">
+                    ⌕
+                </span>
+
+                <input
+                    type="search"
+                    id="activitySearch"
+                    placeholder="Search activity..."
+                    autocomplete="off"
+                >
+
+            </div>
+
+
+            <!-- Date -->
+            <select id="activityDateFilter">
+
+                <option value="">
+                    Date
+                </option>
+
+                <option value="today">
+                    Today
+                </option>
+
+                <option value="yesterday">
+                    Yesterday
+                </option>
+
+                <option value="week">
+                    This Week
+                </option>
+
+                <option value="month">
+                    This Month
+                </option>
+
+            </select>
+
+
+            <!-- Type -->
+            <select id="activityTypeFilter">
+
+                <option value="">
+                    Type
+                </option>
+
+                <option value="product">
+                    Product
+                </option>
+
+                <option value="sale">
+                    Sale
+                </option>
+
+                <option value="inventory">
+                    Inventory
+                </option>
+
+                <option value="system">
+                    System
+                </option>
+
+            </select>
+
+
+            <!-- User -->
+            <select id="activityUserFilter">
+
+                <option value="">
+                    User
+                </option>
+
+                {% if users %}
+
+                    {% for user in users %}
+
+                        <option
+                            value="{{ user.user_id|default(user.id|default('')) }}"
+                        >
+                            {{ user.name|default('User') }}
+                        </option>
+
+                    {% endfor %}
+
+                {% else %}
+
+                    <option value="admin">
+                        Admin
+                    </option>
+
+                {% endif %}
+
+            </select>
+
+
+            <!-- Status -->
+            <select id="activityStatusFilter">
+
+                <option value="">
+                    Status
+                </option>
+
+                <option value="success">
+                    Success
+                </option>
+
+                <option value="warning">
+                    Warning
+                </option>
+
+                <option value="error">
+                    Error
+                </option>
+
+            </select>
+
+        </div>
+
+    </section>
+
+
+    <!-- Activity Summary -->
+    <section class="dashboard-stats">
+
+        <!-- Total Activities -->
+        <div class="stat-card">
+
+            <div class="stat-card-header">
+
+                <span class="stat-title">
+                    Total Activities
+                </span>
+
+                <span class="stat-icon">
+                    #
+                </span>
+
+            </div>
+
+            <div class="stat-value">
+                {{ total_activities|default(0) }}
+            </div>
+
+            <div class="stat-footer">
+                Recorded events
+            </div>
+
+        </div>
+
+
+        <!-- Product Events -->
+        <div class="stat-card">
+
+            <div class="stat-card-header">
+
+                <span class="stat-title">
+                    Product Events
+                </span>
+
+                <span class="stat-icon">
+                    📦
+                </span>
+
+            </div>
+
+            <div class="stat-value">
+                {{ product_activities|default(0) }}
+            </div>
+
+            <div class="stat-footer">
+                Inventory changes
+            </div>
+
+        </div>
+
+
+        <!-- Sales Events -->
+        <div class="stat-card">
+
+            <div class="stat-card-header">
+
+                <span class="stat-title">
+                    Sales Events
+                </span>
+
+                <span class="stat-icon">
+                    ₹
+                </span>
+
+            </div>
+
+            <div class="stat-value">
+                {{ sales_activities|default(0) }}
+            </div>
+
+            <div class="stat-footer">
+                Transaction activity
+            </div>
+
+        </div>
+
+
+        <!-- System Events -->
+        <div class="stat-card">
+
+            <div class="stat-card-header">
+
+                <span class="stat-title">
+                    System Events
+                </span>
+
+                <span class="stat-icon">
+                    ⚙
+                </span>
+
+            </div>
+
+            <div class="stat-value">
+                {{ system_activities|default(0) }}
+            </div>
+
+            <div class="stat-footer">
+                System activity
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- Activity Timeline -->
+    <section class="dashboard-card activity-card">
+
+        <div class="card-header">
+
+            <div>
+
+                <h2>
+                    Activity Timeline
+                </h2>
+
+                <p>
+                    Recent actions and system events.
+                </p>
+
+            </div>
+
+            <span class="product-count">
+
+                <span id="activityCount">
+                    {{ activities|length if activities else 0 }}
+                </span>
+
+                activities
+
+            </span>
+
+        </div>
+
+
+        <!-- Timeline -->
+        <div
+            class="activity-timeline"
+            id="activityTimeline"
+        >
+
+            {% if activities %}
+
+                {% for activity in activities %}
+
+                    {% set activity_type =
+                        activity.type|default('system')|lower
+                    %}
+
+                    {% set activity_status =
+                        activity.status|default('success')|lower
+                    %}
+
+                    <article
+                        class="timeline-item"
+
+                        data-type="{{ activity_type }}"
+
+                        data-status="{{ activity_status }}"
+
+                        data-user="{{ activity.user_id|default(activity.user_id|default('')) }}"
+
+                        data-search="{{
+                            (
+                                activity.title|default('') ~ ' ' ~
+                                activity.description|default('') ~ ' ' ~
+                                activity.user_name|default('')
+                            )|lower
+                        }}"
+                    >
+
+                        <!-- Timeline Marker -->
+                        <div class="timeline-marker">
+
+                            {% if activity_type == 'sale' %}
+
+                                ₹
+
+                            {% elif activity_type == 'product' %}
+
+                                📦
+
+                            {% elif activity_type == 'inventory' %}
+
+                                #
+
+                            {% else %}
+
+                                •
+
+                            {% endif %}
+
+                        </div>
+
+
+                        <!-- Timeline Content -->
+                        <div class="timeline-content">
+
+                            <div class="timeline-header">
+
+                                <div>
+
+                                    <h3>
+                                        {{ activity.title|default('Activity') }}
+                                    </h3>
+
+                                    <p>
+                                        {{ activity.description|default('No description available.') }}
+                                    </p>
+
+                                </div>
+
+                                <time>
+                                    {{ activity.time|default('Recently') }}
+                                </time>
+
+                            </div>
+
+
+                            <div class="timeline-meta">
+
+                                {% if activity.user_name %}
+
+                                    <span>
+                                        By {{ activity.user_name }}
+                                    </span>
+
+                                {% endif %}
+
+
+                                {% if activity_type %}
+
+                                    <span class="activity-type">
+                                        {{ activity_type|capitalize }}
+                                    </span>
+
+                                {% endif %}
+
+
+                                {% if activity_status == 'success' %}
+
+                                    <span class="status-badge success">
+                                        Success
+                                    </span>
+
+                                {% elif activity_status == 'warning' %}
+
+                                    <span class="status-badge warning">
+                                        Warning
+                                    </span>
+
+                                {% else %}
+
+                                    <span class="status-badge danger">
+                                        Error
+                                    </span>
+
+                                {% endif %}
+
+                            </div>
+
+                        </div>
+
+                    </article>
+
+                {% endfor %}
+
+
+            {% else %}
+
+                <!-- Empty State -->
+                <div class="empty-state">
+
+                    <div class="empty-state-icon">
+                        #
+                    </div>
+
+                    <h3>
+                        No Activity Yet
+                    </h3>
+
+                    <p>
+                        Inventory, sales and system activities
+                        will appear here.
+                    </p>
+
+                </div>
+
+            {% endif %}
+
+
+            <!-- No Search Results -->
+            <div
+                class="empty-state"
+                id="noActivityResults"
+                style="display: none;"
+            >
+
+                <div class="empty-state-icon">
+                    ⌕
+                </div>
+
+                <h3>
+                    No Results Found
+                </h3>
+
+                <p>
+                    Try a different search term or filter.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <!-- Pagination -->
+        <div class="pagination">
+
+            <button
+                type="button"
+                class="pagination-btn"
+                id="previousActivityPage"
+                disabled
+            >
+                Previous
+            </button>
+
+
+            <div class="pagination-pages">
+
+                <button
+                    type="button"
+                    class="pagination-page active"
+                >
+                    1
+                </button>
+
+            </div>
+
+
+            <button
+                type="button"
+                class="pagination-btn"
+                id="nextActivityPage"
+                disabled
+            >
+                Next
+            </button>
+
+        </div>
+
+    </section>
+
+
+    <!-- Activity Table -->
+    <section class="dashboard-card activity-table-card">
+
+        <div class="card-header">
+
+            <div>
+
+                <h2>
+                    Activity Log
+                </h2>
+
+                <p>
+                    Detailed record of system activity.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="table-container">
+
+            <table class="data-table">
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            Date & Time
+                        </th>
+
+                        <th>
+                            Activity
+                        </th>
+
+                        <th>
+                            Type
+                        </th>
+
+                        <th>
+                            User
+                        </th>
+
+                        <th>
+                            Status
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="activityTableBody">
+
+                    {% if activities %}
+
+                        {% for activity in activities %}
+
+                            {% set activity_status =
+                                activity.status|default('success')|lower
+                            %}
+
+                            <tr>
+
+                                <td>
+                                    {{ activity.time|default('Recently') }}
+                                </td>
+
+
+                                <td>
+
+                                    <strong>
+                                        {{ activity.title|default('Activity') }}
+                                    </strong>
+
+                                    <br>
+
+                                    <small>
+                                        {{ activity.description|default('') }}
+                                    </small>
+
+                                </td>
+
+
+                                <td>
+                                    {{ activity.type|default('System')|capitalize }}
+                                </td>
+
+
+                                <td>
+                                    {{ activity.user_name|default('System') }}
+                                </td>
+
+
+                                <td>
+
+                                    {% if activity_status == 'success' %}
+
+                                        <span class="status-badge success">
+                                            Success
+                                        </span>
+
+                                    {% elif activity_status == 'warning' %}
+
+                                        <span class="status-badge warning">
+                                            Warning
+                                        </span>
+
+                                    {% else %}
+
+                                        <span class="status-badge danger">
+                                            Error
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+
+                    {% else %}
+
+                        <tr>
+
+                            <td
+                                colspan="5"
+                                class="empty-table-cell"
+                            >
+
+                                <div class="empty-state">
+
+                                    <div class="empty-state-icon">
+                                        #
+                                    </div>
+
+                                    <h3>
+                                        No Activity Records
+                                    </h3>
+
+                                    <p>
+                                        Activity records will appear
+                                        once actions are performed.
+                                    </p>
+
+                                </div>
+
+                            </td>
+
+                        </tr>
+
+                    {% endif %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+</main>
+
+{% endblock %}
+
+
+{% block extra_js %}
+
+<script
+    src="{{ url_for('static', filename='js/activity.js') }}"
+></script>
+
+
+<script>
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+        /* Elements */
+
+        const searchInput =
+            document.getElementById(
+                "activitySearch"
+            );
+
+
+        const dateFilter =
+            document.getElementById(
+                "activityDateFilter"
+            );
+
+
+        const typeFilter =
+            document.getElementById(
+                "activityTypeFilter"
+            );
+
+
+        const userFilter =
+            document.getElementById(
+                "activityUserFilter"
+            );
+
+
+        const statusFilter =
+            document.getElementById(
+                "activityStatusFilter"
+            );
+
+
+        const noResults =
+            document.getElementById(
+                "noActivityResults"
+            );
+
+
+        const exportButton =
+            document.getElementById(
+                "exportActivityBtn"
+            );
+
+
+        /* Filter Activities */
+
+        function filterActivities() {
+
+            const search =
+                searchInput
+                    ? searchInput.value
+                        .toLowerCase()
+                        .trim()
+                    : "";
+
+
+            const type =
+                typeFilter
+                    ? typeFilter.value
+                        .toLowerCase()
+                    : "";
+
+
+            const user =
+                userFilter
+                    ? userFilter.value
+                    : "";
+
+
+            const status =
+                statusFilter
+                    ? statusFilter.value
+                        .toLowerCase()
+                    : "";
+
+
+            const timelineItems =
+                document.querySelectorAll(
+                    ".timeline-item"
+                );
+
+
+            let visibleCount = 0;
+
+
+            timelineItems.forEach(
+                function (item) {
+
+                    const itemSearch =
+                        item.dataset.search || "";
+
+
+                    const itemType =
+                        item.dataset.type || "";
+
+
+                    const itemUser =
+                        item.dataset.user || "";
+
+
+                    const itemStatus =
+                        item.dataset.status || "";
+
+
+                    const matchesSearch =
+                        !search ||
+                        itemSearch.includes(search);
+
+
+                    const matchesType =
+                        !type ||
+                        itemType === type;
+
+
+                    const matchesUser =
+                        !user ||
+                        itemUser === user;
+
+
+                    const matchesStatus =
+                        !status ||
+                        itemStatus === status;
+
+
+                    const visible =
+                        matchesSearch &&
+                        matchesType &&
+                        matchesUser &&
+                        matchesStatus;
+
+
+                    item.style.display =
+                        visible
+                            ? ""
+                            : "none";
+
+
+                    if (visible) {
+                        visibleCount++;
+                    }
+
+                }
+            );
+
+
+            if (noResults) {
+
+                noResults.style.display =
+                    visibleCount === 0 &&
+                    timelineItems.length > 0
+                        ? "block"
+                        : "none";
+
+            }
+
+
+            const activityCount =
+                document.getElementById(
+                    "activityCount"
+                );
+
+
+            if (activityCount) {
+
+                activityCount.textContent =
+                    visibleCount;
+
+            }
+
+        }
+
+
+        /* Event Listeners */
+
+        if (searchInput) {
+
+            searchInput.addEventListener(
+                "input",
+                filterActivities
+            );
+
+        }
+
+
+        if (typeFilter) {
+
+            typeFilter.addEventListener(
+                "change",
+                filterActivities
+            );
+
+        }
+
+
+        if (userFilter) {
+
+            userFilter.addEventListener(
+                "change",
+                filterActivities
+            );
+
+        }
+
+
+        if (statusFilter) {
+
+            statusFilter.addEventListener(
+                "change",
+                filterActivities
+            );
+
+        }
+
+
+        if (dateFilter) {
+
+            dateFilter.addEventListener(
+                "change",
+                function () {
+
+                    /*
+                     * Date filtering will be connected
+                     * to Flask/MySQL during backend
+                     * integration.
+                     */
+
+                    filterActivities();
+
+                }
+            );
+
+        }
+
+
+        /* Export */
+
+        if (exportButton) {
+
+            exportButton.addEventListener(
+                "click",
+                function () {
+
+                    /*
+                     * Export endpoint will be connected
+                     * during backend integration.
+                     */
+
+                    window.print();
+
+                }
+            );
+
+        }
+
+
+        /* Initial Filter State */
+
+        filterActivities();
+
+    }
+
+);
+
+</script>
+
+{% endblock %}

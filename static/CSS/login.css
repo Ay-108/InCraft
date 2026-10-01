@@ -1,0 +1,494 @@
+/* =========================================
+   InCraft — Login Page
+   static/css/login.css
+   ========================================= */
+
+
+/* =========================================
+   1. RESET
+   ========================================= */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+
+/* =========================================
+   2. HTML & BODY
+   ========================================= */
+
+html,
+body {
+    width: 100%;
+    min-height: 100%;
+}
+
+
+/* =========================================
+   3. BODY
+   ========================================= */
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+
+    background: #f7f7f7;
+
+    color: #222222;
+}
+
+
+/* =========================================
+   4. LOGIN PAGE
+   ========================================= */
+
+.login-page {
+    width: 100%;
+    min-height: 100vh;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 40px 20px;
+}
+
+
+/* =========================================
+   5. LOGIN CARD
+   ========================================= */
+
+.login-card {
+    width: 100%;
+    max-width: 420px;
+
+    padding: 32px;
+
+    background: #ffffff;
+
+    border: 1px solid #e5e5e5;
+    border-radius: 12px;
+
+    box-shadow:
+        0 10px 30px rgba(0, 0, 0, 0.08);
+}
+
+
+/* =========================================
+   6. BRAND
+   ========================================= */
+
+.login-brand {
+    text-align: center;
+
+    margin-bottom: 28px;
+}
+
+
+.login-logo {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    margin-bottom: 10px;
+}
+
+
+.login-logo svg {
+    display: block;
+}
+
+
+.login-brand h1 {
+    color: #f47521;
+
+    font-size: 30px;
+    font-weight: 800;
+
+    line-height: 1.2;
+
+    letter-spacing: -0.5px;
+}
+
+
+.login-brand p {
+    margin-top: 5px;
+
+    color: #888888;
+
+    font-size: 12px;
+
+    line-height: 1.4;
+}
+
+
+/* =========================================
+   7. LOGIN HEADING
+   ========================================= */
+
+.login-heading {
+    margin-bottom: 25px;
+
+    text-align: center;
+}
+
+
+.login-heading h2 {
+    color: #222222;
+
+    font-size: 22px;
+    font-weight: 700;
+
+    line-height: 1.3;
+}
+
+
+.login-heading p {
+    margin-top: 7px;
+
+    color: #888888;
+
+    font-size: 13px;
+
+    line-height: 1.5;
+}
+
+
+/* =========================================
+   8. FLASH MESSAGES
+   ========================================= */
+
+.flash-messages {
+    margin-bottom: 18px;
+}
+
+
+.flash-message {
+    padding: 10px 12px;
+
+    border-radius: 7px;
+
+    font-size: 12px;
+
+    line-height: 1.4;
+}
+
+
+.flash-message.success {
+    border: 1px solid #b7dfc5;
+
+    background: #f0fff4;
+
+    color: #18733a;
+}
+
+
+.flash-message.danger {
+    border: 1px solid #f0c8c8;
+
+    background: #fff5f5;
+
+    color: #b42318;
+}
+
+
+.flash-message.warning {
+    border: 1px solid #f0d9a6;
+
+    background: #fffaf0;
+
+    color: #946200;
+}
+
+
+.flash-message.info {
+    border: 1px solid #c8dcef;
+
+    background: #f3f8ff;
+
+    color: #245b8f;
+}
+
+
+/* =========================================
+   9. LOGIN FORM
+   ========================================= */
+
+.login-form {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 17px;
+}
+
+
+/* =========================================
+   10. FORM GROUP
+   ========================================= */
+
+.login-form .form-group {
+    display: flex;
+
+    flex-direction: column;
+}
+
+
+.login-form label {
+    margin-bottom: 7px;
+
+    color: #333333;
+
+    font-size: 13px;
+    font-weight: 600;
+}
+
+
+/* =========================================
+   11. INPUT
+   ========================================= */
+
+.login-form input {
+    width: 100%;
+    height: 44px;
+
+    padding: 0 13px;
+
+    border: 1px solid #dcdcdc;
+
+    border-radius: 7px;
+
+    outline: none;
+
+    background: #ffffff;
+
+    color: #333333;
+
+    font-family: Arial, Helvetica, sans-serif;
+
+    font-size: 13px;
+
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease,
+        background 0.2s ease;
+}
+
+
+.login-form input::placeholder {
+    color: #aaaaaa;
+}
+
+
+.login-form input:focus {
+    border-color: #f47521;
+
+    background: #ffffff;
+
+    box-shadow:
+        0 0 0 3px rgba(244, 117, 33, 0.10);
+}
+
+
+/* =========================================
+   12. PASSWORD FIELD
+   ========================================= */
+
+.password-wrapper {
+    position: relative;
+}
+
+
+.password-wrapper input {
+    padding-right: 45px;
+}
+
+
+.password-toggle {
+    position: absolute;
+
+    top: 50%;
+    right: 12px;
+
+    transform: translateY(-50%);
+
+    border: none;
+
+    background: transparent;
+
+    color: #888888;
+
+    font-size: 14px;
+
+    cursor: pointer;
+}
+
+
+.password-toggle:hover {
+    color: #f47521;
+}
+
+
+/* =========================================
+   13. LOGIN BUTTON
+   ========================================= */
+
+.login-button {
+    width: 100%;
+    height: 44px;
+
+    margin-top: 3px;
+
+    border: 1px solid #f47521;
+
+    border-radius: 7px;
+
+    background: #f47521;
+
+    color: #ffffff;
+
+    font-family: Arial, Helvetica, sans-serif;
+
+    font-size: 13px;
+    font-weight: 700;
+
+    cursor: pointer;
+
+    transition:
+        background 0.2s ease,
+        border-color 0.2s ease,
+        transform 0.1s ease;
+}
+
+
+.login-button:hover {
+    background: #d95f12;
+
+    border-color: #d95f12;
+}
+
+
+.login-button:active {
+    transform: translateY(1px);
+}
+
+
+/* =========================================
+   14. LOGIN FOOTER
+   ========================================= */
+
+.login-footer {
+    margin-top: 22px;
+
+    padding-top: 20px;
+
+    border-top: 1px solid #eeeeee;
+
+    text-align: center;
+
+    color: #888888;
+
+    font-size: 12px;
+
+    line-height: 1.5;
+}
+
+
+.login-footer a {
+    margin-left: 4px;
+
+    color: #f47521;
+
+    font-weight: 600;
+
+    text-decoration: none;
+}
+
+
+.login-footer a:hover {
+    text-decoration: underline;
+}
+
+
+/* =========================================
+   15. RESPONSIVE
+   ========================================= */
+
+@media (max-width: 480px) {
+
+    .login-page {
+        padding: 25px 15px;
+    }
+
+
+    .login-card {
+        padding: 26px 21px;
+
+        border-radius: 10px;
+    }
+
+
+    .login-brand {
+        margin-bottom: 22px;
+    }
+
+
+    .login-brand h1 {
+        font-size: 27px;
+    }
+
+
+    .login-brand p {
+        font-size: 11px;
+    }
+
+
+    .login-heading {
+        margin-bottom: 22px;
+    }
+
+
+    .login-heading h2 {
+        font-size: 20px;
+    }
+
+
+    .login-heading p {
+        font-size: 12px;
+    }
+
+
+    .login-footer {
+        font-size: 11px;
+    }
+
+}
+
+
+/* =========================================
+   16. SMALL MOBILE
+   ========================================= */
+
+@media (max-width: 350px) {
+
+    .login-page {
+        padding: 20px 12px;
+    }
+
+
+    .login-card {
+        padding: 22px 16px;
+    }
+
+
+    .login-brand h1 {
+        font-size: 25px;
+    }
+
+
+    .login-heading h2 {
+        font-size: 19px;
+    }
+
+}

@@ -1,0 +1,1754 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard | InCraft{% endblock %}
+
+
+{% block extra_css %}
+
+<link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/dashboard.css') }}"
+>
+
+{% endblock %}
+
+
+{% block content %}
+
+<main class="main-content">
+
+    <!-- =========================================
+         PAGE HEADER
+         ========================================= -->
+
+    <section class="page-header dashboard-page-header">
+
+        <div class="page-header-content">
+
+            <span class="page-eyebrow">
+                OVERVIEW
+            </span>
+
+            <h1>Dashboard</h1>
+
+            <p>
+                Welcome back! Here's what's happening with your inventory.
+            </p>
+
+        </div>
+
+
+        <div class="page-header-actions">
+
+            <a
+                href="{{ url_for('main.add_product') }}"
+                class="btn btn-primary"
+            >
+                <span class="btn-icon">+</span>
+                Add Product
+            </a>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================
+         KPI CARDS
+         ========================================= -->
+
+    <section class="dashboard-stats">
+
+        <!-- Products -->
+        <div class="stat-card">
+
+            <div class="stat-card-header">
+
+                <div class="stat-heading">
+
+                    <span class="stat-title">
+                        Products
+                    </span>
+
+                    <span class="stat-description">
+                        Total products
+                    </span>
+
+                </div>
+
+                <span class="stat-icon">
+                    📦
+                </span>
+
+            </div>
+
+
+            <div class="stat-value">
+                {{ total_products|default(0) }}
+            </div>
+
+
+            <div class="stat-footer positive">
+                <span class="stat-trend">↑ 6%</span>
+                <span>from last month</span>
+            </div>
+
+        </div>
+
+
+        <!-- Inventory Value -->
+        <div class="stat-card">
+
+            <div class="stat-card-header">
+
+                <div class="stat-heading">
+
+                    <span class="stat-title">
+                        Inventory Value
+                    </span>
+
+                    <span class="stat-description">
+                        Current stock value
+                    </span>
+
+                </div>
+
+                <span class="stat-icon">
+                    ₹
+                </span>
+
+            </div>
+
+
+            <div class="stat-value">
+                ₹{{ inventory_value|default(0) }}
+            </div>
+
+
+            <div class="stat-footer positive">
+                <span class="stat-trend">↑ 12%</span>
+                <span>from last month</span>
+            </div>
+
+        </div>
+
+
+        <!-- Low Stock -->
+        <div class="stat-card stat-card-warning">
+
+            <div class="stat-card-header">
+
+                <div class="stat-heading">
+
+                    <span class="stat-title">
+                        Low Stock
+                    </span>
+
+                    <span class="stat-description">
+                        Products requiring attention
+                    </span>
+
+                </div>
+
+                <span class="stat-icon warning">
+                    !
+                </span>
+
+            </div>
+
+
+            <div class="stat-value">
+                {{ low_stock|default(0) }}
+            </div>
+
+
+            <div class="stat-footer warning-text">
+                <span class="stat-trend">!</span>
+                <span>Attention required</span>
+            </div>
+
+        </div>
+
+
+        <!-- Today's Sales -->
+        <div class="stat-card">
+
+            <div class="stat-card-header">
+
+                <div class="stat-heading">
+
+                    <span class="stat-title">
+                        Today's Sales
+                    </span>
+
+                    <span class="stat-description">
+                        Revenue generated today
+                    </span>
+
+                </div>
+
+                <span class="stat-icon">
+                    ₹
+                </span>
+
+            </div>
+
+
+            <div class="stat-value">
+                ₹{{ todays_sales|default(0) }}
+            </div>
+
+
+            <div class="stat-footer positive">
+                <span class="stat-trend">↑ 9%</span>
+                <span>from yesterday</span>
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================
+         CHARTS
+         ========================================= -->
+
+    <section class="dashboard-charts">
+
+        <!-- Sales Trend -->
+        <div class="dashboard-card chart-card">
+
+            <div class="card-header">
+
+                <div class="card-heading">
+
+                    <span class="card-eyebrow">
+                        SALES
+                    </span>
+
+                    <h2>
+                        Revenue / Sales Trend
+                    </h2>
+
+                    <p>
+                        Sales performance over time
+                    </p>
+
+                </div>
+
+
+                <div class="card-header-action">
+
+                    <select
+                        class="chart-filter"
+                        id="salesPeriod"
+                    >
+
+                        <option value="7">
+                            Last 7 Days
+                        </option>
+
+                        <option value="30">
+                            Last 30 Days
+                        </option>
+
+                        <option value="90">
+                            Last 3 Months
+                        </option>
+
+                    </select>
+
+                </div>
+
+            </div>
+
+
+            <div class="chart-container">
+
+                <canvas id="salesChart"></canvas>
+
+            </div>
+
+        </div>
+
+
+        <!-- Stock Distribution -->
+        <div class="dashboard-card chart-card">
+
+            <div class="card-header">
+
+                <div class="card-heading">
+
+                    <span class="card-eyebrow">
+                        INVENTORY
+                    </span>
+
+                    <h2>
+                        Stock Distribution
+                    </h2>
+
+                    <p>
+                        Current inventory health
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div
+                class="chart-container doughnut-container"
+                id="stockChartData"
+                data-stock-in="{{ stock_in_count|default(0) }}"
+                data-stock-low="{{ stock_low_count|default(0) }}"
+                data-stock-out="{{ stock_out_count|default(0) }}"
+            >
+
+                <canvas id="stockChart"></canvas>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================
+         RECENT ACTIVITY + LOW STOCK
+         ========================================= -->
+
+    <section class="dashboard-lower-grid">
+
+        <!-- Recent Activity -->
+        <div class="dashboard-card">
+
+            <div class="card-header">
+
+                <div class="card-heading">
+
+                    <span class="card-eyebrow">
+                        ACTIVITY
+                    </span>
+
+                    <h2>
+                        Recent Activity
+                    </h2>
+
+                    <p>
+                        Latest inventory and sales activities
+                    </p>
+
+                </div>
+
+
+                <a
+                    href="{{ url_for('main.activity') }}"
+                    class="view-all"
+                >
+                    View All
+                    <span>→</span>
+                </a>
+
+            </div>
+
+
+            <div class="activity-list">
+
+                {% if recent_activities %}
+
+                    {% for activity in recent_activities %}
+
+                        <div class="activity-item">
+
+                            <div class="activity-icon">
+                                {{ activity.icon|default('•') }}
+                            </div>
+
+
+                            <div class="activity-details">
+
+                                <h3>
+                                    {{ activity.title|default('Activity') }}
+                                </h3>
+
+                                <p>
+                                    {{ activity.description|default('') }}
+                                </p>
+
+                                <span>
+                                    {{ activity.time|default('Recently') }}
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    {% endfor %}
+
+                {% else %}
+
+                    <div class="empty-state">
+
+                        <div class="empty-state-icon">
+                            ◷
+                        </div>
+
+                        <h3>
+                            No Recent Activity
+                        </h3>
+
+                        <p>
+                            Your recent inventory and sales activities
+                            will appear here.
+                        </p>
+
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+
+        <!-- Low Stock Alerts -->
+        <div class="dashboard-card">
+
+            <div class="card-header">
+
+                <div class="card-heading">
+
+                    <span class="card-eyebrow">
+                        ALERTS
+                    </span>
+
+                    <h2>
+                        Low Stock Alerts
+                    </h2>
+
+                    <p>
+                        Products that need attention
+                    </p>
+
+                </div>
+
+
+                <a
+                    href="{{ url_for('main.inventory') }}"
+                    class="view-all"
+                >
+                    View Inventory
+                    <span>→</span>
+                </a>
+
+            </div>
+
+
+            <div class="low-stock-list">
+
+                {% if low_stock_products %}
+
+                    {% for product in low_stock_products %}
+
+                        <div class="low-stock-item">
+
+                            <div class="product-info">
+
+                                <div class="product-icon">
+                                    📦
+                                </div>
+
+
+                                <div>
+
+                                    <h3>
+                                        {{ product.name|default('Unnamed Product') }}
+                                    </h3>
+
+                                    <p>
+                                        {{ product.sku|default('N/A') }}
+                                    </p>
+
+                                </div>
+
+                            </div>
+
+
+                            <div class="stock-warning">
+
+                                <strong>
+                                    {{ product.stock|default(0) }}
+                                </strong>
+
+                                <span>
+                                    left
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    {% endfor %}
+
+                {% else %}
+
+                    <div class="empty-state">
+
+                        <div class="empty-state-icon success">
+                            ✓
+                        </div>
+
+                        <h3>
+                            Stock Looks Good
+                        </h3>
+
+                        <p>
+                            No products are currently below their
+                            reorder level.
+                        </p>
+
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================
+         SMART DECISION SUPPORT
+         ========================================= -->
+
+    <section class="dashboard-card smart-insights-section">
+
+        <div class="card-header">
+
+            <div class="card-heading">
+
+                <span class="card-eyebrow">
+                    INTELLIGENT ANALYSIS
+                </span>
+
+                <h2>
+                    Smart Decision Support
+                </h2>
+
+                <p>
+                    Analyze your inventory and sales data to identify
+                    opportunities, risks, and recommended actions.
+                </p>
+
+            </div>
+
+
+            <div class="card-header-action">
+
+                <button
+                    type="button"
+                    class="btn btn-primary"
+                    id="analyzeInsightsBtn"
+                >
+                    <span class="btn-icon">
+                        ✦
+                    </span>
+
+                    Analyze Inventory
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <!-- Analysis Status -->
+
+        <div
+            class="smart-insights-status"
+            id="smartInsightsStatus"
+            style="display: none;"
+        >
+
+            <span class="smart-insights-loader">
+                ⟳
+            </span>
+
+            <span>
+                Analyzing inventory, sales and product performance...
+            </span>
+
+        </div>
+
+
+        <!-- Insights Grid -->
+
+        <div
+            class="smart-insights-grid"
+            id="smartInsightsGrid"
+        >
+
+            <!-- Restock Recommendation -->
+
+            <div
+                class="insight-card insight-warning"
+                data-insight-type="restock"
+            >
+
+                <div class="insight-card-header">
+
+                    <div class="insight-icon">
+                        📦
+                    </div>
+
+                    <span class="insight-priority priority-high">
+                        ACTION
+                    </span>
+
+                </div>
+
+
+                <div class="insight-content">
+
+                    <h3>
+                        Restock Recommendation
+                    </h3>
+
+                    <p class="insight-message">
+                        Analyze inventory to identify products
+                        that may require restocking.
+                    </p>
+
+                </div>
+
+
+                <div class="insight-footer">
+
+                    <span class="insight-metric">
+                        Stock Analysis
+                    </span>
+
+                    <button
+                        type="button"
+                        class="insight-action"
+                    >
+                        View Analysis →
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <!-- Sales Opportunity -->
+
+            <div
+                class="insight-card insight-positive"
+                data-insight-type="sales"
+            >
+
+                <div class="insight-card-header">
+
+                    <div class="insight-icon">
+                        📈
+                    </div>
+
+                    <span class="insight-priority priority-medium">
+                        OPPORTUNITY
+                    </span>
+
+                </div>
+
+
+                <div class="insight-content">
+
+                    <h3>
+                        Sales Opportunity
+                    </h3>
+
+                    <p class="insight-message">
+                        Analyze sales trends to identify products
+                        with increasing demand.
+                    </p>
+
+                </div>
+
+
+                <div class="insight-footer">
+
+                    <span class="insight-metric">
+                        Sales Trend
+                    </span>
+
+                    <button
+                        type="button"
+                        class="insight-action"
+                    >
+                        View Analysis →
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <!-- Slow Moving Product -->
+
+            <div
+                class="insight-card insight-danger"
+                data-insight-type="slow-moving"
+            >
+
+                <div class="insight-card-header">
+
+                    <div class="insight-icon">
+                        📉
+                    </div>
+
+                    <span class="insight-priority priority-medium">
+                        REVIEW
+                    </span>
+
+                </div>
+
+
+                <div class="insight-content">
+
+                    <h3>
+                        Slow-Moving Products
+                    </h3>
+
+                    <p class="insight-message">
+                        Identify products with low sales activity
+                        and weak inventory turnover.
+                    </p>
+
+                </div>
+
+
+                <div class="insight-footer">
+
+                    <span class="insight-metric">
+                        Product Performance
+                    </span>
+
+                    <button
+                        type="button"
+                        class="insight-action"
+                    >
+                        View Analysis →
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <!-- Revenue Insight -->
+
+            <div
+                class="insight-card insight-info"
+                data-insight-type="revenue"
+            >
+
+                <div class="insight-card-header">
+
+                    <div class="insight-icon">
+                        ₹
+                    </div>
+
+                    <span class="insight-priority priority-low">
+                        INSIGHT
+                    </span>
+
+                </div>
+
+
+                <div class="insight-content">
+
+                    <h3>
+                        Revenue Insight
+                    </h3>
+
+                    <p class="insight-message">
+                        Analyze category and product revenue to
+                        identify the strongest contributors.
+                    </p>
+
+                </div>
+
+
+                <div class="insight-footer">
+
+                    <span class="insight-metric">
+                        Revenue Analysis
+                    </span>
+
+                    <button
+                        type="button"
+                        class="insight-action"
+                    >
+                        View Analysis →
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <!-- Demand Forecast -->
+
+            <div
+                class="insight-card insight-purple"
+                data-insight-type="forecast"
+            >
+
+                <div class="insight-card-header">
+
+                    <div class="insight-icon">
+                        🔮
+                    </div>
+
+                    <span class="insight-priority priority-medium">
+                        FORECAST
+                    </span>
+
+                </div>
+
+
+                <div class="insight-content">
+
+                    <h3>
+                        Demand Forecast
+                    </h3>
+
+                    <p class="insight-message">
+                        Analyze historical sales to identify
+                        possible future demand patterns.
+                    </p>
+
+                </div>
+
+
+                <div class="insight-footer">
+
+                    <span class="insight-metric">
+                        Historical Data
+                    </span>
+
+                    <button
+                        type="button"
+                        class="insight-action"
+                    >
+                        View Analysis →
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <!-- Inventory Optimization -->
+
+            <div
+                class="insight-card insight-neutral"
+                data-insight-type="optimization"
+            >
+
+                <div class="insight-card-header">
+
+                    <div class="insight-icon">
+                        ⚙
+                    </div>
+
+                    <span class="insight-priority priority-low">
+                        OPTIMIZE
+                    </span>
+
+                </div>
+
+
+                <div class="insight-content">
+
+                    <h3>
+                        Inventory Optimization
+                    </h3>
+
+                    <p class="insight-message">
+                        Find opportunities to improve stock levels
+                        and reduce unnecessary inventory.
+                    </p>
+
+                </div>
+
+
+                <div class="insight-footer">
+
+                    <span class="insight-metric">
+                        Inventory Efficiency
+                    </span>
+
+                    <button
+                        type="button"
+                        class="insight-action"
+                    >
+                        View Analysis →
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- Empty / Analysis Message -->
+
+        <div
+            class="smart-insights-empty"
+            id="smartInsightsEmpty"
+            style="display: none;"
+        >
+
+            <div class="empty-state-icon">
+                ✦
+            </div>
+
+            <h3>
+                No New Recommendations
+            </h3>
+
+            <p>
+                The current inventory data does not indicate
+                any major actions at this time.
+            </p>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================
+         RECENT PRODUCTS
+         ========================================= -->
+
+    <section class="dashboard-card recent-products">
+
+        <div class="card-header">
+
+            <div class="card-heading">
+
+                <span class="card-eyebrow">
+                    INVENTORY
+                </span>
+
+                <h2>
+                    Recent Products
+                </h2>
+
+                <p>
+                    Recently added inventory items
+                </p>
+
+            </div>
+
+
+            <a
+                href="{{ url_for('main.inventory') }}"
+                class="view-all"
+            >
+                View All
+                <span>→</span>
+            </a>
+
+        </div>
+
+
+        <div class="table-container">
+
+            <table class="data-table">
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            Product
+                        </th>
+
+                        <th>
+                            SKU
+                        </th>
+
+                        <th>
+                            Category
+                        </th>
+
+                        <th>
+                            Stock
+                        </th>
+
+                        <th>
+                            Price
+                        </th>
+
+                        <th>
+                            Status
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    {% if recent_products %}
+
+                        {% for product in recent_products %}
+
+                            {% set stock =
+                                product.stock|default(0, true)|int
+                            %}
+
+                            {% set reorder_level =
+                                product.reorder_level|default(10, true)|int
+                            %}
+
+
+                            <tr>
+
+                                <td>
+
+                                    <div class="table-product">
+
+                                        <div class="product-icon">
+                                            📦
+                                        </div>
+
+                                        <span>
+                                            {{ product.name|default('Unnamed Product') }}
+                                        </span>
+
+                                    </div>
+
+                                </td>
+
+
+                                <td>
+                                    {{ product.sku|default('N/A') }}
+                                </td>
+
+
+                                <td>
+                                    {{ product.category|default('Uncategorized') }}
+                                </td>
+
+
+                                <td>
+                                    <strong class="stock-number">
+                                        {{ stock }}
+                                    </strong>
+                                </td>
+
+
+                                <td>
+                                    <strong>
+                                        ₹{{ product.price|default(0) }}
+                                    </strong>
+                                </td>
+
+
+                                <td>
+
+                                    {% if stock == 0 %}
+
+                                        <span class="status-badge danger">
+                                            Out of Stock
+                                        </span>
+
+                                    {% elif stock <= reorder_level %}
+
+                                        <span class="status-badge warning">
+                                            Low Stock
+                                        </span>
+
+                                    {% else %}
+
+                                        <span class="status-badge success">
+                                            In Stock
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    {% else %}
+
+                        <tr>
+
+                            <td
+                                colspan="6"
+                                class="empty-table-cell"
+                            >
+
+                                <div class="empty-state">
+
+                                    <div class="empty-state-icon">
+                                        📦
+                                    </div>
+
+                                    <h3>
+                                        No Products Found
+                                    </h3>
+
+                                    <p>
+                                        Add your first product to
+                                        start managing inventory.
+                                    </p>
+
+                                    <a
+                                        href="{{ url_for('main.add_product') }}"
+                                        class="btn btn-primary"
+                                    >
+                                        <span class="btn-icon">+</span>
+                                        Add Product
+                                    </a>
+
+                                </div>
+
+                            </td>
+
+                        </tr>
+
+                    {% endif %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+</main>
+
+{% endblock %}
+
+
+{% block extra_js %}
+
+<!-- =========================================
+     Chart.js
+     ========================================= -->
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+
+<script>
+
+document.addEventListener("DOMContentLoaded", function () {
+
+
+    /* =========================================
+       SALES CHART
+       ========================================= */
+
+    const salesCanvas =
+        document.getElementById("salesChart");
+
+
+    if (
+        salesCanvas &&
+        typeof Chart !== "undefined"
+    ) {
+
+        new Chart(
+            salesCanvas,
+            {
+
+                type: "line",
+
+                data: {
+
+                    labels: [
+                        "Mon",
+                        "Tue",
+                        "Wed",
+                        "Thu",
+                        "Fri",
+                        "Sat",
+                        "Sun"
+                    ],
+
+
+                    datasets: [
+
+                        {
+
+                            label: "Sales",
+
+                            data: [
+                                12000,
+                                18500,
+                                15000,
+                                22000,
+                                19000,
+                                28000,
+                                24000
+                            ],
+
+                            borderColor: "#F97316",
+
+                            backgroundColor:
+                                "rgba(249, 115, 22, 0.08)",
+
+                            borderWidth: 2,
+
+                            tension: 0.4,
+
+                            fill: true,
+
+                            pointRadius: 3,
+
+                            pointHoverRadius: 5
+
+                        }
+
+                    ]
+
+                },
+
+
+                options: {
+
+                    responsive: true,
+
+                    maintainAspectRatio: false,
+
+
+                    interaction: {
+                        intersect: false,
+                        mode: "index"
+                    },
+
+
+                    plugins: {
+
+                        legend: {
+                            display: false
+                        },
+
+
+                        tooltip: {
+
+                            backgroundColor: "#111827",
+
+                            titleColor: "#FFFFFF",
+
+                            bodyColor: "#E5E7EB",
+
+                            borderColor: "#F97316",
+
+                            borderWidth: 1,
+
+                            padding: 12,
+
+                            displayColors: false,
+
+                            callbacks: {
+
+                                label: function (context) {
+
+                                    return "₹" +
+                                        Number(
+                                            context.raw
+                                        ).toLocaleString("en-IN");
+
+                                }
+
+                            }
+
+                        }
+
+                    },
+
+
+                    scales: {
+
+                        x: {
+
+                            grid: {
+                                display: false
+                            },
+
+                            ticks: {
+                                color: "#64748B"
+                            }
+
+                        },
+
+
+                        y: {
+
+                            beginAtZero: true,
+
+                            grid: {
+                                color: "rgba(226, 232, 240, 0.7)"
+                            },
+
+                            ticks: {
+
+                                color: "#64748B",
+
+                                callback: function (value) {
+
+                                    return "₹" +
+                                        Number(value)
+                                            .toLocaleString("en-IN");
+
+                                }
+
+                            }
+
+                        }
+
+                    }
+
+                }
+
+            }
+        );
+
+    }
+
+
+    /* =========================================
+       STOCK DISTRIBUTION CHART
+       ========================================= */
+
+    const stockCanvas =
+        document.getElementById("stockChart");
+
+
+    const stockData =
+        document.getElementById("stockChartData");
+
+
+    if (
+        stockCanvas &&
+        stockData &&
+        typeof Chart !== "undefined"
+    ) {
+
+        const stockIn =
+            Number(
+                stockData.dataset.stockIn || 0
+            );
+
+
+        const stockLow =
+            Number(
+                stockData.dataset.stockLow || 0
+            );
+
+
+        const stockOut =
+            Number(
+                stockData.dataset.stockOut || 0
+            );
+
+
+        new Chart(
+            stockCanvas,
+            {
+
+                type: "doughnut",
+
+
+                data: {
+
+                    labels: [
+                        "In Stock",
+                        "Low Stock",
+                        "Out of Stock"
+                    ],
+
+
+                    datasets: [
+
+                        {
+
+                            data: [
+                                stockIn,
+                                stockLow,
+                                stockOut
+                            ],
+
+
+                            backgroundColor: [
+                                "#F97316",
+                                "#F59E0B",
+                                "#111827"
+                            ],
+
+
+                            hoverOffset: 5,
+
+                            borderWidth: 0
+
+                        }
+
+                    ]
+
+                },
+
+
+                options: {
+
+                    responsive: true,
+
+                    maintainAspectRatio: false,
+
+                    cutout: "65%",
+
+
+                    plugins: {
+
+                        legend: {
+
+                            position: "bottom",
+
+                            labels: {
+
+                                color: "#475569",
+
+                                padding: 18,
+
+                                usePointStyle: true,
+
+                                pointStyle: "circle"
+
+                            }
+
+                        },
+
+
+                        tooltip: {
+
+                            backgroundColor: "#111827",
+
+                            titleColor: "#FFFFFF",
+
+                            bodyColor: "#E5E7EB",
+
+                            padding: 12,
+
+                            displayColors: true
+
+                        }
+
+                    }
+
+                }
+
+            }
+        );
+
+    }
+
+
+    /* =========================================
+       SMART DECISION SUPPORT
+       ========================================= */
+
+    const analyzeButton =
+        document.getElementById("analyzeInsightsBtn");
+
+    const insightsGrid =
+        document.getElementById("smartInsightsGrid");
+
+    const insightsStatus =
+        document.getElementById("smartInsightsStatus");
+
+    const insightsEmpty =
+        document.getElementById("smartInsightsEmpty");
+
+
+    if (analyzeButton) {
+
+        analyzeButton.addEventListener(
+            "click",
+            analyzeDashboardInsights
+        );
+
+    }
+
+
+    async function analyzeDashboardInsights() {
+
+        if (!insightsGrid) {
+            return;
+        }
+
+
+        /* Show loading state */
+
+        insightsStatus.style.display = "flex";
+
+        insightsEmpty.style.display = "none";
+
+        analyzeButton.disabled = true;
+
+        analyzeButton.innerHTML =
+            '<span class="btn-icon">⟳</span> Analyzing...';
+
+
+        try {
+
+            const response =
+                await fetch(
+                    "/api/dashboard/insights",
+                    {
+                        method: "GET",
+                        headers: {
+                            "Accept": "application/json"
+                        }
+                    }
+                );
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    "Unable to analyze dashboard data."
+                );
+
+            }
+
+
+            const result =
+                await response.json();
+
+
+            if (
+                result &&
+                Array.isArray(result.insights)
+            ) {
+
+                updateInsightCards(
+                    result.insights
+                );
+
+            } else {
+
+                showInsightMessage();
+
+            }
+
+
+        } catch (error) {
+
+            console.error(
+                "Smart Insights Error:",
+                error
+            );
+
+
+            showInsightError();
+
+        }
+
+
+        finally {
+
+            insightsStatus.style.display = "none";
+
+            analyzeButton.disabled = false;
+
+            analyzeButton.innerHTML =
+                '<span class="btn-icon">✦</span> Analyze Again';
+
+        }
+
+    }
+
+
+    /* =========================================
+       UPDATE INSIGHT CARDS
+       ========================================= */
+
+    function updateInsightCards(insights) {
+
+        const cards =
+            document.querySelectorAll(
+                ".insight-card"
+            );
+
+
+        cards.forEach(function (card) {
+
+            const type =
+                card.dataset.insightType;
+
+
+            const matchingInsight =
+                insights.find(
+                    function (item) {
+
+                        return item.type === type;
+
+                    }
+                );
+
+
+            if (!matchingInsight) {
+                return;
+            }
+
+
+            const message =
+                card.querySelector(
+                    ".insight-message"
+                );
+
+
+            const metric =
+                card.querySelector(
+                    ".insight-metric"
+                );
+
+
+            const priority =
+                card.querySelector(
+                    ".insight-priority"
+                );
+
+
+            if (message) {
+
+                message.textContent =
+                    matchingInsight.message ||
+                    "No additional information available.";
+
+            }
+
+
+            if (metric) {
+
+                metric.textContent =
+                    matchingInsight.metric ||
+                    "Data Analysis";
+
+            }
+
+
+            if (priority) {
+
+                priority.textContent =
+                    matchingInsight.priority ||
+                    "INSIGHT";
+
+            }
+
+        });
+
+
+        insightsGrid.style.display = "grid";
+
+    }
+
+
+    /* =========================================
+       NO INSIGHTS
+       ========================================= */
+
+    function showInsightMessage() {
+
+        insightsGrid.style.display = "none";
+
+        insightsEmpty.style.display = "block";
+
+    }
+
+
+    /* =========================================
+       ANALYSIS ERROR
+       ========================================= */
+
+    function showInsightError() {
+
+        insightsGrid.style.display = "grid";
+
+        insightsEmpty.style.display = "none";
+
+
+        const firstMessage =
+            document.querySelector(
+                '[data-insight-type="restock"] .insight-message'
+            );
+
+
+        if (firstMessage) {
+
+            firstMessage.textContent =
+                "Analysis could not be completed. Please try again.";
+
+        }
+
+    }
+
+
+    /* =========================================
+       VIEW ANALYSIS BUTTONS
+       ========================================= */
+
+    document
+        .querySelectorAll(".insight-action")
+        .forEach(function (button) {
+
+            button.addEventListener(
+                "click",
+                function () {
+
+                    const card =
+                        button.closest(
+                            ".insight-card"
+                        );
+
+
+                    if (!card) {
+                        return;
+                    }
+
+
+                    const type =
+                        card.dataset.insightType;
+
+
+                    console.log(
+                        "Viewing analysis:",
+                        type
+                    );
+
+
+                    /*
+                     * Detailed analysis functionality
+                     * can be connected here later.
+                     */
+
+                }
+            );
+
+        });
+
+});
+
+</script>
+
+{% endblock %}

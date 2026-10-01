@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+
+{% block title %}Register | InCraft{% endblock %}
+
+
+{% block extra_css %}
+
+<link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/login.css') }}"
+>
+
+{% endblock %}
+
+
+{% block content %}
+
+<main class="login-page">
+
+    <section class="login-card">
+
+        <!-- =========================================
+             Brand
+             ========================================= -->
+
+        <div class="login-brand">
+
+            <div class="login-logo">
+
+                <svg
+                    width="42"
+                    height="42"
+                    viewBox="0 0 40 40"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                >
+
+                    <rect
+                        x="3"
+                        y="3"
+                        width="34"
+                        height="34"
+                        rx="10"
+                        fill="#F47B20"
+                    />
+
+                    <path
+                        d="M12 11H27"
+                        stroke="white"
+                        stroke-width="2.5"
+                        stroke-linecap="round"
+                    />
+
+                    <path
+                        d="M12 20H24"
+                        stroke="white"
+                        stroke-width="2.5"
+                        stroke-linecap="round"
+                    />
+
+                    <path
+                        d="M12 29H27"
+                        stroke="white"
+                        stroke-width="2.5"
+                        stroke-linecap="round"
+                    />
+
+                </svg>
+
+            </div>
+
+
+            <h1>InCraft</h1>
+
+            <p>
+                The Art of Intelligent Inventory
+            </p>
+
+        </div>
+
+
+        <!-- =========================================
+             Register Heading
+             ========================================= -->
+
+        <div class="login-heading">
+
+            <h2>Create Account</h2>
+
+            <p>
+                Register to start managing your inventory.
+            </p>
+
+        </div>
+
+
+        <!-- =========================================
+             Flash Messages
+             ========================================= -->
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+
+            {% if messages %}
+
+                <div class="flash-messages">
+
+                    {% for category, message in messages %}
+
+                        <div class="flash-message {{ category }}">
+                            {{ message }}
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+            {% endif %}
+
+        {% endwith %}
+
+
+        <!-- =========================================
+             Register Form
+             ========================================= -->
+
+        <form
+            class="login-form"
+            method="POST"
+            action="{{ url_for('main.register') }}"
+        >
+
+            <!-- Username -->
+            <div class="form-group">
+
+                <label for="username">
+                    Username
+                </label>
+
+                <input
+                    type="text"
+                    id="username"
+                    name="username"
+                    placeholder="Enter your username"
+                    autocomplete="username"
+                    required
+                >
+
+            </div>
+
+
+            <!-- Email -->
+            <div class="form-group">
+
+                <label for="email">
+                    Email
+                </label>
+
+                <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    placeholder="Enter your email"
+                    autocomplete="email"
+                    required
+                >
+
+            </div>
+
+
+            <!-- Password -->
+            <div class="form-group">
+
+                <label for="password">
+                    Password
+                </label>
+
+                <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    placeholder="Create a password"
+                    autocomplete="new-password"
+                    required
+                >
+
+            </div>
+
+
+            <!-- Confirm Password -->
+            <div class="form-group">
+
+                <label for="confirm_password">
+                    Confirm Password
+                </label>
+
+                <input
+                    type="password"
+                    id="confirm_password"
+                    name="confirm_password"
+                    placeholder="Confirm your password"
+                    autocomplete="new-password"
+                    required
+                >
+
+            </div>
+
+
+            <!-- Register Button -->
+            <button
+                type="submit"
+                class="login-button"
+            >
+                Create Account
+            </button>
+
+        </form>
+
+
+        <!-- =========================================
+             Login Link
+             ========================================= -->
+
+        <div class="login-footer">
+
+            <span>
+                Already have an account?
+            </span>
+
+            <a href="{{ url_for('main.login') }}">
+                Sign In
+            </a>
+
+        </div>
+
+    </section>
+
+</main>
+
+{% endblock %}

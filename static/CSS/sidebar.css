@@ -1,0 +1,394 @@
+/* =========================================
+   InCraft — Sidebar
+   static/css/sidebar.css
+   ========================================= */
+
+
+/* =========================================
+   SIDEBAR
+   ========================================= */
+
+.sidebar {
+    position: fixed;
+
+    top: 0;
+    left: 0;
+    bottom: 0;
+
+    z-index: 500;
+
+    width: 245px;
+
+    display: flex;
+    flex-direction: column;
+
+    background: #111111;
+    color: #FFFFFF;
+
+    border-right: 1px solid #222222;
+
+    /*
+     * Hidden by default.
+     */
+    transform: translateX(-100%);
+
+    transition:
+        transform 0.25s ease,
+        width 0.25s ease;
+
+    box-shadow:
+        6px 0 20px rgba(0, 0, 0, 0.12);
+}
+
+
+/* =========================================
+   SIDEBAR OPEN STATE
+   ========================================= */
+
+body.sidebar-collapsed .sidebar {
+    transform: translateX(0);
+}
+
+
+/* =========================================
+   SIDEBAR BRAND
+   ========================================= */
+
+.sidebar-brand {
+    height: 92px;
+
+    display: flex;
+    align-items: center;
+
+    padding: 0 22px;
+
+    border-bottom:
+        1px solid #292929;
+}
+
+.brand-link {
+    display: flex;
+    align-items: center;
+
+    gap: 11px;
+
+    text-decoration: none;
+}
+
+.brand-mark {
+    width: 38px;
+    height: 38px;
+
+    flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 9px;
+
+    background: #F47521;
+    color: #FFFFFF;
+
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.brand-text {
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+}
+
+.brand-name {
+    color: #F47521;
+
+    font-size: 21px;
+    font-weight: 800;
+
+    line-height: 1;
+
+    letter-spacing: -0.5px;
+}
+
+.brand-tagline {
+    max-width: 160px;
+
+    margin-top: 5px;
+
+    color: #999999;
+
+    font-size: 8px;
+
+    line-height: 1.35;
+}
+
+
+/* =========================================
+   SIDEBAR NAVIGATION
+   ========================================= */
+
+.sidebar-nav {
+    flex: 1;
+
+    padding: 18px 12px;
+
+    overflow-y: auto;
+
+    scrollbar-width: thin;
+    scrollbar-color: #333333 transparent;
+}
+
+.nav-section {
+    margin-bottom: 25px;
+}
+
+.nav-section-title {
+    display: block;
+
+    padding:
+        0
+        12px
+        8px;
+
+    color: #666666;
+
+    font-size: 9px;
+    font-weight: 700;
+
+    text-transform: uppercase;
+
+    letter-spacing: 1px;
+}
+
+.nav-item {
+    position: relative;
+
+    display: flex;
+    align-items: center;
+
+    gap: 11px;
+
+    min-height: 42px;
+
+    margin-bottom: 4px;
+
+    padding: 0 12px;
+
+    border-radius: 7px;
+
+    color: #BDBDBD;
+
+    font-size: 13px;
+    font-weight: 600;
+
+    text-decoration: none;
+
+    transition:
+        background 0.2s ease,
+        color 0.2s ease;
+}
+
+.nav-item:hover {
+    background: #1F1F1F;
+
+    color: #FFFFFF;
+}
+
+.nav-item.active {
+    background: #2A1C15;
+
+    color: #F47521;
+}
+
+.nav-item.active::before {
+    content: "";
+
+    position: absolute;
+
+    left: 0;
+    top: 8px;
+    bottom: 8px;
+
+    width: 3px;
+
+    border-radius:
+        0
+        3px
+        3px
+        0;
+
+    background: #F47521;
+}
+
+.nav-icon {
+    width: 22px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex-shrink: 0;
+
+    color: inherit;
+
+    font-size: 15px;
+
+    line-height: 1;
+}
+
+.nav-label {
+    white-space: nowrap;
+}
+
+
+/* =========================================
+   SIDEBAR BOTTOM
+   ========================================= */
+
+.sidebar-bottom {
+    padding: 12px;
+
+    border-top:
+        1px solid #292929;
+}
+
+.sidebar-user {
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+
+    padding:
+        9px
+        8px
+        13px;
+}
+
+.sidebar-user-info {
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-user-info strong {
+    overflow: hidden;
+
+    color: #FFFFFF;
+
+    font-size: 12px;
+
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sidebar-user-info span {
+    margin-top: 1px;
+
+    color: #777777;
+
+    font-size: 9px;
+}
+
+.sidebar-user .user-avatar {
+    width: 34px;
+    height: 34px;
+
+    flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    overflow: hidden;
+
+    border-radius: 50%;
+
+    background: #F47521;
+    color: #FFFFFF;
+
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.sidebar-user .user-avatar img {
+    width: 100%;
+    height: 100%;
+
+    object-fit: cover;
+}
+
+
+/* =========================================
+   LOGOUT
+   ========================================= */
+
+.logout-item {
+    color: #999999;
+}
+
+.logout-item:hover {
+    color: #FFFFFF;
+}
+
+.logout-item:hover .nav-icon {
+    color: #F47521;
+}
+
+
+/* =========================================
+   DESKTOP OPEN STATE
+   ========================================= */
+
+body.sidebar-collapsed .sidebar {
+    width: 245px;
+
+    transform: translateX(0);
+}
+
+
+/* =========================================
+   MOBILE
+   ========================================= */
+
+@media (max-width: 768px) {
+
+    .sidebar {
+        width: 245px;
+
+        transform: translateX(-100%);
+    }
+
+    body.sidebar-collapsed .sidebar {
+        width: 245px;
+
+        transform: translateX(0);
+    }
+}
+
+
+/* =========================================
+   SIDEBAR OVERLAY
+   ========================================= */
+
+@media (max-width: 768px) {
+
+    body.sidebar-collapsed::after {
+        content: "";
+
+        position: fixed;
+
+        inset: 0;
+
+        z-index: 400;
+
+        background:
+            rgba(0, 0, 0, 0.45);
+    }
+
+    body.sidebar-collapsed .sidebar {
+        z-index: 500;
+    }
+}

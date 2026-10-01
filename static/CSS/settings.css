@@ -1,0 +1,465 @@
+/* =========================================
+   InCraft — Settings Page Styles
+   ========================================= */
+
+/* ---------- Page Header ---------- */
+
+.settings-page-header {
+    margin-bottom: 18px;
+}
+
+.settings-page-header .page-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+
+/* ---------- Settings Layout ---------- */
+
+.settings-layout {
+    display: grid;
+    grid-template-columns: 230px minmax(0, 1fr);
+    gap: 18px;
+    align-items: start;
+}
+
+
+/* ---------- Settings Navigation ---------- */
+
+.settings-nav {
+    padding: 8px;
+    background: var(--ic-surface);
+    border: 1px solid var(--ic-border);
+    border-radius: var(--ic-radius);
+    box-shadow: var(--ic-shadow-sm);
+}
+
+.settings-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 11px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--ic-text-soft);
+    font-size: 12px;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.18s ease, color 0.18s ease;
+}
+
+.settings-nav-item i {
+    width: 16px;
+    text-align: center;
+    font-size: 13px;
+}
+
+.settings-nav-item:hover {
+    background: var(--ic-orange-soft);
+    color: var(--ic-orange);
+}
+
+.settings-nav-item.active {
+    background: var(--ic-orange-soft);
+    color: var(--ic-orange);
+}
+
+
+/* ---------- Settings Content ---------- */
+
+.settings-content {
+    min-width: 0;
+}
+
+.settings-section {
+    margin-bottom: 18px;
+    background: var(--ic-surface);
+    border: 1px solid var(--ic-border);
+    border-radius: var(--ic-radius);
+    box-shadow: var(--ic-shadow-sm);
+    overflow: hidden;
+}
+
+.settings-section:last-child {
+    margin-bottom: 0;
+}
+
+.settings-section-header {
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--ic-border-soft);
+}
+
+.settings-section-header h2,
+.settings-section-header h3 {
+    color: var(--ic-text);
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.settings-section-header p {
+    margin-top: 4px;
+    color: var(--ic-muted);
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+.settings-section-body {
+    padding: 20px;
+}
+
+
+/* ---------- Settings Form ---------- */
+
+.settings-form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 17px;
+}
+
+.settings-form .full-width {
+    grid-column: 1 / -1;
+}
+
+.settings-form .form-group {
+    gap: 7px;
+}
+
+.settings-form .form-group label {
+    color: var(--ic-text-soft);
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.settings-form .form-group input,
+.settings-form .form-group select,
+.settings-form .form-group textarea {
+    width: 100%;
+    min-height: 42px;
+    padding: 10px 12px;
+    background: #FFFFFF;
+    border: 1px solid var(--ic-border);
+    border-radius: 8px;
+    color: var(--ic-text);
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.settings-form .form-group textarea {
+    min-height: 110px;
+    resize: vertical;
+}
+
+.settings-form .form-group input:focus,
+.settings-form .form-group select:focus,
+.settings-form .form-group textarea:focus {
+    border-color: var(--ic-orange);
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.10);
+}
+
+.settings-form .form-group input::placeholder,
+.settings-form .form-group textarea::placeholder {
+    color: #94A3B8;
+}
+
+
+/* ---------- Profile Section ---------- */
+
+.settings-profile {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 22px;
+}
+
+.settings-profile-avatar {
+    width: 58px;
+    height: 58px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--ic-orange-soft);
+    color: var(--ic-orange);
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.settings-profile-info {
+    min-width: 0;
+}
+
+.settings-profile-name {
+    color: var(--ic-text);
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.settings-profile-email {
+    margin-top: 3px;
+    color: var(--ic-muted);
+    font-size: 11px;
+}
+
+
+/* ---------- Form Actions ---------- */
+
+.settings-form-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 9px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--ic-border-soft);
+}
+
+
+/* ---------- Password Section ---------- */
+
+.password-strength {
+    margin-top: 7px;
+}
+
+.password-strength-bar {
+    width: 100%;
+    height: 5px;
+    overflow: hidden;
+    background: #E2E8F0;
+    border-radius: 999px;
+}
+
+.password-strength-fill {
+    width: 0;
+    height: 100%;
+    border-radius: inherit;
+    transition: width 0.2s ease;
+}
+
+.password-strength-text {
+    margin-top: 5px;
+    color: var(--ic-muted);
+    font-size: 10px;
+}
+
+
+/* ---------- Toggle Settings ---------- */
+
+.settings-option-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.settings-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 15px 0;
+    border-bottom: 1px solid var(--ic-border-soft);
+}
+
+.settings-option:first-child {
+    padding-top: 0;
+}
+
+.settings-option:last-child {
+    padding-bottom: 0;
+    border-bottom: 0;
+}
+
+.settings-option-info {
+    min-width: 0;
+}
+
+.settings-option-title {
+    color: var(--ic-text);
+    font-size: 13px;
+    font-weight: 650;
+}
+
+.settings-option-description {
+    margin-top: 3px;
+    color: var(--ic-muted);
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+
+/* ---------- Toggle ---------- */
+
+.settings-toggle {
+    position: relative;
+    width: 40px;
+    height: 22px;
+    flex-shrink: 0;
+}
+
+.settings-toggle input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.settings-toggle-slider {
+    position: absolute;
+    inset: 0;
+    background: #CBD5E1;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 0.18s ease;
+}
+
+.settings-toggle-slider::before {
+    content: "";
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    top: 3px;
+    left: 3px;
+    background: #FFFFFF;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+    transition: transform 0.18s ease;
+}
+
+.settings-toggle input:checked + .settings-toggle-slider {
+    background: var(--ic-orange);
+}
+
+.settings-toggle input:checked + .settings-toggle-slider::before {
+    transform: translateX(18px);
+}
+
+
+/* ---------- Danger Zone ---------- */
+
+.settings-danger {
+    border-color: rgba(220, 38, 38, 0.20);
+}
+
+.settings-danger .settings-section-header {
+    background: var(--ic-danger-soft);
+}
+
+.settings-danger .settings-section-header h2,
+.settings-danger .settings-section-header h3 {
+    color: var(--ic-danger);
+}
+
+.settings-danger-text {
+    color: var(--ic-muted);
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+
+/* ---------- Messages ---------- */
+
+.settings-message {
+    display: none;
+    margin-bottom: 16px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.settings-message.success {
+    display: block;
+    background: var(--ic-success-soft);
+    border: 1px solid rgba(22, 163, 74, 0.18);
+    color: var(--ic-success);
+}
+
+.settings-message.error {
+    display: block;
+    background: var(--ic-danger-soft);
+    border: 1px solid rgba(220, 38, 38, 0.18);
+    color: var(--ic-danger);
+}
+
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 850px) {
+    .settings-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .settings-nav {
+        display: flex;
+        gap: 5px;
+        overflow-x: auto;
+        padding: 6px;
+    }
+
+    .settings-nav-item {
+        width: auto;
+        flex-shrink: 0;
+        white-space: nowrap;
+    }
+}
+
+@media (max-width: 700px) {
+    .settings-page-header .page-header-actions {
+        width: 100%;
+    }
+
+    .settings-page-header .page-header-actions .btn {
+        flex: 1;
+    }
+
+    .settings-form {
+        grid-template-columns: 1fr;
+    }
+
+    .settings-form .full-width {
+        grid-column: auto;
+    }
+
+    .settings-section-body {
+        padding: 18px;
+    }
+}
+
+@media (max-width: 480px) {
+    .settings-page-header .page-header-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .settings-page-header .page-header-actions .btn {
+        width: 100%;
+    }
+
+    .settings-section-header {
+        padding: 16px;
+    }
+
+    .settings-section-body {
+        padding: 16px;
+    }
+
+    .settings-profile {
+        align-items: flex-start;
+    }
+
+    .settings-form-actions {
+        flex-direction: column-reverse;
+        align-items: stretch;
+    }
+
+    .settings-form-actions .btn {
+        width: 100%;
+    }
+
+    .settings-option {
+        align-items: flex-start;
+    }
+}

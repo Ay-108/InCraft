@@ -1,0 +1,476 @@
+/* =========================================
+   InCraft — Inventory Styles
+   ========================================= */
+
+
+/* =========================================
+   INVENTORY HEADER
+   ========================================= */
+
+.inventory-page-header {
+    margin-bottom: 22px;
+}
+
+.inventory-page-header h1 {
+    color: var(--ic-text);
+    font-size: 28px;
+    font-weight: 750;
+    letter-spacing: -0.025em;
+}
+
+.inventory-page-header p {
+    margin-top: 5px;
+    color: var(--ic-muted);
+    font-size: 14px;
+}
+
+
+/* =========================================
+   INVENTORY TOOLBAR
+   ========================================= */
+
+.inventory-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 14px;
+
+    margin-bottom: 18px;
+    padding: 14px;
+
+    background: var(--ic-surface);
+
+    border: 1px solid var(--ic-border);
+    border-radius: var(--ic-radius);
+
+    box-shadow: var(--ic-shadow-sm);
+}
+
+.inventory-search {
+    position: relative;
+    flex: 1;
+    min-width: 220px;
+}
+
+.inventory-search input {
+    width: 100%;
+    height: 42px;
+
+    padding: 0 14px 0 39px;
+
+    background: var(--ic-surface-soft);
+
+    border: 1px solid var(--ic-border);
+    border-radius: 9px;
+
+    color: var(--ic-text);
+
+    outline: none;
+    font-size: 13px;
+}
+
+.inventory-search input:focus {
+    background: #FFFFFF;
+
+    border-color: var(--ic-orange);
+
+    box-shadow:
+        0 0 0 3px
+        rgba(249, 115, 22, 0.10);
+}
+
+.inventory-search .search-icon {
+    position: absolute;
+
+    left: 13px;
+    top: 50%;
+
+    transform: translateY(-50%);
+
+    color: var(--ic-muted);
+
+    pointer-events: none;
+}
+
+.inventory-filters {
+    display: flex;
+    align-items: center;
+
+    gap: 8px;
+}
+
+.inventory-filter {
+    min-width: 130px;
+}
+
+
+/* =========================================
+   INVENTORY CARD
+   ========================================= */
+
+.inventory-card {
+    overflow: hidden;
+
+    background: var(--ic-surface);
+
+    border: 1px solid var(--ic-border);
+    border-radius: var(--ic-radius);
+
+    box-shadow: var(--ic-shadow-sm);
+}
+
+.inventory-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    padding: 18px 20px;
+
+    border-bottom:
+        1px solid var(--ic-border-soft);
+}
+
+.inventory-card-header h2 {
+    color: var(--ic-text);
+
+    font-size: 17px;
+    font-weight: 700;
+}
+
+.inventory-card-header p {
+    margin-top: 3px;
+
+    color: var(--ic-muted);
+
+    font-size: 12px;
+}
+
+
+/* =========================================
+   INVENTORY TABLE
+   ========================================= */
+
+.inventory-table {
+    min-width: 850px;
+}
+
+.inventory-table th {
+    height: 44px;
+
+    padding: 0 16px;
+
+    background: #F8FAFC;
+
+    border-bottom:
+        1px solid var(--ic-border);
+
+    color: var(--ic-muted);
+
+    font-size: 11px;
+    font-weight: 700;
+
+    text-align: left;
+
+    white-space: nowrap;
+
+    text-transform: uppercase;
+}
+
+.inventory-table td {
+    height: 62px;
+
+    padding: 0 16px;
+
+    border-bottom:
+        1px solid var(--ic-border-soft);
+
+    color: var(--ic-text-soft);
+
+    font-size: 12px;
+
+    vertical-align: middle;
+}
+
+.inventory-table tbody tr:hover {
+    background: #FFF9F5;
+}
+
+.inventory-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+
+/* =========================================
+   PRODUCT CELL
+   ========================================= */
+
+.inventory-product {
+    display: flex;
+    align-items: center;
+
+    gap: 11px;
+
+    min-width: 180px;
+}
+
+.inventory-product-image {
+    width: 38px;
+    height: 38px;
+
+    flex-shrink: 0;
+
+    overflow: hidden;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 8px;
+
+    background: #F1F5F9;
+
+    color: var(--ic-muted);
+
+    font-size: 14px;
+}
+
+.inventory-product-image img {
+    width: 100%;
+    height: 100%;
+
+    object-fit: cover;
+}
+
+.inventory-product-info {
+    min-width: 0;
+}
+
+.inventory-product-info strong {
+    display: block;
+
+    overflow: hidden;
+
+    color: var(--ic-text);
+
+    font-size: 12px;
+    font-weight: 650;
+
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.inventory-product-info span {
+    display: block;
+
+    margin-top: 2px;
+
+    color: var(--ic-muted);
+
+    font-size: 10px;
+}
+
+
+/* =========================================
+   INVENTORY STOCK
+   ========================================= */
+
+.stock-value {
+    font-weight: 700;
+}
+
+.stock-value.low {
+    color: var(--ic-warning);
+}
+
+.stock-value.out {
+    color: var(--ic-danger);
+}
+
+.stock-value.good {
+    color: var(--ic-success);
+}
+
+
+/* =========================================
+   INVENTORY CATEGORY
+   ========================================= */
+
+.category-badge {
+    display: inline-flex;
+    align-items: center;
+
+    padding: 4px 8px;
+
+    border-radius: 6px;
+
+    background: #F1F5F9;
+
+    color: var(--ic-text-soft);
+
+    font-size: 10px;
+    font-weight: 600;
+}
+
+
+/* =========================================
+   INVENTORY ACTIONS
+   ========================================= */
+
+.inventory-actions {
+    display: flex;
+    align-items: center;
+
+    gap: 5px;
+}
+
+.inventory-actions .icon-btn {
+    width: 30px;
+    height: 30px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0;
+
+    border: 1px solid var(--ic-border);
+
+    border-radius: 7px;
+
+    background: #FFFFFF;
+
+    color: var(--ic-muted);
+}
+
+.inventory-actions .icon-btn:hover {
+    border-color: var(--ic-orange);
+
+    background: var(--ic-orange-soft);
+
+    color: var(--ic-orange);
+}
+
+.inventory-actions .icon-btn.danger-action:hover {
+    border-color: #FECACA;
+
+    background: #FEF2F2;
+
+    color: var(--ic-danger);
+}
+
+
+/* =========================================
+   INVENTORY FOOTER / COUNT
+   ========================================= */
+
+.inventory-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    padding: 12px 18px;
+
+    border-top:
+        1px solid var(--ic-border-soft);
+}
+
+.inventory-count {
+    color: var(--ic-muted);
+
+    font-size: 11px;
+}
+
+.inventory-count strong {
+    color: var(--ic-text);
+}
+
+
+/* =========================================
+   INVENTORY EMPTY STATE
+   ========================================= */
+
+.inventory-empty {
+    padding: 55px 20px;
+
+    text-align: center;
+}
+
+.inventory-empty .empty-state-icon {
+    margin-bottom: 12px;
+}
+
+
+/* =========================================
+   INVENTORY RESPONSIVE
+   ========================================= */
+
+@media (max-width: 900px) {
+
+    .inventory-toolbar {
+        align-items: stretch;
+
+        flex-direction: column;
+    }
+
+    .inventory-search {
+        width: 100%;
+    }
+
+    .inventory-filters {
+        width: 100%;
+    }
+
+    .inventory-filter {
+        flex: 1;
+    }
+
+}
+
+
+@media (max-width: 650px) {
+
+    .inventory-page-header h1 {
+        font-size: 24px;
+    }
+
+    .inventory-filters {
+        display: grid;
+
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .inventory-filter {
+        width: 100%;
+    }
+
+    .inventory-card-header {
+        align-items: flex-start;
+
+        flex-direction: column;
+    }
+
+}
+
+
+@media (max-width: 480px) {
+
+    .inventory-toolbar {
+        padding: 11px;
+    }
+
+    .inventory-filters {
+        grid-template-columns: 1fr;
+    }
+
+    .inventory-card-footer {
+        align-items: flex-start;
+
+        flex-direction: column;
+    }
+
+}

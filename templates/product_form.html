@@ -1,0 +1,755 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {{ 'Edit Product' if product else 'Add Product' }} | InCraft
+{% endblock %}
+
+{% block content %}
+
+<main class="main-content">
+
+    <!-- Page Header -->
+    <section class="page-header product-page-header">
+        <div>
+            <span class="page-eyebrow">INVENTORY MANAGEMENT</span>
+
+            <h1>
+                {{ 'Edit Product' if product else 'Add Product' }}
+            </h1>
+
+            <p>
+                {% if product %}
+                    Update the details of your inventory item.
+                {% else %}
+                    Add a new product to your inventory.
+                {% endif %}
+            </p>
+        </div>
+
+        <div class="page-header-icon">
+            <span>+</span>
+        </div>
+    </section>
+
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                    <div class="flash-message {{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+
+    <!-- Product Form -->
+    <form
+        class="product-form redesigned-product-form"
+        method="POST"
+        enctype="multipart/form-data"
+        action="{% if product %}{{ url_for('main.edit_product', product_id=product.product_id) }}{% else %}{{ url_for('main.add_product') }}{% endif %}"
+    >
+
+        <!-- Product Information -->
+        <section class="dashboard-card form-card product-form-card">
+
+            <div class="card-header">
+                <div class="section-title-wrap">
+                    <span class="section-number">01</span>
+
+                    <div>
+                        <h2>Product Information</h2>
+                        <p>
+                            Enter the basic information about this product.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="form-grid">
+
+                <!-- Product Code -->
+                <div class="form-group">
+                    <label for="product_code">
+                        Product Code
+                    </label>
+
+                    <input
+                        type="text"
+                        id="product_code"
+                        name="product_code"
+                        placeholder="e.g. WM-101"
+                        value="{{ product.product_code|default('') if product else '' }}"
+                        required
+                        {% if product %}readonly{% endif %}
+                    >
+
+                    <small>
+                        A unique code used to identify the product.
+                    </small>
+                </div>
+
+
+                <!-- Product Name -->
+                <div class="form-group">
+                    <label for="name">
+                        Product Name
+                    </label>
+
+                    <input
+                        type="text"
+                        id="name"
+                        name="name"
+                        placeholder="Enter product name"
+                        value="{{ product.name|default('') if product else '' }}"
+                        required
+                    >
+                </div>
+
+
+                <!-- Category -->
+                <div class="form-group">
+                    <label for="category">
+                        Category
+                    </label>
+
+                    <select
+                        id="category"
+                        name="category"
+                        required
+                    >
+                        <option value="">Select category</option>
+
+                        {% if categories %}
+
+                            {% for category in categories %}
+                                <option
+                                    value="{{ category }}"
+                                    {% if product and product.category == category %}
+                                        selected
+                                    {% endif %}
+                                >
+                                    {{ category }}
+                                </option>
+                            {% endfor %}
+
+                        {% else %}
+
+                            <option
+                                value="Electronics"
+                                {% if product and product.category == 'Electronics' %}
+                                    selected
+                                {% endif %}
+                            >
+                                Electronics
+                            </option>
+
+                            <option
+                                value="Accessories"
+                                {% if product and product.category == 'Accessories' %}
+                                    selected
+                                {% endif %}
+                            >
+                                Accessories
+                            </option>
+
+                            <option
+                                value="Office"
+                                {% if product and product.category == 'Office' %}
+                                    selected
+                                {% endif %}
+                            >
+                                Office
+                            </option>
+
+                            <option
+                                value="Furniture"
+                                {% if product and product.category == 'Furniture' %}
+                                    selected
+                                {% endif %}
+                            >
+                                Furniture
+                            </option>
+
+                            <option
+                                value="Other"
+                                {% if product and product.category == 'Other' %}
+                                    selected
+                                {% endif %}
+                            >
+                                Other
+                            </option>
+
+                        {% endif %}
+                    </select>
+                </div>
+
+
+                <!-- Supplier -->
+                <div class="form-group">
+                    <label for="supplier">
+                        Supplier
+                    </label>
+
+                    <input
+                        type="text"
+                        id="supplier"
+                        name="supplier"
+                        placeholder="Enter supplier name"
+                        value="{{ product.supplier|default('') if product else '' }}"
+                    >
+                </div>
+
+
+                <!-- Description -->
+                <div class="form-group full-width">
+                    <label for="description">
+                        Description
+                    </label>
+
+                    <textarea
+                        id="description"
+                        name="description"
+                        rows="4"
+                        placeholder="Enter product description..."
+                    >{{ product.description|default('') if product else '' }}</textarea>
+                </div>
+
+            </div>
+        </section>
+
+
+        <!-- Inventory Information -->
+        <section class="dashboard-card form-card product-form-card">
+
+            <div class="card-header">
+                <div class="section-title-wrap">
+                    <span class="section-number">02</span>
+
+                    <div>
+                        <h2>Inventory Information</h2>
+                        <p>
+                            Manage stock, pricing and reorder settings.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="form-grid">
+
+                <!-- Current Quantity -->
+                <div class="form-group">
+                    <label for="quantity">
+                        Current Stock
+                    </label>
+
+                    <input
+                        type="number"
+                        id="quantity"
+                        name="quantity"
+                        min="0"
+                        placeholder="0"
+                        value="{{ product.quantity|default(0) if product else 0 }}"
+                        required
+                    >
+
+                    <small>
+                        Number of units currently available.
+                    </small>
+                </div>
+
+
+                <!-- Minimum Stock -->
+                <div class="form-group">
+                    <label for="minimum_stock">
+                        Reorder Level
+                    </label>
+
+                    <input
+                        type="number"
+                        id="minimum_stock"
+                        name="minimum_stock"
+                        min="0"
+                        placeholder="10"
+                        value="{{ product.minimum_stock|default(10) if product else 10 }}"
+                        required
+                    >
+
+                    <small>
+                        Minimum stock before an alert is shown.
+                    </small>
+                </div>
+
+
+                <!-- Selling Price -->
+                <div class="form-group">
+                    <label for="price">
+                        Selling Price
+                    </label>
+
+                    <div class="input-with-prefix">
+                        <span>₹</span>
+
+                        <input
+                            type="number"
+                            id="price"
+                            name="price"
+                            min="0.01"
+                            step="0.01"
+                            placeholder="0.00"
+                            value="{{ product.price|default(0) if product else 0 }}"
+                            required
+                        >
+                    </div>
+                </div>
+
+
+                <!-- Inventory Value -->
+                <div class="form-group calculated-group">
+                    <label>
+                        Inventory Value
+                    </label>
+
+                    <div
+                        class="calculated-value"
+                        id="inventoryValue"
+                    >
+                        ₹0.00
+                    </div>
+
+                    <small>
+                        Current Stock × Selling Price
+                    </small>
+                </div>
+
+            </div>
+        </section>
+
+
+        <!-- Stock Status -->
+        <section class="dashboard-card stock-status-card redesigned-stock-card">
+
+            <div class="stock-status-content">
+
+                <div class="stock-status-info">
+                    <div class="status-icon">●</div>
+
+                    <div>
+                        <span class="status-label">
+                            CURRENT INVENTORY STATUS
+                        </span>
+
+                        <h2>Stock Status</h2>
+
+                        <p>
+                            Status is calculated automatically from current
+                            stock and reorder level.
+                        </p>
+                    </div>
+                </div>
+
+
+                <span
+                    class="status-badge"
+                    id="stockStatus"
+                >
+                    In Stock
+                </span>
+
+            </div>
+        </section>
+
+
+        <!-- Product Image -->
+        <section class="dashboard-card form-card product-form-card">
+
+            <div class="card-header">
+                <div class="section-title-wrap">
+                    <span class="section-number">03</span>
+
+                    <div>
+                        <h2>Product Image</h2>
+                        <p>
+                            Upload an image to make this product easier to identify.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="image-upload-area redesigned-image-upload">
+
+                <!-- Image Preview -->
+                <div
+                    class="image-preview"
+                    id="imagePreview"
+                >
+                    {% if product and product.image %}
+
+                        <img
+                            src="{{ url_for('static', filename=product.image) }}"
+                            alt="{{ product.name|default('Product') }}"
+                        >
+
+                    {% else %}
+
+                        <div class="image-placeholder">
+                            <span>+</span>
+                            <small>Preview</small>
+                        </div>
+
+                    {% endif %}
+                </div>
+
+
+                <!-- Upload Controls -->
+                <div class="image-upload-content">
+
+                    <div class="upload-heading">
+                        <h3>Upload Product Image</h3>
+
+                        <p>
+                            Choose a clear image of your product.
+                        </p>
+                    </div>
+
+
+                    <label
+                        for="image"
+                        class="btn btn-secondary upload-image-btn"
+                    >
+                        Choose Image
+                    </label>
+
+                    <input
+                        type="file"
+                        id="image"
+                        name="image"
+                        accept=".jpg,.jpeg,.png,.webp"
+                        hidden
+                    >
+
+                    <p class="upload-hint">
+                        JPG, JPEG, PNG or WEBP
+                        <br>
+                        Recommended size: 500 × 500px
+                    </p>
+
+
+                    {% if product and product.image %}
+
+                        <button
+                            type="button"
+                            class="remove-image"
+                            id="removeImage"
+                        >
+                            Remove Image
+                        </button>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+        </section>
+
+
+        <!-- Form Actions -->
+        <div class="form-actions redesigned-form-actions">
+
+            <a
+                href="{{ url_for('main.inventory') }}"
+                class="btn btn-secondary"
+            >
+                Cancel
+            </a>
+
+
+            <button
+                type="submit"
+                class="btn btn-primary"
+            >
+                {% if product %}
+                    Update Product
+                {% else %}
+                    Save Product
+                {% endif %}
+            </button>
+
+        </div>
+
+    </form>
+
+</main>
+
+{% endblock %}
+
+
+{% block extra_js %}
+
+<script
+    src="{{ url_for('static', filename='js/product_form.js') }}"
+></script>
+
+
+<script>
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    /* Elements */
+
+    const quantityInput =
+        document.getElementById("quantity");
+
+    const minimumStockInput =
+        document.getElementById("minimum_stock");
+
+    const priceInput =
+        document.getElementById("price");
+
+    const inventoryValue =
+        document.getElementById("inventoryValue");
+
+    const stockStatus =
+        document.getElementById("stockStatus");
+
+    const imageInput =
+        document.getElementById("image");
+
+    const imagePreview =
+        document.getElementById("imagePreview");
+
+    const removeImage =
+        document.getElementById("removeImage");
+
+
+    /* Inventory Value */
+
+    function calculateInventoryValue() {
+
+        if (!quantityInput || !priceInput || !inventoryValue) {
+            return;
+        }
+
+        const quantity =
+            Number(quantityInput.value) || 0;
+
+        const price =
+            Number(priceInput.value) || 0;
+
+        const total =
+            quantity * price;
+
+        inventoryValue.textContent =
+            "₹" + total.toFixed(2);
+    }
+
+
+    /* Stock Status */
+
+    function updateStockStatus() {
+
+        if (
+            !quantityInput ||
+            !minimumStockInput ||
+            !stockStatus
+        ) {
+            return;
+        }
+
+        const quantity =
+            Number(quantityInput.value) || 0;
+
+        const minimumStock =
+            Number(minimumStockInput.value) || 0;
+
+
+        stockStatus.classList.remove(
+            "in-stock",
+            "low-stock",
+            "out-of-stock",
+            "success",
+            "warning",
+            "danger"
+        );
+
+
+        if (quantity <= 0) {
+
+            stockStatus.textContent =
+                "Out of Stock";
+
+            stockStatus.classList.add(
+                "out-of-stock",
+                "danger"
+            );
+
+        } else if (quantity <= minimumStock) {
+
+            stockStatus.textContent =
+                "Low Stock";
+
+            stockStatus.classList.add(
+                "low-stock",
+                "warning"
+            );
+
+        } else {
+
+            stockStatus.textContent =
+                "In Stock";
+
+            stockStatus.classList.add(
+                "in-stock",
+                "success"
+            );
+        }
+    }
+
+
+    /* Image Preview */
+
+    if (imageInput) {
+
+        imageInput.addEventListener(
+            "change",
+            function () {
+
+                const file =
+                    imageInput.files[0];
+
+                if (!file) {
+                    return;
+                }
+
+
+                const allowedTypes = [
+                    "image/jpeg",
+                    "image/png",
+                    "image/webp"
+                ];
+
+
+                if (!allowedTypes.includes(file.type)) {
+
+                    alert(
+                        "Please select a JPG, PNG or WEBP image."
+                    );
+
+                    imageInput.value = "";
+
+                    return;
+                }
+
+
+                const reader =
+                    new FileReader();
+
+
+                reader.onload =
+                    function (event) {
+
+                        if (!imagePreview) {
+                            return;
+                        }
+
+                        imagePreview.innerHTML = `
+                            <img
+                                src="${event.target.result}"
+                                alt="Product Preview"
+                            >
+                        `;
+                    };
+
+
+                reader.readAsDataURL(file);
+
+            }
+        );
+
+    }
+
+
+    /* Remove Image */
+
+    if (removeImage) {
+
+        removeImage.addEventListener(
+            "click",
+            function () {
+
+                if (imageInput) {
+                    imageInput.value = "";
+                }
+
+
+                if (imagePreview) {
+
+                    imagePreview.innerHTML = `
+                        <div class="image-placeholder">
+                            <span>+</span>
+                            <small>Preview</small>
+                        </div>
+                    `;
+
+                }
+
+            }
+        );
+
+    }
+
+
+    /* Live Calculations */
+
+    if (quantityInput) {
+
+        quantityInput.addEventListener(
+            "input",
+            function () {
+
+                calculateInventoryValue();
+                updateStockStatus();
+
+            }
+        );
+
+    }
+
+
+    if (minimumStockInput) {
+
+        minimumStockInput.addEventListener(
+            "input",
+            updateStockStatus
+        );
+
+    }
+
+
+    if (priceInput) {
+
+        priceInput.addEventListener(
+            "input",
+            calculateInventoryValue
+        );
+
+    }
+
+
+    /* Initial State */
+
+    calculateInventoryValue();
+    updateStockStatus();
+
+});
+
+</script>
+
+{% endblock %}

@@ -1,0 +1,882 @@
+<!-- =========================================
+     InCraft - Navbar / Topbar
+     Dark + Orange Theme
+     ========================================= -->
+
+<header class="topbar">
+
+    <!-- Left Section -->
+    <div class="topbar-left">
+
+        <!-- Sidebar Toggle -->
+        <button
+            type="button"
+            class="sidebar-toggle"
+            id="sidebarToggle"
+            aria-label="Toggle sidebar"
+            title="Toggle Sidebar"
+            aria-expanded="false"
+        >
+            <span class="menu-icon">☰</span>
+        </button>
+
+        <!-- Page Information -->
+        <div class="topbar-page">
+            <h1 id="pageTitle">
+                {% if page_title %}
+                    {{ page_title }}
+                {% else %}
+                    InCraft
+                {% endif %}
+            </h1>
+        </div>
+
+    </div>
+
+
+    <!-- Center Section -->
+    <div class="topbar-search">
+
+        <div class="global-search">
+
+            <span class="search-icon">⌕</span>
+
+            <input
+                type="search"
+                id="globalSearch"
+                placeholder="Search products, sales or records..."
+                autocomplete="off"
+                aria-label="Global search"
+            >
+
+            <span class="search-shortcut">/</span>
+
+        </div>
+
+
+        <!-- Search Results -->
+        <div
+            class="global-search-results"
+            id="globalSearchResults"
+            style="display: none;"
+        >
+
+            <div class="search-results-header">
+                Search Results
+            </div>
+
+            <div id="searchResultsList">
+                <!-- Results inserted by JavaScript -->
+            </div>
+
+            <div
+                class="search-empty"
+                id="searchEmpty"
+                style="display: none;"
+            >
+                No results found.
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- Right Section -->
+    <div class="topbar-right">
+
+        <!-- Notifications -->
+        <div class="notification-wrapper">
+
+            <button
+                type="button"
+                class="topbar-icon-btn"
+                id="notificationButton"
+                aria-label="Notifications"
+                title="Notifications"
+            >
+                <span class="topbar-icon">🔔</span>
+
+                {% if notification_count|default(0) > 0 %}
+                    <span class="notification-badge">
+                        {{ notification_count }}
+                    </span>
+                {% endif %}
+
+            </button>
+
+
+            <!-- Notification Dropdown -->
+            <div
+                class="notification-dropdown"
+                id="notificationDropdown"
+                style="display: none;"
+            >
+
+                <div class="dropdown-header">
+
+                    <strong>Notifications</strong>
+
+                    <button
+                        type="button"
+                        id="markNotificationsRead"
+                    >
+                        Mark all as read
+                    </button>
+
+                </div>
+
+
+                <div class="notification-list">
+
+                    {% if notifications %}
+
+                        {% for notification in notifications %}
+
+                            <div class="notification-item">
+
+                                <div class="notification-item-icon">
+                                    {{ notification.icon|default('•') }}
+                                </div>
+
+                                <div class="notification-item-content">
+
+                                    <strong>
+                                        {{ notification.title }}
+                                    </strong>
+
+                                    <p>
+                                        {{ notification.message }}
+                                    </p>
+
+                                    <small>
+                                        {{ notification.time|default('Recently') }}
+                                    </small>
+
+                                </div>
+
+                            </div>
+
+                        {% endfor %}
+
+                    {% else %}
+
+                        <div class="notification-empty">
+
+                            <strong>
+                                No new notifications
+                            </strong>
+
+                            <p>
+                                You're all caught up.
+                            </p>
+
+                        </div>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- User Profile -->
+        <div class="user-menu-wrapper">
+
+            <button
+                type="button"
+                class="user-menu-button"
+                id="userMenuButton"
+                aria-label="Open user menu"
+            >
+
+                <div class="user-avatar">
+
+                    {% if user and user.profile_image %}
+
+                        <img
+                            src="{{ url_for(
+                                'static',
+                                filename=user.profile_image
+                            ) }}"
+                            alt="Profile"
+                        >
+
+                    {% else %}
+
+                        <span>
+                            {{ user.name[0]|upper
+                               if user and user.name
+                               else 'A' }}
+                        </span>
+
+                    {% endif %}
+
+                </div>
+
+
+                <div class="user-info">
+
+                    <strong>
+                        {{ user.name
+                           if user and user.name
+                           else 'Admin' }}
+                    </strong>
+
+                    <span>
+                        {{ user.role
+                           if user and user.role
+                           else 'Administrator' }}
+                    </span>
+
+                </div>
+
+
+                <span class="user-menu-arrow">
+                    ▼
+                </span>
+
+            </button>
+
+
+            <!-- User Dropdown -->
+            <div
+                class="user-dropdown"
+                id="userDropdown"
+                style="display: none;"
+            >
+
+                <div class="user-dropdown-header">
+
+                    <div class="user-avatar large">
+
+                        {% if user and user.profile_image %}
+
+                            <img
+                                src="{{ url_for(
+                                    'static',
+                                    filename=user.profile_image
+                                ) }}"
+                                alt="Profile"
+                            >
+
+                        {% else %}
+
+                            <span>
+                                {{ user.name[0]|upper
+                                   if user and user.name
+                                   else 'A' }}
+                            </span>
+
+                        {% endif %}
+
+                    </div>
+
+
+                    <div>
+
+                        <strong>
+                            {{ user.name
+                               if user and user.name
+                               else 'Admin' }}
+                        </strong>
+
+                        <span>
+                            {{ user.email
+                               if user and user.email
+                               else '' }}
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <div class="dropdown-divider"></div>
+
+
+                <!-- Settings -->
+                <a
+                    href="{{ url_for('main.settings') }}"
+                    class="dropdown-item"
+                >
+                    <span>⚙</span>
+                    Settings
+                </a>
+
+
+                <!-- Activity -->
+                <a
+                    href="{{ url_for('main.activity') }}"
+                    class="dropdown-item"
+                >
+                    <span>◷</span>
+                    Activity
+                </a>
+
+
+                <div class="dropdown-divider"></div>
+
+
+                <!-- Logout -->
+                <a
+                    href="{{ url_for('main.logout') }}"
+                    class="dropdown-item danger-item"
+                >
+                    <span>↪</span>
+                    Logout
+                </a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</header>
+
+
+<!-- =========================================
+     NAVBAR JAVASCRIPT
+     ========================================= -->
+
+<script>
+
+(function () {
+
+    /* =========================================
+       Sidebar Toggle
+       ========================================= */
+
+    function initializeSidebarToggle() {
+
+        const sidebarToggle =
+            document.getElementById("sidebarToggle");
+
+        if (!sidebarToggle) {
+            return;
+        }
+
+        /*
+         * Prevent duplicate event listeners if
+         * this component is initialized again.
+         */
+
+        if (sidebarToggle.dataset.initialized === "true") {
+            return;
+        }
+
+        sidebarToggle.dataset.initialized = "true";
+
+
+        sidebarToggle.addEventListener(
+            "click",
+            function (event) {
+
+                event.preventDefault();
+                event.stopPropagation();
+
+
+                /*
+                 * Toggle sidebar state.
+                 *
+                 * Closed:
+                 * body does NOT have sidebar-collapsed
+                 *
+                 * Open:
+                 * body HAS sidebar-collapsed
+                 */
+
+                const isOpen =
+                    document.body.classList.toggle(
+                        "sidebar-collapsed"
+                    );
+
+
+                /*
+                 * Keep accessibility state
+                 * synchronized with the sidebar.
+                 */
+
+                sidebarToggle.setAttribute(
+                    "aria-expanded",
+                    isOpen ? "true" : "false"
+                );
+
+            }
+        );
+
+    }
+
+
+    /*
+     * Initialize immediately when possible.
+     *
+     * This avoids relying only on DOMContentLoaded.
+     */
+
+    if (document.readyState === "loading") {
+
+        document.addEventListener(
+            "DOMContentLoaded",
+            initializeSidebarToggle
+        );
+
+    } else {
+
+        initializeSidebarToggle();
+
+    }
+
+
+    /* =========================================
+       Global Search
+       ========================================= */
+
+    function initializeGlobalSearch() {
+
+        const globalSearch =
+            document.getElementById("globalSearch");
+
+        const searchResults =
+            document.getElementById(
+                "globalSearchResults"
+            );
+
+        const searchResultsList =
+            document.getElementById(
+                "searchResultsList"
+            );
+
+        const searchEmpty =
+            document.getElementById(
+                "searchEmpty"
+            );
+
+
+        if (
+            !globalSearch ||
+            !searchResults ||
+            !searchResultsList ||
+            !searchEmpty
+        ) {
+            return;
+        }
+
+
+        if (globalSearch.dataset.initialized === "true") {
+            return;
+        }
+
+        globalSearch.dataset.initialized = "true";
+
+
+        globalSearch.addEventListener(
+            "input",
+            function () {
+
+                const query =
+                    globalSearch.value
+                        .trim()
+                        .toLowerCase();
+
+
+                if (!query) {
+
+                    searchResults.style.display =
+                        "none";
+
+                    return;
+                }
+
+
+                /*
+                 * Global search will later be connected
+                 * to Flask/MySQL.
+                 *
+                 * For now, this provides the UI state.
+                 */
+
+                searchResults.style.display =
+                    "block";
+
+
+                searchResultsList.innerHTML = `
+                    <div class="search-result-item">
+                        <strong>Search</strong>
+                        <span>
+                            Searching for "${query}"
+                        </span>
+                    </div>
+                `;
+
+
+                searchEmpty.style.display =
+                    "none";
+
+            }
+        );
+
+
+        /* Close search with Escape */
+
+        globalSearch.addEventListener(
+            "keydown",
+            function (event) {
+
+                if (event.key === "Escape") {
+
+                    globalSearch.value = "";
+
+                    searchResults.style.display =
+                        "none";
+
+                }
+
+            }
+        );
+
+    }
+
+
+    if (document.readyState === "loading") {
+
+        document.addEventListener(
+            "DOMContentLoaded",
+            initializeGlobalSearch
+        );
+
+    } else {
+
+        initializeGlobalSearch();
+
+    }
+
+
+    /* =========================================
+       Search Shortcut
+       ========================================= */
+
+    document.addEventListener(
+        "keydown",
+        function (event) {
+
+            if (
+                event.key === "/" &&
+                document.activeElement.tagName !== "INPUT" &&
+                document.activeElement.tagName !== "TEXTAREA"
+            ) {
+
+                event.preventDefault();
+
+
+                const globalSearch =
+                    document.getElementById(
+                        "globalSearch"
+                    );
+
+
+                if (globalSearch) {
+                    globalSearch.focus();
+                }
+
+            }
+
+        }
+    );
+
+
+    /* =========================================
+       Notifications
+       ========================================= */
+
+    function initializeNotifications() {
+
+        const notificationButton =
+            document.getElementById(
+                "notificationButton"
+            );
+
+        const notificationDropdown =
+            document.getElementById(
+                "notificationDropdown"
+            );
+
+
+        if (
+            !notificationButton ||
+            !notificationDropdown
+        ) {
+            return;
+        }
+
+
+        if (
+            notificationButton.dataset.initialized ===
+            "true"
+        ) {
+            return;
+        }
+
+        notificationButton.dataset.initialized =
+            "true";
+
+
+        notificationButton.addEventListener(
+            "click",
+            function (event) {
+
+                event.stopPropagation();
+
+
+                const isOpen =
+                    notificationDropdown.style.display ===
+                    "block";
+
+
+                notificationDropdown.style.display =
+                    isOpen
+                        ? "none"
+                        : "block";
+
+
+                const userDropdown =
+                    document.getElementById(
+                        "userDropdown"
+                    );
+
+
+                if (userDropdown) {
+
+                    userDropdown.style.display =
+                        "none";
+
+                }
+
+            }
+        );
+
+    }
+
+
+    if (document.readyState === "loading") {
+
+        document.addEventListener(
+            "DOMContentLoaded",
+            initializeNotifications
+        );
+
+    } else {
+
+        initializeNotifications();
+
+    }
+
+
+    /* =========================================
+       Mark Notifications as Read
+       ========================================= */
+
+    function initializeNotificationRead() {
+
+        const markNotificationsRead =
+            document.getElementById(
+                "markNotificationsRead"
+            );
+
+
+        if (!markNotificationsRead) {
+            return;
+        }
+
+
+        if (
+            markNotificationsRead.dataset.initialized ===
+            "true"
+        ) {
+            return;
+        }
+
+        markNotificationsRead.dataset.initialized =
+            "true";
+
+
+        markNotificationsRead.addEventListener(
+            "click",
+            function (event) {
+
+                event.stopPropagation();
+
+
+                const badge =
+                    document.querySelector(
+                        ".notification-badge"
+                    );
+
+
+                if (badge) {
+                    badge.remove();
+                }
+
+            }
+        );
+
+    }
+
+
+    if (document.readyState === "loading") {
+
+        document.addEventListener(
+            "DOMContentLoaded",
+            initializeNotificationRead
+        );
+
+    } else {
+
+        initializeNotificationRead();
+
+    }
+
+
+    /* =========================================
+       User Menu
+       ========================================= */
+
+    function initializeUserMenu() {
+
+        const userMenuButton =
+            document.getElementById(
+                "userMenuButton"
+            );
+
+        const userDropdown =
+            document.getElementById(
+                "userDropdown"
+            );
+
+
+        if (
+            !userMenuButton ||
+            !userDropdown
+        ) {
+            return;
+        }
+
+
+        if (
+            userMenuButton.dataset.initialized ===
+            "true"
+        ) {
+            return;
+        }
+
+        userMenuButton.dataset.initialized =
+            "true";
+
+
+        userMenuButton.addEventListener(
+            "click",
+            function (event) {
+
+                event.stopPropagation();
+
+
+                const isOpen =
+                    userDropdown.style.display ===
+                    "block";
+
+
+                userDropdown.style.display =
+                    isOpen
+                        ? "none"
+                        : "block";
+
+
+                const notificationDropdown =
+                    document.getElementById(
+                        "notificationDropdown"
+                    );
+
+
+                if (notificationDropdown) {
+
+                    notificationDropdown.style.display =
+                        "none";
+
+                }
+
+            }
+        );
+
+    }
+
+
+    if (document.readyState === "loading") {
+
+        document.addEventListener(
+            "DOMContentLoaded",
+            initializeUserMenu
+        );
+
+    } else {
+
+        initializeUserMenu();
+
+    }
+
+
+    /* =========================================
+       Close Dropdowns
+       ========================================= */
+
+    document.addEventListener(
+        "click",
+        function () {
+
+            const notificationDropdown =
+                document.getElementById(
+                    "notificationDropdown"
+                );
+
+            const userDropdown =
+                document.getElementById(
+                    "userDropdown"
+                );
+
+            const searchResults =
+                document.getElementById(
+                    "globalSearchResults"
+                );
+
+
+            if (notificationDropdown) {
+
+                notificationDropdown.style.display =
+                    "none";
+
+            }
+
+
+            if (userDropdown) {
+
+                userDropdown.style.display =
+                    "none";
+
+            }
+
+
+            if (searchResults) {
+
+                searchResults.style.display =
+                    "none";
+
+            }
+
+        }
+    );
+
+})();
+
+</script>

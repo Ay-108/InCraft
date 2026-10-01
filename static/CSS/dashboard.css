@@ -1,0 +1,976 @@
+/* =========================================
+   InCraft — Dashboard Styles
+   ========================================= */
+
+
+/* =========================================
+   DASHBOARD STATS
+   ========================================= */
+
+.dashboard-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.dashboard-stats .stat-card {
+    padding: 20px;
+    background: var(--ic-surface);
+
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.dashboard-stats .stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--ic-shadow);
+}
+
+.stat-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.stat-title {
+    color: var(--ic-muted);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.stat-icon {
+    width: 42px;
+    height: 42px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 11px;
+
+    background: var(--ic-orange-soft);
+    color: var(--ic-orange);
+
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.dashboard-stats .stat-card:nth-child(2) .stat-icon {
+    background: #DCFCE7;
+    color: #16A34A;
+}
+
+.dashboard-stats .stat-card:nth-child(3) .stat-icon {
+    background: #DBEAFE;
+    color: #2563EB;
+}
+
+.dashboard-stats .stat-card:nth-child(4) .stat-icon {
+    background: #EDE9FE;
+    color: #7C3AED;
+}
+
+.stat-value {
+    margin-top: 13px;
+
+    color: var(--ic-text);
+
+    font-size: 26px;
+    font-weight: 700;
+
+    letter-spacing: -0.02em;
+}
+
+.stat-footer {
+    margin-top: 9px;
+
+    color: var(--ic-muted);
+
+    font-size: 12px;
+}
+
+.stat-footer span {
+    color: #94A3B8;
+}
+
+.stat-footer.positive {
+    color: var(--ic-success);
+}
+
+.stat-footer.warning-text {
+    color: var(--ic-warning);
+}
+
+
+/* =========================================
+   DASHBOARD CHARTS
+   ========================================= */
+
+.dashboard-charts {
+    display: grid;
+
+    grid-template-columns:
+        minmax(0, 1.6fr)
+        minmax(300px, 1fr);
+
+    gap: 18px;
+
+    margin-bottom: 24px;
+}
+
+.chart-container {
+    position: relative;
+
+    height: 280px;
+
+    padding: 20px;
+}
+
+.doughnut-container {
+    height: 300px;
+}
+
+
+/* =========================================
+   DASHBOARD LOWER SECTION
+   ========================================= */
+
+.dashboard-lower-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+    gap: 18px;
+
+    margin-bottom: 24px;
+}
+
+
+/* =========================================
+   RECENT ACTIVITY
+   ========================================= */
+
+.dashboard .activity-list,
+.dashboard-card .activity-list {
+    padding: 5px 22px;
+}
+
+.activity-item {
+    display: flex;
+    align-items: flex-start;
+
+    gap: 12px;
+
+    padding: 16px 0;
+
+    border-bottom:
+        1px solid var(--ic-border-soft);
+}
+
+.activity-item:last-child {
+    border-bottom: none;
+}
+
+.activity-icon {
+    width: 34px;
+    height: 34px;
+
+    flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 50%;
+
+    background: var(--ic-orange-soft);
+    color: var(--ic-orange);
+
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.activity-details {
+    min-width: 0;
+}
+
+.activity-details h3 {
+    color: #1F2937;
+
+    font-size: 14px;
+}
+
+.activity-details p {
+    margin-top: 2px;
+
+    color: var(--ic-muted);
+
+    font-size: 12px;
+}
+
+.activity-details span {
+    display: block;
+
+    margin-top: 3px;
+
+    color: #94A3B8;
+
+    font-size: 11px;
+}
+
+
+/* =========================================
+   LOW STOCK
+   ========================================= */
+
+.low-stock-list {
+    padding: 5px 22px;
+}
+
+.low-stock-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 15px;
+
+    padding: 15px 0;
+
+    border-bottom:
+        1px solid var(--ic-border-soft);
+}
+
+.low-stock-item:last-child {
+    border-bottom: none;
+}
+
+.product-info {
+    display: flex;
+    align-items: center;
+
+    gap: 11px;
+
+    min-width: 0;
+}
+
+.product-icon {
+    width: 36px;
+    height: 36px;
+
+    flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 7px;
+
+    background: #F1F5F9;
+    color: #475569;
+
+    font-size: 14px;
+}
+
+.product-info h3 {
+    color: #1F2937;
+
+    font-size: 13px;
+}
+
+.product-info p {
+    color: #94A3B8;
+
+    font-size: 11px;
+}
+
+.stock-warning {
+    color: var(--ic-warning);
+
+    text-align: right;
+}
+
+.stock-warning strong {
+    display: block;
+
+    font-size: 15px;
+}
+
+.stock-warning span {
+    font-size: 11px;
+}
+
+
+/* =========================================
+   SMART DECISION SUPPORT
+   ========================================= */
+
+.smart-insights-section {
+    margin-bottom: 24px;
+}
+
+
+/* -----------------------------------------
+   Insights Header
+   ----------------------------------------- */
+
+.smart-insights-section .card-header {
+    align-items: flex-start;
+}
+
+.smart-insights-section .card-heading {
+    max-width: 720px;
+}
+
+.smart-insights-section .card-heading p {
+    max-width: 680px;
+}
+
+
+/* -----------------------------------------
+   Analyze Button
+   ----------------------------------------- */
+
+.smart-insights-section .btn-primary {
+    white-space: nowrap;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 8px;
+}
+
+.btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+
+/* -----------------------------------------
+   Insights Grid
+   ----------------------------------------- */
+
+.smart-insights-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+
+    gap: 14px;
+
+    padding: 5px 22px 22px;
+}
+
+
+/* -----------------------------------------
+   Insight Card
+   ----------------------------------------- */
+
+.insight-card {
+    display: flex;
+    flex-direction: column;
+
+    min-width: 0;
+
+    padding: 17px;
+
+    border: 1px solid var(--ic-border-soft);
+
+    border-radius: 12px;
+
+    background: #FFFFFF;
+
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease,
+        border-color 0.2s ease;
+}
+
+.insight-card:hover {
+    transform: translateY(-2px);
+
+    box-shadow:
+        0 8px 24px rgba(15, 23, 42, 0.07);
+}
+
+
+/* -----------------------------------------
+   Insight Card Header
+   ----------------------------------------- */
+
+.insight-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 10px;
+
+    margin-bottom: 14px;
+}
+
+
+/* -----------------------------------------
+   Insight Icons
+   ----------------------------------------- */
+
+.insight-icon {
+    width: 38px;
+    height: 38px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 9px;
+
+    background: var(--ic-orange-soft);
+    color: var(--ic-orange);
+
+    font-size: 16px;
+    font-weight: 700;
+}
+
+
+/* -----------------------------------------
+   Insight Type Colors
+   ----------------------------------------- */
+
+.insight-warning {
+    border-top: 3px solid #F59E0B;
+}
+
+.insight-warning .insight-icon {
+    background: #FEF3C7;
+    color: #D97706;
+}
+
+
+.insight-positive {
+    border-top: 3px solid #16A34A;
+}
+
+.insight-positive .insight-icon {
+    background: #DCFCE7;
+    color: #16A34A;
+}
+
+
+.insight-danger {
+    border-top: 3px solid #EF4444;
+}
+
+.insight-danger .insight-icon {
+    background: #FEE2E2;
+    color: #DC2626;
+}
+
+
+.insight-info {
+    border-top: 3px solid #2563EB;
+}
+
+.insight-info .insight-icon {
+    background: #DBEAFE;
+    color: #2563EB;
+}
+
+
+.insight-purple {
+    border-top: 3px solid #7C3AED;
+}
+
+.insight-purple .insight-icon {
+    background: #EDE9FE;
+    color: #7C3AED;
+}
+
+
+.insight-neutral {
+    border-top: 3px solid #64748B;
+}
+
+.insight-neutral .insight-icon {
+    background: #F1F5F9;
+    color: #475569;
+}
+
+
+/* -----------------------------------------
+   Priority Badges
+   ----------------------------------------- */
+
+.insight-priority {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 4px 8px;
+
+    border-radius: 999px;
+
+    font-size: 9px;
+    font-weight: 700;
+
+    letter-spacing: 0.04em;
+
+    white-space: nowrap;
+}
+
+.priority-high {
+    background: #FEF3C7;
+    color: #B45309;
+}
+
+.priority-medium {
+    background: #DBEAFE;
+    color: #1D4ED8;
+}
+
+.priority-low {
+    background: #F1F5F9;
+    color: #475569;
+}
+
+
+/* -----------------------------------------
+   Insight Content
+   ----------------------------------------- */
+
+.insight-content {
+    flex: 1;
+}
+
+.insight-content h3 {
+    margin-bottom: 7px;
+
+    color: #1F2937;
+
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.insight-message {
+    min-height: 48px;
+
+    color: var(--ic-muted);
+
+    font-size: 12px;
+
+    line-height: 1.6;
+}
+
+
+/* -----------------------------------------
+   Insight Footer
+   ----------------------------------------- */
+
+.insight-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 10px;
+
+    margin-top: 15px;
+    padding-top: 12px;
+
+    border-top:
+        1px solid var(--ic-border-soft);
+}
+
+.insight-metric {
+    color: #94A3B8;
+
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.insight-action {
+    padding: 0;
+
+    border: none;
+
+    background: transparent;
+
+    color: var(--ic-orange);
+
+    font-size: 11px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    white-space: nowrap;
+
+    transition:
+        color 0.2s ease;
+}
+
+.insight-action:hover {
+    color: #C2410C;
+}
+
+
+/* =========================================
+   SMART INSIGHTS STATUS
+   ========================================= */
+
+.smart-insights-status {
+    display: flex;
+    align-items: center;
+
+    gap: 9px;
+
+    margin: 0 22px 16px;
+    padding: 11px 14px;
+
+    border: 1px solid #DBEAFE;
+
+    border-radius: 8px;
+
+    background: #EFF6FF;
+
+    color: #1D4ED8;
+
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.smart-insights-loader {
+    display: inline-flex;
+
+    animation:
+        smartInsightsSpin 1s linear infinite;
+}
+
+@keyframes smartInsightsSpin {
+
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+
+}
+
+
+/* =========================================
+   SMART INSIGHTS EMPTY STATE
+   ========================================= */
+
+.smart-insights-empty {
+    padding: 30px 20px;
+
+    text-align: center;
+}
+
+.smart-insights-empty .empty-state-icon {
+    margin: 0 auto 10px;
+}
+
+.smart-insights-empty h3 {
+    margin-bottom: 5px;
+
+    color: #1F2937;
+
+    font-size: 14px;
+}
+
+.smart-insights-empty p {
+    max-width: 450px;
+
+    margin: 0 auto;
+
+    color: var(--ic-muted);
+
+    font-size: 12px;
+
+    line-height: 1.6;
+}
+
+
+/* =========================================
+   EMPTY STATES
+   ========================================= */
+
+.empty-state {
+    padding: 30px 20px;
+
+    text-align: center;
+}
+
+.empty-state-icon {
+    width: 40px;
+    height: 40px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    margin: 0 auto 10px;
+
+    border-radius: 10px;
+
+    background: #F1F5F9;
+    color: #64748B;
+
+    font-size: 16px;
+}
+
+.empty-state-icon.success {
+    background: #DCFCE7;
+    color: #16A34A;
+}
+
+.empty-state h3 {
+    margin-bottom: 5px;
+
+    color: #1F2937;
+
+    font-size: 14px;
+}
+
+.empty-state p {
+    color: var(--ic-muted);
+
+    font-size: 12px;
+
+    line-height: 1.6;
+}
+
+
+/* =========================================
+   RECENT PRODUCTS / TABLE
+   ========================================= */
+
+.recent-products {
+    margin-bottom: 24px;
+}
+
+.table-container {
+    width: 100%;
+
+    overflow-x: auto;
+}
+
+.data-table {
+    width: 100%;
+
+    border-collapse: collapse;
+}
+
+.data-table th {
+    padding: 12px 22px;
+
+    border-bottom:
+        1px solid var(--ic-border-soft);
+
+    color: #64748B;
+
+    font-size: 11px;
+    font-weight: 600;
+
+    text-align: left;
+
+    white-space: nowrap;
+}
+
+.data-table td {
+    padding: 14px 22px;
+
+    border-bottom:
+        1px solid var(--ic-border-soft);
+
+    color: #475569;
+
+    font-size: 12px;
+}
+
+.data-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.data-table tbody tr {
+    transition:
+        background 0.15s ease;
+}
+
+.data-table tbody tr:hover {
+    background: #F8FAFC;
+}
+
+.table-product {
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+
+    min-width: 160px;
+}
+
+.table-product .product-icon {
+    width: 32px;
+    height: 32px;
+}
+
+.table-product span {
+    color: #1F2937;
+
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.stock-number {
+    color: #1F2937;
+}
+
+.empty-table-cell {
+    padding: 0 !important;
+}
+
+
+/* =========================================
+   STATUS BADGES
+   ========================================= */
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+
+    padding: 4px 8px;
+
+    border-radius: 999px;
+
+    font-size: 10px;
+    font-weight: 600;
+
+    white-space: nowrap;
+}
+
+.status-badge.success {
+    background: #DCFCE7;
+    color: #15803D;
+}
+
+.status-badge.warning {
+    background: #FEF3C7;
+    color: #B45309;
+}
+
+.status-badge.danger {
+    background: #FEE2E2;
+    color: #B91C1C;
+}
+
+
+/* =========================================
+   DASHBOARD RESPONSIVE
+   ========================================= */
+
+@media (max-width: 1100px) {
+
+    .dashboard-stats {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+    .dashboard-charts {
+        grid-template-columns: 1fr;
+    }
+
+    .smart-insights-grid {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+}
+
+
+@media (max-width: 900px) {
+
+    .dashboard-lower-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .smart-insights-grid {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+
+@media (max-width: 700px) {
+
+    .dashboard-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .dashboard-charts,
+    .dashboard-lower-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .smart-insights-section .card-header {
+        flex-direction: column;
+    }
+
+    .smart-insights-section .card-header-action {
+        width: 100%;
+    }
+
+    .smart-insights-section .btn-primary {
+        width: 100%;
+    }
+
+    .smart-insights-grid {
+        padding:
+            5px 16px 16px;
+    }
+
+    .smart-insights-status {
+        margin-left: 16px;
+        margin-right: 16px;
+    }
+
+}
+
+
+@media (max-width: 480px) {
+
+    .dashboard-stats .stat-card {
+        border-radius: 11px;
+    }
+
+    .dashboard .activity-list,
+    .dashboard-card .activity-list,
+    .low-stock-list {
+        padding:
+            5px 16px;
+    }
+
+    .insight-card {
+        padding: 14px;
+    }
+
+    .insight-footer {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .insight-action {
+        margin-top: 2px;
+    }
+
+    .data-table th,
+    .data-table td {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+
+}
