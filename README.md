@@ -433,7 +433,7 @@ InCraft currently uses Flask and Jinja templates for both its pages and its back
 
 - `pyproject.toml` explicitly points Vercel to the Flask application object at `backend.app:app`.
 - `templates/` remains the server-rendered frontend.
-- `public/static/` contains the CSS, JavaScript, and image assets served directly by Vercel's CDN; Flask does not register a competing static route in Vercel deployments.
+- `public/static/` contains the CSS, JavaScript, and image assets served directly by Vercel's CDN. Flask also keeps its `static` endpoint registered so Jinja's `url_for('static', ...)` calls can resolve during template rendering.
 - Flask continues to provide the application's pages and API routes.
 - MySQL must be hosted separately and reachable over the network.
 
