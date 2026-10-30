@@ -75,7 +75,10 @@ APP_TITLE = "InCraft — The Art of Intelligent Inventory"
 APP_DESCRIPTION = "An intelligent inventory management system."
 
 # Vercel and explicit production deployments must never start in debug mode.
-IS_VERCEL = os.getenv("VERCEL", "").strip().lower() == "1"
+IS_VERCEL = any(
+    os.getenv(name, "").strip().lower() == "1"
+    for name in ("VERCEL", "VERCEL_ENV", "NOW_REGION")
+) or bool(os.getenv("VERCEL_URL", "").strip())
 IS_PRODUCTION = (
     IS_VERCEL
     or os.getenv("INCRAFT_ENV", "").strip().lower() == "production"
@@ -225,10 +228,20 @@ SESSION_COOKIE_SECURE = get_bool_env(
 # ============================================================
 
 def initialize_directories():
-    """Create required application storage directories."""
+    """Create required application storage directories when writable.
 
-    UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
-    EXPORT_FOLDER.mkdir(parents=True, exist_ok=True)
+    Vercel Functions allow writes only in /tmp. Directory creation is
+    limited to that temporary storage when running on Vercel.
+    """
+
+    for directory in (UPLOAD_FOLDER, EXPORT_FOLDER):
+        try:
+            directory.mkdir(parents=True, exist_ok=True)
+        except OSError as error:
+            # Do not prevent the Flask app from booting because optional
+            # temporary file storage is unavailable. File operations will
+            # report their own error when a user attempts an upload/export.
+            print(f"Unable to initialize storage directory {directory}: {error}")
 
 
 initialize_directories()
