@@ -464,7 +464,7 @@ Do not use `localhost` for `DB_HOST` in Vercel: it refers to the function instan
 
 Vercel also caps function request and response bodies at 4.5 MB. InCraft sets its default upload limit to 4 MB on Vercel (the existing 16 MB default remains on local and conventional hosts). For larger imports or exports, upload/download directly from object storage rather than proxying the file through a Flask function.
 
-**Dependencies:** `requirements.txt` is now the small runtime dependency set used by the deployed Flask application. The previous broad development/workspace package list is preserved in `requirements-dev.txt`; it is not needed for deployment.
+**Dependencies:** Vercel installs Python packages from the `dependencies` array in `pyproject.toml`, so that file explicitly declares Flask, Flask-WTF, MySQL Connector/Python, openpyxl, and scikit-learn. `requirements.txt` mirrors the runtime packages for local and conventional-host deployment. The previous broad development/workspace package list is preserved in `requirements-dev.txt`.
 
 ### Alternative: Render for a persistent application server
 
