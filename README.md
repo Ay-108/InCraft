@@ -179,7 +179,7 @@ InCraft/
 │       ├── images/
 │       └── js/
 │
-├── index.py
+├── pyproject.toml
 ├── vercel.json
 ├── render.yaml
 ├── requirements.txt
@@ -474,7 +474,7 @@ The repository also includes `render.yaml` for a conventional Gunicorn deploymen
 
 ```bash
 pip install -r requirements.txt
-INCRAFT_ENV=production INCRAFT_DEBUG=false INCRAFT_SECRET_KEY="replace-with-a-random-secret" python -c "from index import app; print(app.url_map)"
+INCRAFT_ENV=production INCRAFT_DEBUG=false INCRAFT_SECRET_KEY="replace-with-a-random-secret" python -c "from backend.app import app; print(app.url_map)"
 ```
 
 On Windows PowerShell, set those environment variables with `$env:NAME = "value"` before running the Python command.
