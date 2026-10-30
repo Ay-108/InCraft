@@ -75,10 +75,16 @@ APP_TITLE = "InCraft — The Art of Intelligent Inventory"
 APP_DESCRIPTION = "An intelligent inventory management system."
 
 # Vercel and explicit production deployments must never start in debug mode.
-IS_VERCEL = any(
-    os.getenv(name, "").strip().lower() == "1"
-    for name in ("VERCEL", "VERCEL_ENV", "NOW_REGION")
-) or bool(os.getenv("VERCEL_URL", "").strip())
+IS_VERCEL = (
+    os.getenv("VERCEL", "").strip().lower() == "1"
+    or os.getenv("VERCEL_ENV", "").strip().lower() in {
+        "production",
+        "preview",
+        "development",
+    }
+    or bool(os.getenv("VERCEL_URL", "").strip())
+    or bool(os.getenv("NOW_REGION", "").strip())
+)
 IS_PRODUCTION = (
     IS_VERCEL
     or os.getenv("INCRAFT_ENV", "").strip().lower() == "production"
