@@ -433,7 +433,7 @@ InCraft currently uses Flask and Jinja templates for both its pages and its back
 
 - `index.py` exposes the existing Flask WSGI application for Vercel.
 - `templates/` remains the server-rendered frontend.
-- `public/static/` contains the CSS, JavaScript, and image assets served by Vercel's CDN at the existing `/static/...` URLs.
+- `public/static/` contains the CSS, JavaScript, and image assets served directly by Vercel's CDN; Flask does not register a competing static route in Vercel deployments.
 - Flask continues to provide the application's pages and API routes.
 - MySQL must be hosted separately and reachable over the network.
 
