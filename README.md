@@ -468,6 +468,8 @@ Do not use `localhost` for `DB_HOST` in Vercel: it refers to the function instan
 
 **Important storage limitation:** Vercel Functions have a read-only application filesystem. InCraft now writes temporary upload and export files under `/tmp/incraft` on Vercel, but that storage is temporary and is not a durable file store. Database records belong in MySQL. Before relying on long-term retention of uploaded documents or generated files, connect an object-storage service (for example, S3-compatible storage) and store its object keys in MySQL. Do not treat `/tmp` as permanent storage.
 
+Vercel also caps function request and response bodies at 4.5 MB. InCraft sets its default upload limit to 4 MB on Vercel (the existing 16 MB default remains on local and conventional hosts). For larger imports or exports, upload/download directly from object storage rather than proxying the file through a Flask function.
+
 **Dependencies:** `requirements.txt` is now the small runtime dependency set used by the deployed Flask application. The previous broad development/workspace package list is preserved in `requirements-dev.txt`; it is not needed for deployment.
 
 ### Alternative: Render for a persistent application server
