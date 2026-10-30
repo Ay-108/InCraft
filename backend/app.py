@@ -35,11 +35,22 @@ from backend.config import (
 def create_app():
     """Create and configure the InCraft Flask application."""
 
+    # Vercel serves files under public/ directly through its CDN and
+    # explicitly ignores Flask's static_folder. Keep Flask's static route
+    # for local development and traditional WSGI hosts only.
+    import os
+
+    is_vercel = (
+        os.getenv("VERCEL", "").strip().lower() == "1"
+        or os.getenv("VERCEL_ENV", "").strip().lower() in {"production", "preview", "development"}
+        or bool(os.getenv("VERCEL_URL", "").strip())
+    )
+
     app = Flask(
         __name__,
         template_folder="../templates",
-        static_folder="../public/static",
-        static_url_path="/static",
+        static_folder=None if is_vercel else "../public/static",
+        static_url_path=None if is_vercel else "/static",
     )
 
     # --------------------------------------------------------
