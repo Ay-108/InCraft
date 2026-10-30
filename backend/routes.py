@@ -47,6 +47,13 @@ from backend.db import (
     get_database_status
 )
 
+from backend.config import (
+    DATABASE_CONFIGURED,
+    MISSING_DATABASE_ENV_VARS,
+    SECRET_KEY_CONFIGURED,
+    IS_PRODUCTION,
+)
+
 from backend.ml.forecast import forecast_product
 from backend.ml.stockout import assess_stockout
 from backend.ml.reorder import recommend_reorder
@@ -4292,8 +4299,33 @@ def low_stock_api():
 )
 def health_check():
     """
-    Simple backend health-check endpoint.
+    Public deployment health check.
+
+    Reports missing environment-variable names only. Never return
+    database credentials, connection strings, or secret values.
     """
+
+    missing_environment_variables = []
+
+    if IS_PRODUCTION and not SECRET_KEY_CONFIGURED:
+        missing_environment_variables.append("INCRAFT_SECRET_KEY")
+
+    if IS_PRODUCTION and not DATABASE_CONFIGURED:
+        missing_environment_variables.extend(MISSING_DATABASE_ENV_VARS)
+
+    if missing_environment_variables:
+        return jsonify({
+            "application": "InCraft",
+            "status": "configuration_required",
+            "database": "not_configured",
+            "missing_environment_variables": list(
+                dict.fromkeys(missing_environment_variables)
+            ),
+            "message": (
+                "Configure the listed environment variables in Vercel, "
+                "then redeploy the application."
+            ),
+        }), 503
 
     # This endpoint is public. Do not expose raw database error messages,
     # connection details, or other internal diagnostics in its response.
@@ -4309,6 +4341,7 @@ def health_check():
 
     return jsonify({
         "application": "InCraft",
-        "status": "running",
-        "database": "connected" if database_connected else "unavailable"
+        "status": "running" if database_connected else "database_unavailable",
+        "database": "connected" if database_connected else "unavailable",
+        "secret_key_configured": SECRET_KEY_CONFIGURED,
     }), (200 if database_connected else 503)
