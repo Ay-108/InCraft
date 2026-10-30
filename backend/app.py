@@ -11,7 +11,7 @@ InCraft: The Art of Intelligent Inventory
 
 from html import escape
 
-from flask import Flask, render_template
+from flask import Flask, jsonify, render_template, request
 from jinja2 import TemplateNotFound
 from flask_wtf.csrf import CSRFProtect
 
@@ -25,6 +25,8 @@ from backend.config import (
     SESSION_COOKIE_HTTPONLY,
     SESSION_COOKIE_SAMESITE,
     SESSION_COOKIE_SECURE,
+    IS_PRODUCTION,
+    SECRET_KEY_CONFIGURED,
 )
 
 
@@ -68,6 +70,30 @@ def create_app():
         SESSION_COOKIE_SECURE=SESSION_COOKIE_SECURE,
         UPLOAD_FOLDER=str(UPLOAD_FOLDER),
     )
+
+    # --------------------------------------------------------
+    # REQUIRED PRODUCTION CONFIGURATION GATE
+    # --------------------------------------------------------
+    # A missing signing key must not crash the entire Vercel
+    # function. Permit the health endpoint to explain the issue,
+    # but block session-dependent application routes until a
+    # stable secret has been configured.
+    if IS_PRODUCTION and not SECRET_KEY_CONFIGURED:
+
+        @app.before_request
+        def require_production_secret():
+            if request.endpoint != "main.health_check":
+                return jsonify({
+                    "application": "InCraft",
+                    "status": "configuration_required",
+                    "message": (
+                        "Set INCRAFT_SECRET_KEY in the deployment "
+                        "environment before using InCraft."
+                    ),
+                    "missing_environment_variables": [
+                        "INCRAFT_SECRET_KEY"
+                    ],
+                }), 503
 
     # --------------------------------------------------------
     # CSRF PROTECTION
