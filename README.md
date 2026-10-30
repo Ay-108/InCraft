@@ -466,7 +466,7 @@ Vercel also caps function request and response bodies at 4.5 MB. InCraft sets it
 
 ### Alternative: Render for a persistent application server
 
-The repository also includes `render.yaml` for a conventional Gunicorn deployment. Render is a better fit when you need an always-running web service or want to attach a persistent disk for file storage. The blueprint uses the same external MySQL configuration. Its default free filesystem is still ephemeral; attach a persistent disk and set `INCRAFT_UPLOAD_DIR` and `INCRAFT_EXPORT_DIR` to directories on that disk before depending on file retention.
+The repository also includes `render.yaml` for a conventional Gunicorn deployment. Render is a better fit when you prefer a long-running web service. The blueprint uses the same external MySQL configuration and defaults to Render's free plan for preview/testing; free services can spin down when idle and cannot attach persistent disks. For durable local file storage, upgrade the service to a paid plan, attach a disk (for example at `/var/data`), and set `INCRAFT_UPLOAD_DIR=/var/data/uploads` and `INCRAFT_EXPORT_DIR=/var/data/exports`. Object storage remains the better option when you need to scale beyond a single service instance.
 
 ### Local production-style check
 
