@@ -175,11 +175,11 @@ InCraft/
 │
 ├── public/
 │   └── static/
-│       ├── CSS/
+│       ├── css/
 │       ├── images/
 │       └── js/
 │
-├── index.py
+├── pyproject.toml
 ├── vercel.json
 ├── render.yaml
 ├── requirements.txt
@@ -431,9 +431,9 @@ Visualization: Matplotlib
 
 InCraft currently uses Flask and Jinja templates for both its pages and its backend routes. It is therefore a **single full-stack Flask application**, not a separate React/Vue frontend and REST API. The deployment setup keeps that architecture intact:
 
-- `index.py` exposes the existing Flask WSGI application for Vercel.
+- `pyproject.toml` explicitly points Vercel to the Flask application object at `backend.app:app`.
 - `templates/` remains the server-rendered frontend.
-- `public/static/` contains the CSS, JavaScript, and image assets served directly by Vercel's CDN; Flask does not register a competing static route in Vercel deployments.
+- `public/static/` contains the CSS, JavaScript, and image assets served directly by Vercel's CDN. Flask also keeps its `static` endpoint registered so Jinja's `url_for('static', ...)` calls can resolve during template rendering.
 - Flask continues to provide the application's pages and API routes.
 - MySQL must be hosted separately and reachable over the network.
 
@@ -443,11 +443,13 @@ InCraft currently uses Flask and Jinja templates for both its pages and its back
 2. Let Vercel detect Flask. Do not set a separate frontend build command or output directory.
 3. Add the environment variables below to the Vercel project (Production, Preview, and Development as appropriate).
 4. Deploy. After deployment, open `/api/health`; it returns HTTP 200 only when InCraft can connect to MySQL.
+
+The `/api/health` endpoint reports missing environment-variable **names** (never their values) when production configuration is incomplete. Unexpected import-time exceptions are visible in Vercel Runtime Logs. The public health endpoint reports missing configuration and database availability without exposing secret values.
 5. Use `vercel dev` locally to test the same Vercel entry point before production deployment.
 
 | Variable | Required value |
 |---|---|
-| `INCRAFT_SECRET_KEY` | A long, random secret; never commit it |
+| `INCRAFT_SECRET_KEY` | A long, random secret; never commit it (Flask's `SECRET_KEY` is also accepted as an alias) |
 | `INCRAFT_DEBUG` | `false` |
 | `INCRAFT_SESSION_COOKIE_SECURE` | `true` |
 | `DB_HOST` | Hostname of the managed MySQL server |
@@ -462,7 +464,7 @@ Do not use `localhost` for `DB_HOST` in Vercel: it refers to the function instan
 
 Vercel also caps function request and response bodies at 4.5 MB. InCraft sets its default upload limit to 4 MB on Vercel (the existing 16 MB default remains on local and conventional hosts). For larger imports or exports, upload/download directly from object storage rather than proxying the file through a Flask function.
 
-**Dependencies:** `requirements.txt` is now the small runtime dependency set used by the deployed Flask application. The previous broad development/workspace package list is preserved in `requirements-dev.txt`; it is not needed for deployment.
+**Dependencies:** Vercel installs Python packages from the `dependencies` array in `pyproject.toml`, so that file explicitly declares Flask, Flask-WTF, MySQL Connector/Python, openpyxl, and scikit-learn. `requirements.txt` mirrors the runtime packages for local and conventional-host deployment. The previous broad development/workspace package list is preserved in `requirements-dev.txt`.
 
 ### Alternative: Render for a persistent application server
 
@@ -472,7 +474,7 @@ The repository also includes `render.yaml` for a conventional Gunicorn deploymen
 
 ```bash
 pip install -r requirements.txt
-INCRAFT_ENV=production INCRAFT_DEBUG=false INCRAFT_SECRET_KEY="replace-with-a-random-secret" python -c "from index import app; print(app.url_map)"
+INCRAFT_ENV=production INCRAFT_DEBUG=false INCRAFT_SECRET_KEY="replace-with-a-random-secret" python -c "from backend.app import app; print(app.url_map)"
 ```
 
 On Windows PowerShell, set those environment variables with `$env:NAME = "value"` before running the Python command.

@@ -92,20 +92,27 @@ IS_PRODUCTION = (
 
 DEBUG = get_bool_env("INCRAFT_DEBUG", default=not IS_PRODUCTION)
 
-_secret_key = os.getenv("INCRAFT_SECRET_KEY", "").strip()
+# Support the Flask-standard SECRET_KEY name as a compatibility alias.
+# Production never receives a predictable hard-coded signing key.
+_secret_key = (
+    os.getenv("INCRAFT_SECRET_KEY")
+    or os.getenv("SECRET_KEY")
+    or ""
+).strip()
 
-if not DEBUG and not _secret_key:
-    raise RuntimeError(
-        "INCRAFT_SECRET_KEY is required when debug mode is off. "
-        "Set it in your environment before starting InCraft."
-    )
+SECRET_KEY_CONFIGURED = bool(_secret_key)
 
-# Development-only fallback.
-# Configure INCRAFT_SECRET_KEY before deployment.
-SECRET_KEY = (
-    _secret_key
-    or "incraft-development-only-change-before-deployment"
-)
+if SECRET_KEY_CONFIGURED:
+    SECRET_KEY = _secret_key
+elif IS_PRODUCTION:
+    # Allow the diagnostics endpoint to start so missing configuration
+    # can be reported as JSON instead of an opaque function invocation 500.
+    # Protected application routes are blocked in backend/app.py until
+    # a stable secret is configured in the deployment environment.
+    SECRET_KEY = None
+else:
+    # Development-only fallback. Never use this value in production.
+    SECRET_KEY = "incraft-development-only-change-before-deployment"
 
 
 # ============================================================
@@ -124,8 +131,32 @@ DB_PORT = get_int_env(
 DB_NAME = os.getenv("DB_NAME", "incraft").strip()
 DB_USER = os.getenv("DB_USER", "root").strip()
 
-# MySQL password configuration.
+# MySQL password configuration. A blank password is accepted only when
+# the DB_PASSWORD variable is explicitly present in the environment.
 DB_PASSWORD = os.getenv("DB_PASSWORD", "")
+
+REQUIRED_DATABASE_ENV_VARS = (
+    "DB_HOST",
+    "DB_NAME",
+    "DB_USER",
+    "DB_PASSWORD",
+)
+
+MISSING_DATABASE_ENV_VARS = tuple(
+    name
+    for name in REQUIRED_DATABASE_ENV_VARS
+    if name not in os.environ
+    or (name != "DB_PASSWORD" and not os.getenv(name, "").strip())
+)
+
+# "localhost" points back to the short-lived function container on Vercel,
+# not to a separately hosted MySQL instance.
+if IS_VERCEL and DB_HOST.lower() in {"localhost", "127.0.0.1", "::1"}:
+    MISSING_DATABASE_ENV_VARS = tuple(
+        dict.fromkeys((*MISSING_DATABASE_ENV_VARS, "DB_HOST"))
+    )
+
+DATABASE_CONFIGURED = not MISSING_DATABASE_ENV_VARS
 
 if not DB_HOST:
     raise ValueError("DB_HOST cannot be empty.")

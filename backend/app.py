@@ -11,7 +11,7 @@ InCraft: The Art of Intelligent Inventory
 
 from html import escape
 
-from flask import Flask, render_template
+from flask import Flask, jsonify, render_template, request
 from jinja2 import TemplateNotFound
 from flask_wtf.csrf import CSRFProtect
 
@@ -25,6 +25,8 @@ from backend.config import (
     SESSION_COOKIE_HTTPONLY,
     SESSION_COOKIE_SAMESITE,
     SESSION_COOKIE_SECURE,
+    IS_PRODUCTION,
+    SECRET_KEY_CONFIGURED,
 )
 
 
@@ -35,22 +37,15 @@ from backend.config import (
 def create_app():
     """Create and configure the InCraft Flask application."""
 
-    # Vercel serves files under public/ directly through its CDN and
-    # explicitly ignores Flask's static_folder. Keep Flask's static route
-    # for local development and traditional WSGI hosts only.
-    import os
-
-    is_vercel = (
-        os.getenv("VERCEL", "").strip().lower() == "1"
-        or os.getenv("VERCEL_ENV", "").strip().lower() in {"production", "preview", "development"}
-        or bool(os.getenv("VERCEL_URL", "").strip())
-    )
-
+    # Keep Flask's static endpoint registered because Jinja templates use
+    # url_for("static", ...) while rendering. Vercel serves the same files
+    # from public/static through its CDN in deployed environments; the
+    # Flask static route remains useful for local and traditional hosts.
     app = Flask(
         __name__,
         template_folder="../templates",
-        static_folder=None if is_vercel else "../public/static",
-        static_url_path=None if is_vercel else "/static",
+        static_folder="../public/static",
+        static_url_path="/static",
     )
 
     # --------------------------------------------------------
@@ -68,6 +63,30 @@ def create_app():
         SESSION_COOKIE_SECURE=SESSION_COOKIE_SECURE,
         UPLOAD_FOLDER=str(UPLOAD_FOLDER),
     )
+
+    # --------------------------------------------------------
+    # REQUIRED PRODUCTION CONFIGURATION GATE
+    # --------------------------------------------------------
+    # A missing signing key must not crash the entire Vercel
+    # function. Permit the health endpoint to explain the issue,
+    # but block session-dependent application routes until a
+    # stable secret has been configured.
+    if IS_PRODUCTION and not SECRET_KEY_CONFIGURED:
+
+        @app.before_request
+        def require_production_secret():
+            if request.endpoint != "main.health_check":
+                return jsonify({
+                    "application": "InCraft",
+                    "status": "configuration_required",
+                    "message": (
+                        "Set INCRAFT_SECRET_KEY in the deployment "
+                        "environment before using InCraft."
+                    ),
+                    "missing_environment_variables": [
+                        "INCRAFT_SECRET_KEY"
+                    ],
+                }), 503
 
     # --------------------------------------------------------
     # CSRF PROTECTION
