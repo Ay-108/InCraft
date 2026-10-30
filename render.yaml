@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: incraft
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn run:app --bind 0.0.0.0:$PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: INCRAFT_ENV
+        value: production
+      - key: INCRAFT_DEBUG
+        value: "false"
+      - key: INCRAFT_SESSION_COOKIE_SECURE
+        value: "true"
+      - key: INCRAFT_SECRET_KEY
+        generateValue: true
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        value: "3306"
+      - key: DB_NAME
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false

@@ -173,26 +173,18 @@ InCraft/
 │   ├── activity.html
 │   └── settings.html
 │
-├── static/
-│   ├── css/
-│   │   ├── style.css
-│   │   ├── navbar.css
-│   │   ├── sidebar.css
-│   │   └── login.css
-│   │
-│   ├── js/
-│   │   ├── activity.js
-│   │   ├── analytics.js
-│   │   ├── dashboard.js
-│   │   ├── inventory.js
-│   │   ├── login.js
-│   │   ├── main.js
-│   │   ├── product_form.js
-│   │   ├── sales.js
-│   │   └── settings.js
-│   │
-│   └── uploads/
+├── public/
+│   └── static/
+│       ├── CSS/
+│       ├── images/
+│       └── js/
 │
+├── index.py
+├── vercel.json
+├── render.yaml
+├── requirements.txt
+├── requirements-dev.txt
+├── .python-version
 └── README.md
 
 🔄 System Workflow
@@ -432,6 +424,58 @@ Frontend: HTML + CSS + JavaScript
 Data Analysis: Pandas
 
 Visualization: Matplotlib
+
+## Deployment
+
+### Recommended: deploy the existing full-stack Flask app to Vercel
+
+InCraft currently uses Flask and Jinja templates for both its pages and its backend routes. It is therefore a **single full-stack Flask application**, not a separate React/Vue frontend and REST API. The deployment setup keeps that architecture intact:
+
+- `index.py` exposes the existing Flask WSGI application for Vercel.
+- `templates/` remains the server-rendered frontend.
+- `public/static/` contains the CSS, JavaScript, and image assets served by Vercel's CDN at the existing `/static/...` URLs.
+- Flask continues to provide the application's pages and API routes.
+- MySQL must be hosted separately and reachable over the network.
+
+**Vercel setup**
+
+1. Import `Ay-108/InCraft` as a new project in Vercel and keep the project root at the repository root.
+2. Let Vercel detect Flask. Do not set a separate frontend build command or output directory.
+3. Add the environment variables below to the Vercel project (Production, Preview, and Development as appropriate).
+4. Deploy. After deployment, open `/api/health`; it returns HTTP 200 only when InCraft can connect to MySQL.
+5. Use `vercel dev` locally to test the same Vercel entry point before production deployment.
+
+| Variable | Required value |
+|---|---|
+| `INCRAFT_SECRET_KEY` | A long, random secret; never commit it |
+| `INCRAFT_DEBUG` | `false` |
+| `INCRAFT_SESSION_COOKIE_SECURE` | `true` |
+| `DB_HOST` | Hostname of the managed MySQL server |
+| `DB_PORT` | MySQL port, usually `3306` |
+| `DB_NAME` | Database name |
+| `DB_USER` | Database user |
+| `DB_PASSWORD` | Database password |
+
+Do not use `localhost` for `DB_HOST` in Vercel: it refers to the function instance, not your computer. Create the database with a managed MySQL provider that permits connections from your deployment environment, and apply `database/schema.sql` to it before opening the app.
+
+**Important storage limitation:** Vercel Functions have a read-only application filesystem. InCraft now writes temporary upload and export files under `/tmp/incraft` on Vercel, but that storage is temporary and is not a durable file store. Database records belong in MySQL. Before relying on long-term retention of uploaded documents or generated files, connect an object-storage service (for example, S3-compatible storage) and store its object keys in MySQL. Do not treat `/tmp` as permanent storage.
+
+Vercel also caps function request and response bodies at 4.5 MB. InCraft sets its default upload limit to 4 MB on Vercel (the existing 16 MB default remains on local and conventional hosts). For larger imports or exports, upload/download directly from object storage rather than proxying the file through a Flask function.
+
+**Dependencies:** `requirements.txt` is now the small runtime dependency set used by the deployed Flask application. The previous broad development/workspace package list is preserved in `requirements-dev.txt`; it is not needed for deployment.
+
+### Alternative: Render for a persistent application server
+
+The repository also includes `render.yaml` for a conventional Gunicorn deployment. Render is a better fit when you prefer a long-running web service. The blueprint uses the same external MySQL configuration and defaults to Render's free plan for preview/testing; free services can spin down when idle and cannot attach persistent disks. For durable local file storage, upgrade the service to a paid plan, attach a disk (for example at `/var/data`), and set `INCRAFT_UPLOAD_DIR=/var/data/uploads` and `INCRAFT_EXPORT_DIR=/var/data/exports`. Object storage remains the better option when you need to scale beyond a single service instance.
+
+### Local production-style check
+
+```bash
+pip install -r requirements.txt
+INCRAFT_ENV=production INCRAFT_DEBUG=false INCRAFT_SECRET_KEY="replace-with-a-random-secret" python -c "from index import app; print(app.url_map)"
+```
+
+On Windows PowerShell, set those environment variables with `$env:NAME = "value"` before running the Python command.
 
 📄 License
 
