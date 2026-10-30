@@ -443,11 +443,13 @@ InCraft currently uses Flask and Jinja templates for both its pages and its back
 2. Let Vercel detect Flask. Do not set a separate frontend build command or output directory.
 3. Add the environment variables below to the Vercel project (Production, Preview, and Development as appropriate).
 4. Deploy. After deployment, open `/api/health`; it returns HTTP 200 only when InCraft can connect to MySQL.
+
+The `/api/health` endpoint reports missing environment-variable **names** (never their values) when production configuration is incomplete. The Flask function also exposes a safe WSGI fallback if an unexpected import-time exception occurs; the full traceback is written to Vercel Runtime Logs while the public health response reports only the exception type.
 5. Use `vercel dev` locally to test the same Vercel entry point before production deployment.
 
 | Variable | Required value |
 |---|---|
-| `INCRAFT_SECRET_KEY` | A long, random secret; never commit it |
+| `INCRAFT_SECRET_KEY` | A long, random secret; never commit it (Flask's `SECRET_KEY` is also accepted as an alias) |
 | `INCRAFT_DEBUG` | `false` |
 | `INCRAFT_SESSION_COOKIE_SECURE` | `true` |
 | `DB_HOST` | Hostname of the managed MySQL server |
