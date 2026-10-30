@@ -173,26 +173,18 @@ InCraft/
 │   ├── activity.html
 │   └── settings.html
 │
-├── static/
-│   ├── css/
-│   │   ├── style.css
-│   │   ├── navbar.css
-│   │   ├── sidebar.css
-│   │   └── login.css
-│   │
-│   ├── js/
-│   │   ├── activity.js
-│   │   ├── analytics.js
-│   │   ├── dashboard.js
-│   │   ├── inventory.js
-│   │   ├── login.js
-│   │   ├── main.js
-│   │   ├── product_form.js
-│   │   ├── sales.js
-│   │   └── settings.js
-│   │
-│   └── uploads/
+├── public/
+│   └── static/
+│       ├── CSS/
+│       ├── images/
+│       └── js/
 │
+├── index.py
+├── vercel.json
+├── render.yaml
+├── requirements.txt
+├── requirements-dev.txt
+├── .python-version
 └── README.md
 
 🔄 System Workflow
