@@ -35,3 +35,6 @@ Thumbs.db
 *.sql.bak
 backups/
 *.bak
+
+# Vercel local project/build metadata
+.vercel/

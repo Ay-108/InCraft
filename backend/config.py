@@ -74,7 +74,14 @@ APP_NAME = "InCraft"
 APP_TITLE = "InCraft — The Art of Intelligent Inventory"
 APP_DESCRIPTION = "An intelligent inventory management system."
 
-DEBUG = get_bool_env("INCRAFT_DEBUG", default=True)
+# Vercel and explicit production deployments must never start in debug mode.
+IS_VERCEL = os.getenv("VERCEL", "").strip().lower() == "1"
+IS_PRODUCTION = (
+    IS_VERCEL
+    or os.getenv("INCRAFT_ENV", "").strip().lower() == "production"
+)
+
+DEBUG = get_bool_env("INCRAFT_DEBUG", default=not IS_PRODUCTION)
 
 _secret_key = os.getenv("INCRAFT_SECRET_KEY", "").strip()
 
@@ -109,7 +116,7 @@ DB_NAME = os.getenv("DB_NAME", "incraft").strip()
 DB_USER = os.getenv("DB_USER", "root").strip()
 
 # MySQL password configuration.
-DB_PASSWORD = os.getenv("DB_PASSWORD") or "6174"
+DB_PASSWORD = os.getenv("DB_PASSWORD", "")
 
 if not DB_HOST:
     raise ValueError("DB_HOST cannot be empty.")
@@ -139,7 +146,14 @@ def get_database_config():
 # UPLOAD CONFIGURATION
 # ============================================================
 
-UPLOAD_FOLDER = BASE_DIR / "static" / "uploads"
+# Vercel Functions have a read-only application filesystem. Keep temporary
+# uploads and generated exports under /tmp there; on a traditional host,
+# use the instance directory or override these paths with environment vars.
+DEFAULT_STORAGE_ROOT = Path("/tmp/incraft") if IS_VERCEL else INSTANCE_DIR
+
+UPLOAD_FOLDER = Path(
+    os.getenv("INCRAFT_UPLOAD_DIR", str(DEFAULT_STORAGE_ROOT / "uploads"))
+).expanduser()
 
 ALLOWED_EXTENSIONS = frozenset({
     "csv",
@@ -163,7 +177,9 @@ MAX_CONTENT_LENGTH = get_int_env(
 # ============================================================
 
 # Keep exports outside the publicly served static directory.
-EXPORT_FOLDER = INSTANCE_DIR / "exports"
+EXPORT_FOLDER = Path(
+    os.getenv("INCRAFT_EXPORT_DIR", str(DEFAULT_STORAGE_ROOT / "exports"))
+).expanduser()
 
 
 # ============================================================
@@ -198,7 +214,7 @@ SESSION_COOKIE_SAMESITE = "Lax"
 
 SESSION_COOKIE_SECURE = get_bool_env(
     "INCRAFT_SESSION_COOKIE_SECURE",
-    default=False,
+    default=IS_PRODUCTION,
 )
 
 
