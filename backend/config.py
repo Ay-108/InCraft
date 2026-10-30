@@ -165,9 +165,11 @@ ALLOWED_EXTENSIONS = frozenset({
     "jpeg",
 })
 
+# Vercel limits function request bodies to 4.5 MB. Leave headroom for
+# multipart/form-data overhead; traditional hosts retain the 16 MB default.
 MAX_CONTENT_LENGTH = get_int_env(
     "INCRAFT_MAX_CONTENT_LENGTH",
-    default=16 * 1024 * 1024,
+    default=(4 * 1024 * 1024 if IS_VERCEL else 16 * 1024 * 1024),
     minimum=1,
 )
 
