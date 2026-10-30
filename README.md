@@ -431,7 +431,7 @@ Visualization: Matplotlib
 
 InCraft currently uses Flask and Jinja templates for both its pages and its backend routes. It is therefore a **single full-stack Flask application**, not a separate React/Vue frontend and REST API. The deployment setup keeps that architecture intact:
 
-- `index.py` exposes the existing Flask WSGI application for Vercel.
+- `pyproject.toml` explicitly points Vercel to the Flask application object at `backend.app:app`.
 - `templates/` remains the server-rendered frontend.
 - `public/static/` contains the CSS, JavaScript, and image assets served directly by Vercel's CDN; Flask does not register a competing static route in Vercel deployments.
 - Flask continues to provide the application's pages and API routes.
@@ -444,7 +444,7 @@ InCraft currently uses Flask and Jinja templates for both its pages and its back
 3. Add the environment variables below to the Vercel project (Production, Preview, and Development as appropriate).
 4. Deploy. After deployment, open `/api/health`; it returns HTTP 200 only when InCraft can connect to MySQL.
 
-The `/api/health` endpoint reports missing environment-variable **names** (never their values) when production configuration is incomplete. The Flask function also exposes a safe WSGI fallback if an unexpected import-time exception occurs; the full traceback is written to Vercel Runtime Logs while the public health response reports only the exception type.
+The `/api/health` endpoint reports missing environment-variable **names** (never their values) when production configuration is incomplete. Unexpected import-time exceptions are visible in Vercel Runtime Logs. The public health endpoint reports missing configuration and database availability without exposing secret values.
 5. Use `vercel dev` locally to test the same Vercel entry point before production deployment.
 
 | Variable | Required value |
