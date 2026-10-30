@@ -1,494 +1,1062 @@
-/* =========================================
+
+/* =========================================================
    InCraft — Login Page
    static/css/login.css
-   ========================================= */
 
+   Dark + Orange Theme
+   ========================================================= */
 
-/* =========================================
-   1. RESET
-   ========================================= */
+/* =========================================================
+   1. RESET AND THEME
+   ========================================================= */
 
-* {
-    margin: 0;
-    padding: 0;
+.login-page,
+.login-page *,
+.login-page *::before,
+.login-page *::after {
     box-sizing: border-box;
 }
 
-
-/* =========================================
-   2. HTML & BODY
-   ========================================= */
-
-html,
-body {
-    width: 100%;
-    min-height: 100%;
-}
-
-
-/* =========================================
-   3. BODY
-   ========================================= */
-
-body {
-    font-family: Arial, Helvetica, sans-serif;
-
-    background: #f7f7f7;
-
-    color: #222222;
-}
-
-
-/* =========================================
-   4. LOGIN PAGE
-   ========================================= */
-
 .login-page {
-    width: 100%;
-    min-height: 100vh;
+    --login-bg: #10100f;
+    --card-bg: #191919;
+    --field-bg: #1c1c1c;
+    --border-color: #2b2b2b;
+    --text-primary: #f5f5f5;
+    --text-secondary: #a1a1a1;
+    --text-muted: #777777;
+    --accent: #e6813c;
+    --accent-hover: #f0914d;
+    --accent-soft: rgba(230, 129, 60, 0.12);
+
+    position: relative;
+    isolation: isolate;
 
     display: flex;
     align-items: center;
     justify-content: center;
 
-    padding: 40px 20px;
+    width: 100%;
+    min-height: 100vh;
+    min-height: 100dvh;
+
+    padding: 20px 16px;
+
+    background:
+        radial-gradient(
+            circle at 50% 0%,
+            rgba(230, 129, 60, 0.045),
+            transparent 45%
+        ),
+        var(--login-bg);
+
+    color: var(--text-primary);
+
+    font-family:
+        Inter,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Arial,
+        sans-serif;
+
+    font-size: 14px;
+    line-height: 1.5;
+
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
 }
 
+.login-page button,
+.login-page input {
+    font: inherit;
+}
 
-/* =========================================
-   5. LOGIN CARD
-   ========================================= */
+.login-page button {
+    -webkit-tap-highlight-color: transparent;
+}
+
+.login-page a {
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* =========================================================
+   2. LOGIN CARD
+   ========================================================= */
 
 .login-card {
+    position: relative;
+
     width: 100%;
-    max-width: 420px;
+    max-width: 400px;
 
-    padding: 32px;
+    padding: 30px;
 
-    background: #ffffff;
+    overflow: hidden;
 
-    border: 1px solid #e5e5e5;
-    border-radius: 12px;
+    background: var(--card-bg);
+
+    border: 1px solid #292929;
+    border-radius: 16px;
 
     box-shadow:
-        0 10px 30px rgba(0, 0, 0, 0.08);
+        0 20px 55px rgba(0, 0, 0, 0.28),
+        0 3px 10px rgba(0, 0, 0, 0.16);
 }
 
+/* Orange top accent */
 
-/* =========================================
-   6. BRAND
-   ========================================= */
+.login-card::before {
+    content: "";
+
+    position: absolute;
+    top: 0;
+    left: 0;
+
+    width: 100%;
+    height: 2px;
+
+    background: var(--accent);
+}
+
+/* =========================================================
+   3. BRAND
+   ========================================================= */
 
 .login-brand {
-    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
-    margin-bottom: 28px;
+    gap: 10px;
+
+    margin-bottom: 24px;
+
+    text-align: left;
 }
-
 
 .login-logo {
     display: flex;
-    justify-content: center;
     align-items: center;
+    justify-content: center;
 
-    margin-bottom: 10px;
+    flex-shrink: 0;
 }
-
 
 .login-logo svg {
     display: block;
+
+    width: 40px;
+    height: 40px;
+
+    filter: drop-shadow(
+        0 4px 10px rgba(230, 129, 60, 0.16)
+    );
 }
 
+.brand-text {
+    min-width: 0;
+}
 
-.login-brand h1 {
-    color: #f47521;
+.brand-text h1 {
+    margin: 0;
 
-    font-size: 30px;
+    color: #f5f5f5;
+
+    font-size: 25px;
     font-weight: 800;
+    line-height: 1.1;
 
-    line-height: 1.2;
-
-    letter-spacing: -0.5px;
+    letter-spacing: -0.8px;
 }
 
+.brand-text p {
+    margin: 5px 0 0;
 
-.login-brand p {
-    margin-top: 5px;
+    color: #a0a0a0;
 
-    color: #888888;
-
-    font-size: 12px;
-
-    line-height: 1.4;
+    font-size: 9px;
+    line-height: 1.5;
 }
 
-
-/* =========================================
-   7. LOGIN HEADING
-   ========================================= */
+/* =========================================================
+   4. LOGIN HEADING
+   ========================================================= */
 
 .login-heading {
-    margin-bottom: 25px;
+    margin-bottom: 24px;
 
     text-align: center;
 }
 
-
 .login-heading h2 {
-    color: #222222;
+    margin: 0;
 
-    font-size: 22px;
-    font-weight: 700;
+    color: var(--text-primary);
 
-    line-height: 1.3;
+    font-size: 20px;
+    font-weight: 750;
+    line-height: 1.35;
+
+    letter-spacing: -0.35px;
 }
-
 
 .login-heading p {
-    margin-top: 7px;
+    margin: 6px 0 0;
 
-    color: #888888;
+    color: var(--text-secondary);
 
-    font-size: 13px;
-
-    line-height: 1.5;
+    font-size: 11px;
+    line-height: 1.6;
 }
 
-
-/* =========================================
-   8. FLASH MESSAGES
-   ========================================= */
+/* =========================================================
+   5. FLASH MESSAGES
+   ========================================================= */
 
 .flash-messages {
-    margin-bottom: 18px;
-}
+    display: grid;
+    gap: 8px;
 
+    margin-bottom: 16px;
+}
 
 .flash-message {
-    padding: 10px 12px;
+    padding: 9px 11px;
 
+    border: 1px solid transparent;
     border-radius: 7px;
 
-    font-size: 12px;
+    font-size: 11px;
+    line-height: 1.5;
 
-    line-height: 1.4;
+    overflow-wrap: anywhere;
 }
-
 
 .flash-message.success {
-    border: 1px solid #b7dfc5;
-
-    background: #f0fff4;
-
-    color: #18733a;
+    color: #a5e6b8;
+    background: #17261c;
+    border-color: #294b34;
 }
 
-
-.flash-message.danger {
-    border: 1px solid #f0c8c8;
-
-    background: #fff5f5;
-
-    color: #b42318;
+.flash-message.danger,
+.flash-message.error {
+    color: #f28c83;
+    background: #2c1e1e;
+    border-color: #4b2b2b;
 }
-
 
 .flash-message.warning {
-    border: 1px solid #f0d9a6;
-
-    background: #fffaf0;
-
-    color: #946200;
+    color: #f4cf8b;
+    background: #2b2519;
+    border-color: #4c3d25;
 }
-
 
 .flash-message.info {
-    border: 1px solid #c8dcef;
-
-    background: #f3f8ff;
-
-    color: #245b8f;
+    color: #a6cafa;
+    background: #192332;
+    border-color: #2a405c;
 }
 
-
-/* =========================================
-   9. LOGIN FORM
-   ========================================= */
+/* =========================================================
+   6. LOGIN FORM
+   ========================================================= */
 
 .login-form {
     display: flex;
-
     flex-direction: column;
 
-    gap: 17px;
+    gap: 16px;
+
+    width: 100%;
 }
-
-
-/* =========================================
-   10. FORM GROUP
-   ========================================= */
 
 .login-form .form-group {
     display: flex;
-
     flex-direction: column;
+
+    min-width: 0;
 }
 
+.login-form .form-group > label,
+.login-form .password-label-row > label,
+.login-form .role-label {
+    display: block;
 
-.login-form label {
+    margin: 0 0 7px;
+
+    color: #d1d1d1;
+
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.5;
+}
+
+/* =========================================================
+   7. ROLE SELECTION
+   ========================================================= */
+
+.role-section {
+    width: 100%;
+}
+
+.role-label {
+    display: block;
+
     margin-bottom: 7px;
 
-    color: #333333;
+    color: #d1d1d1;
 
-    font-size: 13px;
-    font-weight: 600;
+    font-size: 11px;
+    font-weight: 500;
 }
 
+.role-selector {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
 
-/* =========================================
-   11. INPUT
-   ========================================= */
+    gap: 8px;
 
-.login-form input {
     width: 100%;
-    height: 44px;
-
-    padding: 0 13px;
-
-    border: 1px solid #dcdcdc;
-
-    border-radius: 7px;
-
-    outline: none;
-
-    background: #ffffff;
-
-    color: #333333;
-
-    font-family: Arial, Helvetica, sans-serif;
-
-    font-size: 13px;
-
-    transition:
-        border-color 0.2s ease,
-        box-shadow 0.2s ease,
-        background 0.2s ease;
 }
 
-
-.login-form input::placeholder {
-    color: #aaaaaa;
-}
-
-
-.login-form input:focus {
-    border-color: #f47521;
-
-    background: #ffffff;
-
-    box-shadow:
-        0 0 0 3px rgba(244, 117, 33, 0.10);
-}
-
-
-/* =========================================
-   12. PASSWORD FIELD
-   ========================================= */
-
-.password-wrapper {
+.role-option {
     position: relative;
+
+    display: block;
+
+    min-width: 0;
+    margin: 0;
+
+    cursor: pointer;
 }
 
+/* Keep the native control accessible to keyboard users. */
 
-.password-wrapper input {
-    padding-right: 45px;
-}
-
-
-.password-toggle {
+.role-option input[type="radio"] {
     position: absolute;
 
+    width: 1px;
+    height: 1px;
+
+    padding: 0;
+    margin: -1px;
+
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    clip-path: inset(50%);
+
+    white-space: nowrap;
+    border: 0;
+}
+
+.role-card {
+    display: flex;
+    align-items: center;
+
+    gap: 8px;
+
+    min-height: 58px;
+    padding: 9px;
+
+    color: #b7b7b7;
+
+    background: #ffffff;
+
+    border: 1px solid #dedede;
+    border-radius: 9px;
+
+    cursor: pointer;
+
+    transition:
+        background 0.18s ease,
+        border-color 0.18s ease,
+        box-shadow 0.18s ease;
+}
+
+.role-card:hover {
+    border-color: #edb48b;
+    background: #fffaf6;
+}
+
+.role-option input[type="radio"]:checked + .role-card {
+    background: #fffaf6;
+    border-color: var(--accent);
+
+    box-shadow: 0 0 0 1px rgba(230, 129, 60, 0.12);
+}
+
+.role-option input[type="radio"]:focus-visible + .role-card {
+    outline: 2px solid #ffad70;
+    outline-offset: 3px;
+}
+
+.role-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex-shrink: 0;
+
+    width: 32px;
+    height: 32px;
+
+    color: #858585;
+    background: #f1f1f1;
+
+    border-radius: 8px;
+
+    transition:
+        background 0.18s ease,
+        color 0.18s ease;
+}
+
+.role-icon svg {
+    display: block;
+
+    width: 18px;
+    height: 18px;
+}
+
+.role-option input[type="radio"]:checked + .role-card .role-icon {
+    color: #ffffff;
+    background: var(--accent);
+}
+
+.role-content {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+
+    gap: 2px;
+
+    min-width: 0;
+}
+
+.role-content strong {
+    color: #292929;
+
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+.role-option input[type="radio"]:checked + .role-card .role-content strong {
+    color: #d96e2a;
+}
+
+.role-content small {
+    color: #888888;
+
+    font-size: 8px;
+    line-height: 1.35;
+
+    overflow-wrap: anywhere;
+}
+
+.role-check {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex-shrink: 0;
+
+    width: 15px;
+    height: 15px;
+
+    color: transparent;
+    background: transparent;
+
+    border: 1px solid #d8d8d8;
+    border-radius: 50%;
+
+    transition:
+        background 0.18s ease,
+        border-color 0.18s ease,
+        color 0.18s ease;
+}
+
+.role-check svg {
+    display: block;
+
+    width: 10px;
+    height: 10px;
+}
+
+.role-option input[type="radio"]:checked + .role-card .role-check {
+    color: #ffffff;
+    background: var(--accent);
+    border-color: var(--accent);
+}
+
+/* =========================================================
+   8. PASSWORD LABEL ROW
+   ========================================================= */
+
+.password-label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 12px;
+
+    margin-bottom: 7px;
+}
+
+.password-label-row > label {
+    margin: 0;
+}
+
+/* =========================================================
+   9. FORGOT PASSWORD
+   ========================================================= */
+
+.forgot-password {
+    color: #f0914d;
+
+    font-size: 10px;
+    font-weight: 500;
+
+    text-decoration: none;
+
+    white-space: nowrap;
+
+    transition: color 0.18s ease;
+}
+
+.forgot-password:hover {
+    color: #ffb17b;
+    text-decoration: underline;
+}
+
+.forgot-password:focus-visible,
+.login-footer a:focus-visible {
+    outline: 2px solid #ffad70;
+    outline-offset: 3px;
+
+    border-radius: 2px;
+}
+
+/* =========================================================
+   10. INPUT WRAPPER AND ICONS
+   ========================================================= */
+
+.input-wrapper {
+    position: relative;
+
+    width: 100%;
+    min-width: 0;
+}
+
+.input-icon {
+    position: absolute;
     top: 50%;
-    right: 12px;
+    left: 11px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 16px;
+    height: 16px;
+
+    color: #929292;
 
     transform: translateY(-50%);
 
-    border: none;
+    pointer-events: none;
 
+    transition: color 0.18s ease;
+}
+
+.input-icon svg {
+    display: block;
+
+    width: 15px;
+    height: 15px;
+}
+
+.input-wrapper:focus-within .input-icon {
+    color: var(--accent);
+}
+
+/* =========================================================
+   11. FORM INPUTS
+   ========================================================= */
+
+.login-form input[type="email"],
+.login-form input[type="password"],
+.login-form input[type="text"] {
+    display: block;
+
+    width: 100%;
+    height: 38px;
+
+    padding: 0 39px 0 34px;
+
+    color: #eeeeee;
+    background: var(--field-bg);
+
+    border: 1px solid #292929;
+    border-radius: 8px;
+
+    outline: none;
+
+    font-family: inherit;
+    font-size: 11px;
+    line-height: normal;
+
+    transition:
+        background 0.18s ease,
+        border-color 0.18s ease,
+        box-shadow 0.18s ease;
+}
+
+.login-form input[type="email"]::placeholder,
+.login-form input[type="password"]::placeholder,
+.login-form input[type="text"]::placeholder {
+    color: #777777;
+    opacity: 1;
+}
+
+.login-form input[type="email"]:hover,
+.login-form input[type="password"]:hover,
+.login-form input[type="text"]:hover {
+    border-color: #393939;
+}
+
+.login-form input[type="email"]:focus,
+.login-form input[type="password"]:focus,
+.login-form input[type="text"]:focus {
+    background: #202020;
+    border-color: var(--accent);
+
+    box-shadow: 0 0 0 3px rgba(230, 129, 60, 0.10);
+}
+
+.login-form input:-webkit-autofill,
+.login-form input:-webkit-autofill:hover,
+.login-form input:-webkit-autofill:focus {
+    -webkit-text-fill-color: #eeeeee;
+
+    transition: background-color 9999s ease-in-out 0s;
+
+    box-shadow: 0 0 0 1000px #1c1c1c inset;
+    caret-color: #eeeeee;
+}
+
+/* =========================================================
+   12. PASSWORD VISIBILITY TOGGLE
+   ========================================================= */
+
+.password-toggle {
+    position: absolute;
+    top: 50%;
+    right: 7px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 27px;
+    height: 27px;
+
+    padding: 0;
+
+    color: #929292;
     background: transparent;
 
-    color: #888888;
-
-    font-size: 14px;
+    border: none;
+    border-radius: 5px;
 
     cursor: pointer;
-}
 
+    transform: translateY(-50%);
+
+    transition:
+        color 0.18s ease,
+        background 0.18s ease;
+}
 
 .password-toggle:hover {
-    color: #f47521;
+    color: var(--accent-hover);
+    background: var(--accent-soft);
 }
 
+.password-toggle:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+}
 
-/* =========================================
-   13. LOGIN BUTTON
-   ========================================= */
+.password-toggle svg {
+    display: block;
 
-.login-button {
-    width: 100%;
-    height: 44px;
+    width: 16px;
+    height: 16px;
+}
 
-    margin-top: 3px;
+.password-toggle .eye-closed {
+    display: none;
+}
 
-    border: 1px solid #f47521;
+.password-toggle.show-password .eye-open {
+    display: none;
+}
 
-    border-radius: 7px;
+.password-toggle.show-password .eye-closed {
+    display: block;
+}
 
-    background: #f47521;
+/* =========================================================
+   13. REMEMBER ME
+   ========================================================= */
+
+.login-options {
+    display: flex;
+    align-items: center;
+
+    margin-top: -3px;
+}
+
+.remember-me {
+    display: inline-flex;
+    align-items: center;
+
+    gap: 7px;
+
+    margin: 0;
+
+    color: #a7a7a7;
+
+    font-size: 10px;
+    line-height: 1.5;
+
+    cursor: pointer;
+    user-select: none;
+}
+
+.remember-me input[type="checkbox"] {
+    position: absolute;
+
+    width: 1px;
+    height: 1px;
+
+    padding: 0;
+    margin: -1px;
+
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    clip-path: inset(50%);
+
+    white-space: nowrap;
+    border: 0;
+}
+
+.custom-checkbox {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex-shrink: 0;
+
+    width: 13px;
+    height: 13px;
+
+    color: transparent;
+    background: #ffffff;
+
+    border: 1px solid #d6d6d6;
+    border-radius: 3px;
+
+    transition:
+        background 0.18s ease,
+        border-color 0.18s ease;
+}
+
+.remember-me input[type="checkbox"]:checked + .custom-checkbox {
+    color: #ffffff;
+    background: var(--accent);
+    border-color: var(--accent);
+}
+
+.remember-me input[type="checkbox"]:checked + .custom-checkbox::after {
+    content: "✓";
 
     color: #ffffff;
 
-    font-family: Arial, Helvetica, sans-serif;
-
-    font-size: 13px;
+    font-size: 10px;
     font-weight: 700;
+    line-height: 1;
+}
+
+.remember-me input[type="checkbox"]:focus-visible + .custom-checkbox {
+    outline: 2px solid #ffad70;
+    outline-offset: 3px;
+}
+
+/* =========================================================
+   14. SIGN IN BUTTON
+   ========================================================= */
+
+.login-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 8px;
+
+    width: 100%;
+    min-height: 37px;
+
+    padding: 9px 14px;
+
+    color: #ffffff;
+    background: #dc813f;
+
+    border: 1px solid #dc813f;
+    border-radius: 8px;
+
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.4;
 
     cursor: pointer;
 
+    box-shadow: 0 4px 12px rgba(220, 129, 63, 0.12);
+
     transition:
-        background 0.2s ease,
-        border-color 0.2s ease,
-        transform 0.1s ease;
+        background 0.18s ease,
+        border-color 0.18s ease,
+        box-shadow 0.18s ease,
+        transform 0.12s ease;
 }
 
+.login-button svg {
+    display: block;
+
+    width: 15px;
+    height: 15px;
+
+    transition: transform 0.18s ease;
+}
 
 .login-button:hover {
-    background: #d95f12;
+    background: #ed914e;
+    border-color: #ed914e;
 
-    border-color: #d95f12;
+    box-shadow: 0 6px 16px rgba(220, 129, 63, 0.2);
 }
 
+.login-button:hover svg {
+    transform: translateX(3px);
+}
 
 .login-button:active {
     transform: translateY(1px);
 }
 
+.login-button:focus-visible {
+    outline: 2px solid #ffad70;
+    outline-offset: 3px;
+}
 
-/* =========================================
-   14. LOGIN FOOTER
-   ========================================= */
+.login-button:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+/* =========================================================
+   15. LOGIN FOOTER
+   ========================================================= */
 
 .login-footer {
-    margin-top: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
-    padding-top: 20px;
+    flex-wrap: wrap;
+    gap: 4px;
 
-    border-top: 1px solid #eeeeee;
+    margin-top: 18px;
+    padding-top: 16px;
+
+    border-top: 1px solid #363636;
+
+    color: #a5a5a5;
+
+    font-size: 10px;
+    line-height: 1.6;
 
     text-align: center;
-
-    color: #888888;
-
-    font-size: 12px;
-
-    line-height: 1.5;
 }
-
 
 .login-footer a {
-    margin-left: 4px;
+    margin-left: 0;
 
-    color: #f47521;
+    color: #f0914d;
 
-    font-weight: 600;
+    font-weight: 700;
 
     text-decoration: none;
+
+    transition: color 0.18s ease;
 }
 
-
 .login-footer a:hover {
+    color: #ffb17b;
     text-decoration: underline;
 }
 
+/* =========================================================
+   16. SECURITY NOTE
+   ========================================================= */
 
-/* =========================================
-   15. RESPONSIVE
-   ========================================= */
+.login-security {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 6px;
+
+    margin-top: 14px;
+
+    color: #8b8b8b;
+
+    font-size: 8px;
+    line-height: 1.5;
+
+    text-align: center;
+}
+
+.login-security svg {
+    display: block;
+
+    flex-shrink: 0;
+
+    width: 12px;
+    height: 12px;
+
+    color: var(--accent);
+}
+
+/* =========================================================
+   17. RESPONSIVE — TABLET
+   ========================================================= */
+
+@media (min-width: 768px) {
+    .login-card {
+        padding: 32px;
+    }
+}
+
+/* =========================================================
+   18. RESPONSIVE — MOBILE
+   ========================================================= */
 
 @media (max-width: 480px) {
-
     .login-page {
-        padding: 25px 15px;
+        padding: 20px 14px;
     }
-
 
     .login-card {
-        padding: 26px 21px;
+        max-width: 400px;
+        padding: 26px 22px;
 
-        border-radius: 10px;
+        border-radius: 14px;
     }
-
 
     .login-brand {
         margin-bottom: 22px;
     }
 
-
-    .login-brand h1 {
-        font-size: 27px;
-    }
-
-
-    .login-brand p {
-        font-size: 11px;
-    }
-
-
     .login-heading {
-        margin-bottom: 22px;
+        margin-bottom: 21px;
     }
 
-
-    .login-heading h2 {
-        font-size: 20px;
+    .login-form {
+        gap: 15px;
     }
 
-
-    .login-heading p {
-        font-size: 12px;
+    .role-card {
+        gap: 7px;
+        padding: 8px;
     }
 
-
-    .login-footer {
-        font-size: 11px;
+    .role-icon {
+        width: 30px;
+        height: 30px;
     }
 
+    .role-content small {
+        font-size: 8px;
+    }
 }
 
-
-/* =========================================
-   16. SMALL MOBILE
-   ========================================= */
+/* =========================================================
+   19. RESPONSIVE — SMALL MOBILE
+   ========================================================= */
 
 @media (max-width: 350px) {
-
     .login-page {
-        padding: 20px 12px;
+        padding: 14px 10px;
     }
-
 
     .login-card {
-        padding: 22px 16px;
+        padding: 23px 16px;
     }
 
-
-    .login-brand h1 {
-        font-size: 25px;
+    .login-brand {
+        gap: 8px;
     }
 
+    .login-logo svg {
+        width: 36px;
+        height: 36px;
+    }
+
+    .brand-text h1 {
+        font-size: 23px;
+    }
+
+    .brand-text p {
+        font-size: 8px;
+    }
 
     .login-heading h2 {
         font-size: 19px;
     }
 
+    .role-selector {
+        grid-template-columns: 1fr;
+    }
+
+    .role-card {
+        min-height: 54px;
+        padding: 8px 10px;
+    }
+
+    .role-check {
+        display: flex;
+    }
+
+    .login-footer {
+        font-size: 9px;
+    }
+}
+
+/* =========================================================
+   20. REDUCED MOTION
+   ========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+    .login-page *,
+    .login-page *::before,
+    .login-page *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
 }

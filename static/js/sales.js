@@ -5,6 +5,10 @@
 
 document.addEventListener("DOMContentLoaded", function () {
 
+    // Prevent concurrent submissions on this page. Server-side idempotency is
+    // still needed to protect against retries and ambiguous network failures.
+    let isSubmittingSale = false;
+
     /* =========================================
        1. ELEMENTS
        ========================================= */
@@ -26,6 +30,22 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const saleForm =
         document.getElementById("saleForm");
+
+    const saleIdempotencyKey =
+        document.getElementById("saleIdempotencyKey");
+
+    function createSaleRequestKey() {
+        if (window.crypto && typeof window.crypto.randomUUID === "function") {
+            return window.crypto.randomUUID();
+        }
+
+        // UUID v4 fallback for browsers without crypto.randomUUID().
+        return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+            const r = Math.random() * 16 | 0;
+            const v = c === "x" ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
 
     const productSelect =
         document.getElementById("saleProduct");
@@ -90,6 +110,12 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         saleForm.reset();
+
+        // A reset starts a fresh logical sale. Failed network retries do not
+        // call resetSaleForm(), so they keep the same key.
+        if (saleIdempotencyKey) {
+            saleIdempotencyKey.value = createSaleRequestKey();
+        }
 
         if (priceInput) {
             priceInput.value = "0";
@@ -165,7 +191,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function closeSaleModal() {
 
-        if (!saleModal) {
+        if (!saleModal || isSubmittingSale) {
             return;
         }
 
@@ -462,20 +488,24 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
 
-    if (productSelect) {
+    
+if (productSelect) {
 
-        productSelect.addEventListener(
-            "change",
-            function () {
+    productSelect.addEventListener(
+        "change",
+        function () {
 
-                hideSaleMessage();
+            hideSaleMessage();
 
-                updateProductDetails();
+            productSelect.setCustomValidity("");
 
-            }
-        );
+            updateProductDetails();
 
-    }
+        }
+    );
+
+}
+
 
 
     /* =========================================
@@ -544,49 +574,106 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
 
-    /* =========================================
+        /* =========================================
        14. QUANTITY
        ========================================= */
 
     if (quantityInput) {
 
+        /*
+         * Allow the user to temporarily clear the quantity
+         * field while replacing its default value.
+         *
+         * Do not force the value back to 1 during typing.
+         * Final validation is handled by the submit handler.
+         */
         quantityInput.addEventListener(
             "input",
             function () {
 
-                let quantity =
-                    Number(quantityInput.value);
-
-
-                const maximum =
-                    Number(quantityInput.max);
-
-
-                if (
-                    !Number.isFinite(quantity) ||
-                    quantity < 1
-                ) {
-
-                    quantity = 1;
-
+                // Permit an empty field while the user is typing.
+                if (quantityInput.value.trim() === "") {
+                    calculateSale();
+                    return;
                 }
 
+                let quantity = Number(quantityInput.value);
 
+                const maximum = Number(quantityInput.max);
+
+                // Do not interfere with an incomplete or invalid entry.
+                if (!Number.isFinite(quantity)) {
+                    calculateSale();
+                    return;
+                }
+
+                // Enforce the available stock limit.
                 if (
                     Number.isFinite(maximum) &&
-                    maximum > 0 &&
                     quantity > maximum
                 ) {
 
                     quantity = maximum;
 
+                    quantityInput.value = String(quantity);
+
+                }
+
+                // Update quantity, unit price, and total previews.
+                calculateSale();
+
+            }
+        );
+
+
+        /*
+         * Validate the field after editing is complete.
+         * Keep invalid values empty rather than silently
+         * changing them to 1.
+         */
+        quantityInput.addEventListener(
+            "blur",
+            function () {
+
+                const rawQuantity =
+                    quantityInput.value.trim();
+
+                const quantity =
+                    Number(rawQuantity);
+
+                const maximum =
+                    Number(quantityInput.max);
+
+
+                // An empty or invalid quantity must be corrected.
+                if (
+                    rawQuantity === "" ||
+                    !Number.isInteger(quantity) ||
+                    quantity < 1
+                ) {
+
+                    quantityInput.value = "";
+
+                    calculateSale();
+
+                    return;
+
                 }
 
 
-                quantityInput.value =
-                    String(quantity);
+                // Do not allow the quantity to exceed stock.
+                if (
+                    Number.isFinite(maximum) &&
+                    quantity > maximum
+                ) {
+
+                    quantityInput.value =
+                        String(maximum);
+
+                }
 
 
+                // Refresh the sale summary.
                 calculateSale();
 
             }
@@ -607,27 +694,43 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 event.preventDefault();
 
+                // Ignore another submit while a sale request is in progress.
+                if (isSubmittingSale) {
+                    return;
+                }
+
                 hideSaleMessage();
 
 
-                /* Product validation */
 
-                if (
-                    !productSelect ||
-                    !productSelect.value
-                ) {
+/* Product validation */
 
-                    showSaleMessage(
-                        "Please select a product."
-                    );
+if (
+    !productSelect ||
+    !productSelect.value.trim()
+) {
 
-                    if (productSelect) {
-                        productSelect.focus();
-                    }
+    showSaleMessage(
+        "Please select a product before completing the sale."
+    );
 
-                    return;
+    if (productSelect) {
+        productSelect.setCustomValidity(
+            "Please select a product."
+        );
 
-                }
+        productSelect.reportValidity();
+        productSelect.focus();
+    }
+
+    return;
+}
+
+/*
+ * Clear any previous custom validation message once
+ * a valid product has been selected.
+ */
+productSelect.setCustomValidity("");
 
 
                 /* Quantity validation */
@@ -666,7 +769,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 if (
                     Number.isFinite(maximum) &&
-                    maximum > 0 &&
                     quantity > maximum
                 ) {
 
@@ -713,6 +815,8 @@ document.addEventListener("DOMContentLoaded", function () {
                     return;
                 }
 
+                // Lock synchronously before the first await to prevent double-clicks.
+                isSubmittingSale = true;
 
                 const submitButton =
                     document.getElementById(
@@ -723,6 +827,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 if (submitButton) {
 
                     submitButton.disabled = true;
+                    submitButton.setAttribute("aria-busy", "true");
 
                     submitButton.textContent =
                         "Saving...";
@@ -746,7 +851,11 @@ document.addEventListener("DOMContentLoaded", function () {
                                 body: formData,
                                 headers: {
                                     "X-Requested-With":
-                                        "XMLHttpRequest"
+                                        "XMLHttpRequest",
+                                    "X-CSRFToken":
+                                        saleForm.querySelector(
+                                            'input[name="csrf_token"]'
+                                        )?.value || ""
                                 }
                             }
                         );
@@ -807,9 +916,12 @@ document.addEventListener("DOMContentLoaded", function () {
                     );
 
 
+                    isSubmittingSale = false;
+
                     if (submitButton) {
 
                         submitButton.disabled = false;
+                        submitButton.removeAttribute("aria-busy");
 
                         submitButton.textContent =
                             "Complete Sale";
@@ -1110,6 +1222,10 @@ document.addEventListener("DOMContentLoaded", function () {
     /* =========================================
        19. INITIALIZATION
        ========================================= */
+
+    if (saleIdempotencyKey && !saleIdempotencyKey.value) {
+        saleIdempotencyKey.value = createSaleRequestKey();
+    }
 
     updateProductDetails();
 

@@ -1,184 +1,218 @@
-<!-- =========================================
-     InCraft Sidebar
+
+<!-- ==========================================
+     InCraft — Sidebar
+     templates/components/sidebar.html
      Dark + Orange Theme
-     ========================================= -->
+     ========================================== -->
 
-<aside class="sidebar" id="sidebar">
+<aside class="sidebar" id="sidebar" aria-label="Main sidebar">
 
-    <!-- Brand -->
-    <div class="sidebar-brand">
+    <!-- BRAND HEADER -->
+    <div class="sidebar-header">
 
         <a
             href="{{ url_for('main.dashboard') }}"
             class="brand-link"
+            aria-label="InCraft Dashboard"
+            title="InCraft Dashboard"
         >
-
-            <div class="brand-mark">
-                IC
-            </div>
+            <img
+                src="{{ url_for('static', filename='images/logo.png') }}"
+                alt="InCraft Logo"
+                class="brand-logo"
+            >
 
             <div class="brand-text">
-
-                <div class="brand-name">
-                    InCraft
-                </div>
-
-                <div class="brand-tagline">
-                    The Art of Intelligent Inventory
-                </div>
-
+                <span class="brand-name">InCraft</span>
+                <span class="brand-tagline">Intelligent Inventory</span>
             </div>
-
         </a>
 
     </div>
 
+    <!-- QUICK SEARCH -->
+    <div class="sidebar-quick-actions">
 
-    <!-- Navigation -->
-    <nav class="sidebar-nav">
+        <button
+            type="button"
+            class="sidebar-search"
+            id="sidebarSearch"
+            title="Search products and records"
+            aria-label="Search products and records"
+        >
+            <i class="fas fa-search" aria-hidden="true"></i>
+            <span class="sidebar-label">Search</span>
+            <span class="search-shortcut" aria-hidden="true">/</span>
+        </button>
 
-        <!-- Main -->
+    </div>
+
+    <!-- PRIMARY NAVIGATION -->
+    <nav class="sidebar-nav" aria-label="Application navigation">
+
+        <!-- WORKSPACE -->
         <div class="nav-section">
 
-            <span class="nav-section-title">
-                Main
+            <span class="nav-section-title sidebar-label">
+                WORKSPACE
             </span>
 
-
-            <!-- Dashboard -->
             <a
                 href="{{ url_for('main.dashboard') }}"
                 class="nav-item {% if request.endpoint == 'main.dashboard' %}active{% endif %}"
+                {% if request.endpoint == 'main.dashboard' %}aria-current="page"{% endif %}
+                data-tooltip="Dashboard"
+                title="Dashboard"
             >
-                <span class="nav-icon">⌂</span>
-                <span class="nav-label">Dashboard</span>
+                <i class="fas fa-th-large nav-icon" aria-hidden="true"></i>
+                <span class="nav-label sidebar-label">Dashboard</span>
             </a>
 
-
-            <!-- Inventory -->
             <a
                 href="{{ url_for('main.inventory') }}"
                 class="nav-item {% if request.endpoint == 'main.inventory' %}active{% endif %}"
+                {% if request.endpoint == 'main.inventory' %}aria-current="page"{% endif %}
+                data-tooltip="Inventory"
+                title="Inventory"
             >
-                <span class="nav-icon">▣</span>
-                <span class="nav-label">Inventory</span>
+                <i class="fas fa-boxes nav-icon" aria-hidden="true"></i>
+                <span class="nav-label sidebar-label">Inventory</span>
             </a>
 
-
-            <!-- Sales -->
             <a
                 href="{{ url_for('main.sales') }}"
                 class="nav-item {% if request.endpoint == 'main.sales' %}active{% endif %}"
+                {% if request.endpoint == 'main.sales' %}aria-current="page"{% endif %}
+                data-tooltip="Sales"
+                title="Sales"
             >
-                <span class="nav-icon">₹</span>
-                <span class="nav-label">Sales</span>
-            </a>
-
-
-            <!-- Analytics -->
-            <a
-                href="{{ url_for('main.analytics') }}"
-                class="nav-item {% if request.endpoint == 'main.analytics' %}active{% endif %}"
-            >
-                <span class="nav-icon">◫</span>
-                <span class="nav-label">Analytics</span>
-            </a>
-
-
-            <!-- Activity -->
-            <a
-                href="{{ url_for('main.activity') }}"
-                class="nav-item {% if request.endpoint == 'main.activity' %}active{% endif %}"
-            >
-                <span class="nav-icon">◷</span>
-                <span class="nav-label">Activity</span>
+                <i class="fas fa-shopping-cart nav-icon" aria-hidden="true"></i>
+                <span class="nav-label sidebar-label">Sales</span>
             </a>
 
         </div>
 
-
-        <!-- Manage -->
+        <!-- INSIGHTS -->
         <div class="nav-section">
 
-            <span class="nav-section-title">
-                Manage
+            <span class="nav-section-title sidebar-label">
+                INSIGHTS
             </span>
 
+            <a
+                href="{{ url_for('main.analytics') }}"
+                class="nav-item {% if request.endpoint == 'main.analytics' %}active{% endif %}"
+                {% if request.endpoint == 'main.analytics' %}aria-current="page"{% endif %}
+                data-tooltip="Analytics"
+                title="Analytics"
+            >
+                <i class="fas fa-chart-line nav-icon" aria-hidden="true"></i>
+                <span class="nav-label sidebar-label">Analytics</span>
+            </a>
 
-            <!-- Settings -->
+            <a
+                href="{{ url_for('main.activity') }}"
+                class="nav-item {% if request.endpoint == 'main.activity' %}active{% endif %}"
+                {% if request.endpoint == 'main.activity' %}aria-current="page"{% endif %}
+                data-tooltip="Activity History"
+                title="Activity History"
+            >
+                <i class="fas fa-history nav-icon" aria-hidden="true"></i>
+                <span class="nav-label sidebar-label">Activity History</span>
+            </a>
+
+        </div>
+
+        <!-- PREFERENCES -->
+        <div class="nav-section">
+
+            <span class="nav-section-title sidebar-label">
+                PREFERENCES
+            </span>
+
             <a
                 href="{{ url_for('main.settings') }}"
                 class="nav-item {% if request.endpoint == 'main.settings' %}active{% endif %}"
+                {% if request.endpoint == 'main.settings' %}aria-current="page"{% endif %}
+                data-tooltip="Settings"
+                title="Settings"
             >
-                <span class="nav-icon">⚙</span>
-                <span class="nav-label">Settings</span>
+                <i class="fas fa-cog nav-icon" aria-hidden="true"></i>
+                <span class="nav-label sidebar-label">Settings</span>
             </a>
 
         </div>
 
     </nav>
 
+    <!-- BOTTOM ACCOUNT AREA -->
+    <div class="sidebar-footer">
 
-    <!-- User / Logout -->
-    <div class="sidebar-bottom">
-
-        <!-- Current User -->
-        <div class="sidebar-user">
-
-            <div class="user-avatar">
-
-                {% if user and user.profile_image %}
-
-                    <img
-                        src="{{ url_for(
-                            'static',
-                            filename=user.profile_image
-                        ) }}"
-                        alt="Profile"
-                    >
-
-                {% else %}
-
-                    <span>
-                        {{ user.name[0]|upper
-                           if user and user.name
-                           else 'A' }}
-                    </span>
-
-                {% endif %}
-
-            </div>
-
-
-            <div class="sidebar-user-info">
-
-                <strong>
-                    {{ user.name
-                       if user and user.name
-                       else 'Admin' }}
-                </strong>
-
-                <span>
-                    {{ user.role
-                       if user and user.role
-                       else 'Administrator' }}
-                </span>
-
-            </div>
-
-        </div>
-
-
-        <!-- Logout -->
-        <a
-            href="{{ url_for('main.logout') }}"
-            class="nav-item logout-item"
+        <button
+            type="button"
+            class="sidebar-account"
+            id="sidebarAccount"
+            aria-label="Open account menu"
+            aria-expanded="false"
+            aria-controls="sidebarAccountMenu"
+            title="Account options"
         >
 
-            <span class="nav-icon">↪</span>
-            <span class="nav-label">Logout</span>
+            <span class="user-avatar" aria-hidden="true">
+                <i class="fas fa-user"></i>
+            </span>
 
-        </a>
+            <span class="user-info sidebar-label">
+                <span class="user-name">
+                    {{ session.get('username', 'Admin') }}
+                </span>
+                <span class="user-role">Administrator</span>
+            </span>
+
+            <i
+                class="fas fa-ellipsis account-more sidebar-label"
+                aria-hidden="true"
+            ></i>
+
+        </button>
+
+        <!-- ACCOUNT DROPDOWN -->
+        <div
+            class="sidebar-account-menu"
+            id="sidebarAccountMenu"
+            hidden
+        >
+
+            <div class="account-menu-header">
+                <span class="user-avatar" aria-hidden="true">
+                    <i class="fas fa-user"></i>
+                </span>
+
+                <div class="account-menu-user">
+                    <strong>{{ session.get('username', 'Admin') }}</strong>
+                    <span>Administrator</span>
+                </div>
+            </div>
+
+            <div class="account-menu-divider"></div>
+
+            <a
+                href="{{ url_for('main.settings') }}"
+                class="account-menu-item"
+            >
+                <i class="fas fa-user-cog" aria-hidden="true"></i>
+                <span>Account settings</span>
+            </a>
+
+            <a
+                href="{{ url_for('main.logout') }}"
+                class="account-menu-item logout-item"
+            >
+                <i class="fas fa-sign-out-alt" aria-hidden="true"></i>
+                <span>Logout</span>
+            </a>
+
+        </div>
 
     </div>
 

@@ -54,10 +54,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
                         data: revenueValues,
 
-                        borderColor: "#f47521",
+                        borderColor: "#F0782B",
 
                         backgroundColor:
-                            "rgba(244, 117, 33, 0.08)",
+                            "rgba(240, 120, 43, 0.10)",
 
                         borderWidth: 2,
 
@@ -151,9 +151,9 @@ document.addEventListener("DOMContentLoaded", function () {
                         data: inventoryValues,
 
                         backgroundColor: [
-                            "#f47521",
-                            "#777777",
-                            "#333333"
+                            "#F0782B",
+                            "#A3A3A3",
+                            "#2B2B2B"
                         ],
 
                         borderWidth: 0

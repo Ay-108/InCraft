@@ -4,1530 +4,979 @@
 Settings | InCraft
 {% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css') }}">
+{% endblock %}
+
 {% block content %}
+<main class="main-content settings-page">
 
-<main class="main-content">
-
-    <!-- =========================================
-         PAGE HEADER
-         ========================================= -->
-
+    <!-- Page header -->
     <section class="page-header settings-page-header">
-
         <div class="page-header-content">
-
             <span class="page-eyebrow">ACCOUNT & PREFERENCES</span>
 
             <div class="page-header-title-row">
-
-                <div class="page-header-icon">
-                    ⚙
+                <div class="settings-heading">
+                    <span class="settings-heading-icon" aria-hidden="true">⚙</span>
+                    <div>
+                        <h1>Settings</h1>
+                        <p>Manage your account, preferences, and system settings.</p>
+                    </div>
                 </div>
 
-                <div>
-                    <h1>Settings</h1>
-
-                    <p>
-                        Manage your account and application preferences.
-                    </p>
-                </div>
-
+                <nav class="settings-breadcrumb" aria-label="Breadcrumb">
+                    <span>Home</span>
+                    <span aria-hidden="true">/</span>
+                    <strong>Settings</strong>
+                </nav>
             </div>
-
         </div>
-
     </section>
 
-
-    <!-- =========================================
-         FLASH MESSAGES
-         ========================================= -->
-
+    <!-- Flask flash messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
-
         {% if messages %}
-
-            <div class="flash-messages">
-
+            <div class="flash-messages" role="status" aria-live="polite">
                 {% for category, message in messages %}
-
                     <div class="flash-message {{ category }}">
+                        <span aria-hidden="true">
+                            {% if category == 'success' %}✓{% elif category == 'error' or category == 'danger' %}⚠{% else %}ℹ{% endif %}
+                        </span>
                         {{ message }}
                     </div>
-
                 {% endfor %}
-
             </div>
-
         {% endif %}
-
     {% endwith %}
 
+    <!-- Settings tabs -->
+    <nav class="settings-nav" role="tablist" aria-label="Settings categories">
+        <button type="button" class="settings-nav-item active"
+                id="tab-account" role="tab" aria-selected="true"
+                aria-controls="account" data-section="account">
+            <span class="settings-nav-icon" aria-hidden="true">♙</span>
+            <span>Account</span>
+        </button>
 
-    <!-- =========================================
-         SETTINGS LAYOUT
-         ========================================= -->
+        <button type="button" class="settings-nav-item"
+                id="tab-appearance" role="tab" aria-selected="false"
+                aria-controls="appearance" data-section="appearance">
+            <span class="settings-nav-icon" aria-hidden="true">◐</span>
+            <span>Appearance</span>
+        </button>
 
-    <div class="settings-layout">
+        <button type="button" class="settings-nav-item"
+                id="tab-sidebar" role="tab" aria-selected="false"
+                aria-controls="sidebar" data-section="sidebar">
+            <span class="settings-nav-icon" aria-hidden="true">▤</span>
+            <span>Sidebar</span>
+        </button>
 
+        <button type="button" class="settings-nav-item"
+                id="tab-notifications" role="tab" aria-selected="false"
+                aria-controls="notifications" data-section="notifications">
+            <span class="settings-nav-icon" aria-hidden="true">♧</span>
+            <span>Notifications</span>
+        </button>
 
-        <!-- =====================================
-             SETTINGS NAVIGATION
-             ===================================== -->
+        <button type="button" class="settings-nav-item"
+                id="tab-inventory" role="tab" aria-selected="false"
+                aria-controls="inventory" data-section="inventory">
+            <span class="settings-nav-icon" aria-hidden="true">▣</span>
+            <span>Inventory</span>
+        </button>
 
-        <aside class="settings-nav">
+        <button type="button" class="settings-nav-item"
+                id="tab-system" role="tab" aria-selected="false"
+                aria-controls="system" data-section="system">
+            <span class="settings-nav-icon" aria-hidden="true">⚙</span>
+            <span>System</span>
+        </button>
+    </nav>
 
-            <div class="settings-nav-header">
+    <div class="settings-content">
 
-                <span class="settings-nav-label">
-                    SETTINGS
-                </span>
+        <!-- ACCOUNT -->
+        <section class="settings-section active"
+                 id="account" role="tabpanel"
+                 aria-labelledby="tab-account">
 
+            <div class="settings-section-header">
+                <div class="settings-section-title">
+                    <span class="settings-card-icon" aria-hidden="true">♙</span>
+                    <div>
+                        <h2>Account Settings</h2>
+                        <p>Manage your personal information and account security.</p>
+                    </div>
+                </div>
             </div>
 
+            <div class="settings-main-grid">
 
-            <button
-                type="button"
-                class="settings-nav-item active"
-                data-section="general"
-            >
-
-                <span class="settings-nav-icon">
-                    👤
-                </span>
-
-                <span>
-                    General
-                </span>
-
-            </button>
-
-
-            <button
-                type="button"
-                class="settings-nav-item"
-                data-section="account"
-            >
-
-                <span class="settings-nav-icon">
-                    🔐
-                </span>
-
-                <span>
-                    Account
-                </span>
-
-            </button>
-
-
-            <button
-                type="button"
-                class="settings-nav-item"
-                data-section="notifications"
-            >
-
-                <span class="settings-nav-icon">
-                    🔔
-                </span>
-
-                <span>
-                    Notifications
-                </span>
-
-            </button>
-
-
-            <button
-                type="button"
-                class="settings-nav-item"
-                data-section="inventory"
-            >
-
-                <span class="settings-nav-icon">
-                    📦
-                </span>
-
-                <span>
-                    Inventory
-                </span>
-
-            </button>
-
-
-            <button
-                type="button"
-                class="settings-nav-item"
-                data-section="appearance"
-            >
-
-                <span class="settings-nav-icon">
-                    🎨
-                </span>
-
-                <span>
-                    Appearance
-                </span>
-
-            </button>
-
-
-            <button
-                type="button"
-                class="settings-nav-item"
-                data-section="about"
-            >
-
-                <span class="settings-nav-icon">
-                    ℹ
-                </span>
-
-                <span>
-                    About
-                </span>
-
-            </button>
-
-
-            <div class="settings-nav-footer">
-
-                <div class="settings-nav-footer-icon">
-                    IC
-                </div>
-
-                <div>
-                    <strong>InCraft</strong>
-                    <span>Version 1.0.0</span>
-                </div>
-
-            </div>
-
-        </aside>
-
-
-        <!-- =====================================
-             SETTINGS CONTENT
-             ===================================== -->
-
-        <div class="settings-content">
-
-
-            <!-- =================================
-                 GENERAL
-                 ================================= -->
-
-            <section
-                class="settings-section active"
-                id="general"
-            >
-
-                <div class="dashboard-card settings-card">
-
+                <!-- Profile information -->
+                <article class="settings-card profile-card">
                     <div class="settings-card-header">
-
-                        <div class="settings-card-heading">
-
-                            <div class="settings-section-icon">
-                                👤
-                            </div>
-
+                        <div class="settings-card-title-group">
+                            <span class="settings-card-icon" aria-hidden="true">♙</span>
                             <div>
-
-                                <h2>
-                                    General
-                                </h2>
-
-                                <p>
-                                    Manage your account information.
-                                </p>
-
+                                <h3>Profile Information</h3>
+                                <p>Update your personal information and profile details.</p>
                             </div>
-
                         </div>
-
                     </div>
 
-
-                    <!--
-                        The current Flask backend expects:
-                        username
-                        email
-
-                        It does not currently process:
-                        phone
-                        profile_image
-                    -->
-
-                    <form
-                        method="POST"
-                        action="{{ url_for('main.settings') }}"
-                    >
-
-                        <div class="form-grid">
-
-
-                            <!-- Username -->
-
-                            <div class="form-group">
-
-                                <label for="username">
-                                    Username
-                                </label>
-
-                                <input
-                                    type="text"
-                                    id="username"
-                                    name="username"
-                                    placeholder="Enter your username"
-                                    value="{{ user.username|default('') if user else '' }}"
-                                    required
-                                >
-
+                    <div class="settings-card-body">
+                        <div class="settings-profile">
+                            <div class="settings-profile-avatar" id="profileAvatar"
+                                 aria-label="Profile avatar">
+                                {% if user and user.username %}
+                                    {{ user.username[0]|upper }}
+                                {% else %}
+                                    U
+                                {% endif %}
                             </div>
 
+                            <div class="settings-profile-info">
+                                <div class="settings-profile-name">
+                                    {{ user.username|default('User') if user else 'User' }}
+                                </div>
+                                <div class="settings-profile-email">
+                                    {{ user.email|default('No email available') if user else 'No email available' }}
+                                </div>
 
-                            <!-- Email -->
+                                <div class="settings-profile-actions">
+                                    <label for="profilePhotoInput"
+                                           class="btn btn-secondary btn-small">
+                                        <span aria-hidden="true">↥</span> Change Photo
+                                    </label>
 
-                            <div class="form-group">
+                                    <input type="file" id="profilePhotoInput"
+                                           accept="image/png,image/jpeg,image/webp"
+                                           hidden>
 
-                                <label for="email">
-                                    Email
-                                </label>
+                                    <button type="button"
+                                            class="btn btn-danger-outline btn-small"
+                                            id="removeProfilePhoto">
+                                        Remove
+                                    </button>
+                                </div>
 
-                                <input
-                                    type="email"
-                                    id="email"
-                                    name="email"
-                                    placeholder="Enter your email"
-                                    value="{{ user.email|default('') if user else '' }}"
-                                    required
-                                >
-
-                            </div>
-
-
-                            <!-- Role -->
-
-                            <div class="form-group">
-
-                                <label for="role">
-                                    Role
-                                </label>
-
-                                <input
-                                    type="text"
-                                    id="role"
-                                    value="{{ user.role|default('User') if user else 'User' }}"
-                                    readonly
-                                >
-
-                                <small>
-                                    Your account role is managed by the system.
+                                <small class="settings-help-text">
+                                    JPG, PNG or WebP. Profile photo preview only unless
+                                    photo uploads are supported by your backend.
                                 </small>
-
                             </div>
-
                         </div>
 
+                        <form method="POST"
+                              action="{{ url_for('main.settings') }}"
+                              class="settings-form" id="profileForm">
 
-                        <div class="form-actions">
-
-                            <button
-                                type="submit"
-                                class="btn btn-primary"
-                            >
-                                Save Changes
-                            </button>
-
-                        </div>
-
-                    </form>
-
-                </div>
-
-            </section>
-
-
-            <!-- =================================
-                 ACCOUNT
-                 ================================= -->
-
-            <section
-                class="settings-section"
-                id="account"
+            <!-- CSRF SECURITY TOKEN -->
+            <input
+                type="hidden"
+                name="csrf_token"
+                value="{{ csrf_token() }}"
             >
 
+                            <div class="settings-form-grid">
+                                <div class="form-group">
+                                    <label for="username">
+                                        Username <span class="required-mark">*</span>
+                                    </label>
+                                    <div class="settings-input-wrap">
+                                        <span class="settings-input-icon" aria-hidden="true">♙</span>
+                                        <input type="text" id="username" name="username"
+                                               placeholder="Enter your username"
+                                               value="{{ user.username|default('') if user else '' }}"
+                                               autocomplete="username" required>
+                                    </div>
+                                    <small class="field-error" data-error-for="username"></small>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="email">
+                                        Email Address <span class="required-mark">*</span>
+                                    </label>
+                                    <div class="settings-input-wrap">
+                                        <span class="settings-input-icon" aria-hidden="true">✉</span>
+                                        <input type="email" id="email" name="email"
+                                               placeholder="Enter your email"
+                                               value="{{ user.email|default('') if user else '' }}"
+                                               autocomplete="email" required>
+                                    </div>
+                                    <small class="field-error" data-error-for="email"></small>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="role">Account Role</label>
+                                    <div class="settings-input-wrap">
+                                        <span class="settings-input-icon" aria-hidden="true">♧</span>
+                                        <input type="text" id="role"
+                                               value="{{ user.role|default('User') if user else 'User' }}"
+                                               readonly aria-describedby="roleHelp">
+                                    </div>
+                                    <small id="roleHelp">
+                                        Your account role is managed by the system.
+                                    </small>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="profilePhone">Phone Number</label>
+                                    <div class="settings-input-wrap">
+                                        <span class="settings-input-icon" aria-hidden="true">☎</span>
+                                        <input type="tel" id="profilePhone"
+                                               name="profile_phone"
+                                               placeholder="Add your phone number"
+                                               autocomplete="tel">
+                                    </div>
+                                    <small class="settings-help-text">
+                                        Optional. This field is not submitted to a dedicated backend endpoint.
+                                    </small>
+                                </div>
+
+                                <div class="form-group full-width">
+                                    <label for="profileBio">Bio</label>
+                                    <textarea id="profileBio" name="profile_bio"
+                                              rows="3" maxlength="300"
+                                              placeholder="Tell us a little about yourself"></textarea>
+                                    <small class="settings-help-text">
+                                        Optional profile detail. Persistence requires backend support.
+                                    </small>
+                                </div>
+                            </div>
+
+                            <div class="settings-form-actions">
+                                <button type="submit" class="btn btn-primary">
+                                    <span aria-hidden="true">✓</span> Save Changes
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </article>
 
                 <!-- Password -->
-
-                <div class="dashboard-card settings-card">
-
+                <article class="settings-card password-card">
                     <div class="settings-card-header">
-
-                        <div class="settings-card-heading">
-
-                            <div class="settings-section-icon">
-                                🔐
-                            </div>
-
+                        <div class="settings-card-title-group">
+                            <span class="settings-card-icon" aria-hidden="true">♙</span>
                             <div>
-
-                                <h2>
-                                    Account Security
-                                </h2>
-
-                                <p>
-                                    Change your account password.
-                                </p>
-
+                                <h3>Change Password</h3>
+                                <p>Update your password to keep your account secure.</p>
                             </div>
-
                         </div>
-
                     </div>
 
+                    <div class="settings-card-body">
+                        <div class="security-status">
+                            <span class="security-status-icon" aria-hidden="true">✓</span>
+                            <div>
+                                <strong>Account Security</strong>
+                                <span>Your account security is managed by InCraft authentication.</span>
+                            </div>
+                        </div>
 
-                    <form
-                        method="POST"
-                        action="{{ url_for('main.settings') }}"
-                    >
+                        <form method="POST"
+                              action="{{ url_for('main.settings') }}"
+                              class="settings-form" id="passwordForm">
 
+            <!-- CSRF SECURITY TOKEN -->
+            <input
+                type="hidden"
+                name="csrf_token"
+                value="{{ csrf_token() }}"
+            >
 
-                        <!--
-                            The backend requires username and email
-                            on every POST request.
-
-                            Therefore they are submitted as hidden
-                            fields when changing the password.
-                        -->
-
-                        <input
-                            type="hidden"
-                            name="username"
-                            value="{{ user.username|default('') if user else '' }}"
-                        >
-
-                        <input
-                            type="hidden"
-                            name="email"
-                            value="{{ user.email|default('') if user else '' }}"
-                        >
-
-
-                        <div class="form-grid">
-
-
-                            <!-- Current Password -->
+                            <input type="hidden" name="username"
+                                   value="{{ user.username|default('') if user else '' }}">
+                            <input type="hidden" name="email"
+                                   value="{{ user.email|default('') if user else '' }}">
 
                             <div class="form-group full-width">
-
                                 <label for="current_password">
-                                    Current Password
+                                    Current Password <span class="required-mark">*</span>
                                 </label>
-
-                                <input
-                                    type="password"
-                                    id="current_password"
-                                    name="current_password"
-                                    placeholder="Enter current password"
-                                    autocomplete="current-password"
-                                >
-
+                                <div class="settings-input-wrap password-input-wrap">
+                                    <span class="settings-input-icon" aria-hidden="true">♙</span>
+                                    <input type="password" id="current_password"
+                                           name="current_password"
+                                           placeholder="Enter your current password"
+                                           autocomplete="current-password" required>
+                                    <button type="button" class="password-visibility"
+                                            data-password-target="current_password"
+                                            aria-label="Show current password"
+                                            aria-pressed="false">◉</button>
+                                </div>
+                                <small class="field-error" data-error-for="current_password"></small>
                             </div>
 
-
-                            <!-- New Password -->
-
-                            <div class="form-group">
-
+                            <div class="form-group full-width">
                                 <label for="new_password">
-                                    New Password
+                                    New Password <span class="required-mark">*</span>
                                 </label>
+                                <div class="settings-input-wrap password-input-wrap">
+                                    <span class="settings-input-icon" aria-hidden="true">♙</span>
+                                    <input type="password" id="new_password"
+                                           name="new_password"
+                                           placeholder="Create a strong password"
+                                           autocomplete="new-password"
+                                           minlength="8" required>
+                                    <button type="button" class="password-visibility"
+                                            data-password-target="new_password"
+                                            aria-label="Show new password"
+                                            aria-pressed="false">◉</button>
+                                </div>
 
-                                <input
-                                    type="password"
-                                    id="new_password"
-                                    name="new_password"
-                                    placeholder="Enter new password"
-                                    autocomplete="new-password"
-                                >
-
+                                <div class="password-strength" aria-live="polite">
+                                    <div class="password-strength-bar">
+                                        <div class="password-strength-fill"
+                                             id="passwordStrengthFill"></div>
+                                    </div>
+                                    <div class="password-strength-text"
+                                         id="passwordStrengthText">
+                                        Password strength: Weak
+                                    </div>
+                                </div>
+                                <small class="settings-help-text">
+                                    Use at least 8 characters with a mix of letter cases, numbers and symbols.
+                                </small>
+                                <small class="field-error" data-error-for="new_password"></small>
                             </div>
 
-
-                            <!-- Confirm Password -->
-
-                            <div class="form-group">
-
+                            <div class="form-group full-width">
                                 <label for="confirm_password">
-                                    Confirm Password
+                                    Confirm New Password <span class="required-mark">*</span>
                                 </label>
-
-                                <input
-                                    type="password"
-                                    id="confirm_password"
-                                    name="confirm_password"
-                                    placeholder="Confirm new password"
-                                    autocomplete="new-password"
-                                >
-
+                                <div class="settings-input-wrap password-input-wrap">
+                                    <span class="settings-input-icon" aria-hidden="true">♙</span>
+                                    <input type="password" id="confirm_password"
+                                           name="confirm_password"
+                                           placeholder="Re-enter your new password"
+                                           autocomplete="new-password" required>
+                                    <button type="button" class="password-visibility"
+                                            data-password-target="confirm_password"
+                                            aria-label="Show confirmation password"
+                                            aria-pressed="false">◉</button>
+                                </div>
+                                <small class="field-error" data-error-for="confirm_password"></small>
                             </div>
 
-                        </div>
+                            <div class="settings-form-actions full-width">
+                                <button type="submit" class="btn btn-primary btn-block">
+                                    <span aria-hidden="true">♙</span> Update Password
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </article>
+            </div>
 
+            <!-- Lower settings cards -->
+            <div class="settings-lower-grid">
 
-                        <div class="form-actions">
-
-                            <button
-                                type="submit"
-                                class="btn btn-primary"
-                            >
-                                Update Password
-                            </button>
-
-                        </div>
-
-                    </form>
-
-                </div>
-
-
-                <!-- Security Status -->
-
-                <div class="dashboard-card settings-card">
-
+                <!-- Account preferences -->
+                <article class="settings-card">
                     <div class="settings-card-header">
-
-                        <div class="settings-card-heading">
-
-                            <div class="settings-section-icon">
-                                🛡
-                            </div>
-
+                        <div class="settings-card-title-group">
+                            <span class="settings-card-icon" aria-hidden="true">☷</span>
                             <div>
-
-                                <h2>
-                                    Security
-                                </h2>
-
-                                <p>
-                                    Review your current account security status.
-                                </p>
-
+                                <h3>Account Preferences</h3>
+                                <p>Customize your account experience.</p>
                             </div>
-
                         </div>
-
                     </div>
 
+                    <div class="settings-card-body">
+                        <div class="settings-option-list">
+                            <div class="settings-option">
+                                <div class="settings-option-info">
+                                    <div class="settings-option-title">Keep me signed in</div>
+                                    <div class="settings-option-description">
+                                        Stay logged in on this device.
+                                    </div>
+                                </div>
+                                <label class="settings-toggle">
+                                    <input type="checkbox" id="keepSignedIn" checked>
+                                    <span class="settings-toggle-slider"></span>
+                                    <span class="sr-only">Keep me signed in preference</span>
+                                </label>
+                            </div>
+
+                            <div class="settings-option">
+                                <div class="settings-option-info">
+                                    <div class="settings-option-title">Show helpful tips</div>
+                                    <div class="settings-option-description">
+                                        Display tips and hints in the application.
+                                    </div>
+                                </div>
+                                <label class="settings-toggle">
+                                    <input type="checkbox" id="helpfulTips" checked>
+                                    <span class="settings-toggle-slider"></span>
+                                    <span class="sr-only">Show helpful tips preference</span>
+                                </label>
+                            </div>
+
+                            <div class="settings-option">
+                                <div class="settings-option-info">
+                                    <div class="settings-option-title">Keyboard shortcuts</div>
+                                    <div class="settings-option-description">
+                                        Use shortcuts for faster navigation.
+                                    </div>
+                                </div>
+                                <label class="settings-toggle">
+                                    <input type="checkbox" id="keyboardShortcuts">
+                                    <span class="settings-toggle-slider"></span>
+                                    <span class="sr-only">Enable keyboard shortcuts preference</span>
+                                </label>
+                            </div>
+                        </div>
+                        <p class="settings-help-text">
+                            Preferences are stored locally on this device. They do not change server-side authentication policies.
+                        </p>
+                    </div>
+                </article>
+
+                <!-- Danger zone -->
+                <article class="settings-card danger-zone-card">
+                    <div class="settings-card-header">
+                        <div class="settings-card-title-group">
+                            <span class="settings-card-icon danger-icon" aria-hidden="true">⚠</span>
+                            <div>
+                                <h3>Danger Zone</h3>
+                                <p>Destructive account actions.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-card-body">
+                        <div class="danger-panel">
+                            <div class="danger-panel-heading">
+                                <span aria-hidden="true">⚠</span>
+                                <strong>Delete Account</strong>
+                            </div>
+                            <p>
+                                This action cannot be undone. Account deletion may permanently
+                                remove your inventory, sales, and settings.
+                            </p>
+                            <button type="button" class="btn btn-danger btn-block"
+                                    id="openDeleteDialog">
+                                <span aria-hidden="true">▤</span> Delete My Account
+                            </button>
+                            <small class="settings-help-text">
+                                Account deletion requires a secure backend endpoint.
+                            </small>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- Session management -->
+                <article class="settings-card">
+                    <div class="settings-card-header">
+                        <div class="settings-card-title-group">
+                            <span class="settings-card-icon" aria-hidden="true">▣</span>
+                            <div>
+                                <h3>Session Management</h3>
+                                <p>Review your active sessions.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-card-body">
+                        <div class="session-entry">
+                            <div class="session-device-icon" aria-hidden="true">▣</div>
+                            <div class="session-details">
+                                <div class="session-title-row">
+                                    <strong>Current Session</strong>
+                                    <span class="session-status">Active</span>
+                                </div>
+                                <p>Browser and device information</p>
+                                <small>Current authenticated session</small>
+                            </div>
+                        </div>
+
+                        <div class="session-entry session-demo">
+                            <div class="session-device-icon" aria-hidden="true">▯</div>
+                            <div class="session-details">
+                                <strong>Additional Device</strong>
+                                <p>Session details are not available.</p>
+                                <small>No session list API is configured in this template.</small>
+                            </div>
+                        </div>
+
+                        <p class="settings-help-text">
+                            Device history and remote logout require backend session tracking.
+                            No mock device is presented as a verified active session.
+                        </p>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <!-- APPEARANCE -->
+        <section class="settings-section"
+                 id="appearance" role="tabpanel"
+                 aria-labelledby="tab-appearance">
+
+            <div class="settings-section-header">
+                <div class="settings-section-title">
+                    <span class="settings-card-icon" aria-hidden="true">◐</span>
+                    <div>
+                        <h2>Appearance</h2>
+                        <p>Customize the visual experience of InCraft.</p>
+                    </div>
+                </div>
+            </div>
+
+            <article class="settings-card">
+                <div class="settings-card-header">
+                    <div class="settings-card-title-group">
+                        <span class="settings-card-icon" aria-hidden="true">◐</span>
+                        <div>
+                            <h3>Theme Preferences</h3>
+                            <p>Choose a theme for your workspace.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-card-body">
+                    <div class="settings-option">
+                        <div class="settings-option-info">
+                            <div class="settings-option-title">Application theme</div>
+                            <div class="settings-option-description">
+                                Choose dark, light or follow your system preference.
+                            </div>
+                        </div>
+                        <div class="theme-options" role="radiogroup"
+                             aria-label="Application theme">
+                            <label class="theme-option">
+                                <input type="radio" name="theme" value="dark" checked>
+                                <span>Dark</span>
+                            </label>
+                            <label class="theme-option">
+                                <input type="radio" name="theme" value="light">
+                                <span>Light</span>
+                            </label>
+                            <label class="theme-option">
+                                <input type="radio" name="theme" value="system">
+                                <span>System</span>
+                            </label>
+                        </div>
+                    </div>
 
                     <div class="settings-option">
-
-                        <div class="settings-option-content">
-
-                            <div class="settings-option-icon">
-                                🔒
+                        <div class="settings-option-info">
+                            <div class="settings-option-title">Compact tables</div>
+                            <div class="settings-option-description">
+                                Reduce table spacing to display more rows.
                             </div>
-
-                            <div>
-
-                                <strong>
-                                    Session Security
-                                </strong>
-
-                                <p>
-                                    Your authenticated session is protected
-                                    by the application.
-                                </p>
-
-                            </div>
-
                         </div>
-
-
-                        <span class="status-badge success">
-                            Active
-                        </span>
-
+                        <label class="settings-toggle">
+                            <input type="checkbox" id="compactTables">
+                            <span class="settings-toggle-slider"></span>
+                            <span class="sr-only">Use compact tables</span>
+                        </label>
                     </div>
 
-                </div>
-
-            </section>
-
-
-            <!-- =================================
-                 NOTIFICATIONS
-                 ================================= -->
-
-            <section
-                class="settings-section"
-                id="notifications"
-            >
-
-                <div class="dashboard-card settings-card">
-
-                    <div class="settings-card-header">
-
-                        <div class="settings-card-heading">
-
-                            <div class="settings-section-icon">
-                                🔔
-                            </div>
-
-                            <div>
-
-                                <h2>
-                                    Notifications
-                                </h2>
-
-                                <p>
-                                    Choose which inventory notifications
-                                    you want to receive.
-                                </p>
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-
-                    <div class="settings-options">
-
-
-                        <!-- Low Stock -->
-
-                        <div class="settings-option">
-
-                            <div class="settings-option-content">
-
-                                <div class="settings-option-icon warning">
-                                    !
-                                </div>
-
-                                <div>
-
-                                    <strong>
-                                        Low Stock Alerts
-                                    </strong>
-
-                                    <p>
-                                        Get notified when products reach
-                                        their reorder level.
-                                    </p>
-
-                                </div>
-
-                            </div>
-
-
-                            <label class="switch">
-
-                                <input
-                                    type="checkbox"
-                                    id="lowStockAlerts"
-                                    checked
-                                >
-
-                                <span class="slider"></span>
-
-                            </label>
-
-                        </div>
-
-
-                        <!-- Out of Stock -->
-
-                        <div class="settings-option">
-
-                            <div class="settings-option-content">
-
-                                <div class="settings-option-icon danger">
-                                    !
-                                </div>
-
-                                <div>
-
-                                    <strong>
-                                        Out of Stock Alerts
-                                    </strong>
-
-                                    <p>
-                                        Get notified when a product reaches
-                                        zero stock.
-                                    </p>
-
-                                </div>
-
-                            </div>
-
-
-                            <label class="switch">
-
-                                <input
-                                    type="checkbox"
-                                    id="outOfStockAlerts"
-                                    checked
-                                >
-
-                                <span class="slider"></span>
-
-                            </label>
-
-                        </div>
-
-
-                        <!-- Sale -->
-
-                        <div class="settings-option">
-
-                            <div class="settings-option-content">
-
-                                <div class="settings-option-icon success">
-                                    ✓
-                                </div>
-
-                                <div>
-
-                                    <strong>
-                                        Sale Completed
-                                    </strong>
-
-                                    <p>
-                                        Receive a notification after
-                                        a sale is recorded.
-                                    </p>
-
-                                </div>
-
-                            </div>
-
-
-                            <label class="switch">
-
-                                <input
-                                    type="checkbox"
-                                    id="saleCompleted"
-                                    checked
-                                >
-
-                                <span class="slider"></span>
-
-                            </label>
-
-                        </div>
-
-
-                        <!-- Security -->
-
-                        <div class="settings-option">
-
-                            <div class="settings-option-content">
-
-                                <div class="settings-option-icon">
-                                    🔐
-                                </div>
-
-                                <div>
-
-                                    <strong>
-                                        Security Alerts
-                                    </strong>
-
-                                    <p>
-                                        Receive important account and
-                                        security notifications.
-                                    </p>
-
-                                </div>
-
-                            </div>
-
-
-                            <label class="switch">
-
-                                <input
-                                    type="checkbox"
-                                    id="securityAlerts"
-                                    checked
-                                >
-
-                                <span class="slider"></span>
-
-                            </label>
-
-                        </div>
-
-                    </div>
-
-
-                    <div class="form-actions">
-
-                        <button
-                            type="button"
-                            class="btn btn-primary"
-                            id="saveNotifications"
-                        >
+                    <div class="settings-form-actions">
+                        <button type="button" class="btn btn-primary" id="saveAppearance">
                             Save Preferences
                         </button>
-
                     </div>
+                    <p class="settings-feedback" id="appearanceFeedback"
+                       role="status" aria-live="polite"></p>
+                </div>
+            </article>
+        </section>
 
+        <!-- SIDEBAR -->
+        <section class="settings-section"
+                 id="sidebar" role="tabpanel"
+                 aria-labelledby="tab-sidebar">
+
+            <div class="settings-section-header">
+                <div class="settings-section-title">
+                    <span class="settings-card-icon" aria-hidden="true">▤</span>
+                    <div>
+                        <h2>Sidebar Preferences</h2>
+                        <p>Adjust sidebar behavior to suit your workflow.</p>
+                    </div>
+                </div>
+            </div>
+
+            <article class="settings-card">
+                <div class="settings-card-header">
+                    <div class="settings-card-title-group">
+                        <span class="settings-card-icon" aria-hidden="true">▤</span>
+                        <div>
+                            <h3>Navigation Layout</h3>
+                            <p>Choose how the application navigation is displayed.</p>
+                        </div>
+                    </div>
                 </div>
 
-            </section>
-
-
-            <!-- =================================
-                 INVENTORY
-                 ================================= -->
-
-            <section
-                class="settings-section"
-                id="inventory"
-            >
-
-                <div class="dashboard-card settings-card">
-
-                    <div class="settings-card-header">
-
-                        <div class="settings-card-heading">
-
-                            <div class="settings-section-icon">
-                                📦
+                <div class="settings-card-body">
+                    <div class="settings-option">
+                        <div class="settings-option-info">
+                            <div class="settings-option-title">Compact sidebar</div>
+                            <div class="settings-option-description">
+                                Use a compact navigation layout to create more workspace.
                             </div>
-
-                            <div>
-
-                                <h2>
-                                    Inventory
-                                </h2>
-
-                                <p>
-                                    Configure your inventory preferences.
-                                </p>
-
-                            </div>
-
                         </div>
-
+                        <label class="settings-toggle">
+                            <input type="checkbox" id="compactSidebar">
+                            <span class="settings-toggle-slider"></span>
+                            <span class="sr-only">Use compact sidebar</span>
+                        </label>
                     </div>
 
-
-                    <div class="form-grid">
-
-
-                        <!-- Reorder Level -->
-
-                        <div class="form-group">
-
-                            <label for="default_reorder">
-                                Default Reorder Level
-                            </label>
-
-                            <input
-                                type="number"
-                                id="default_reorder"
-                                name="default_reorder"
-                                min="0"
-                                value="10"
-                            >
-
-                            <small>
-                                Default threshold for new products.
-                            </small>
-
-                        </div>
-
-
-                        <!-- Currency -->
-
-                        <div class="form-group">
-
-                            <label for="currency">
-                                Currency
-                            </label>
-
-                            <select
-                                id="currency"
-                                name="currency"
-                            >
-
-                                <option
-                                    value="INR"
-                                    selected
-                                >
-                                    INR — ₹ Indian Rupee
-                                </option>
-
-                                <option value="USD">
-                                    USD — $ US Dollar
-                                </option>
-
-                                <option value="EUR">
-                                    EUR — € Euro
-                                </option>
-
-                            </select>
-
-                        </div>
-
-
-                        <!-- Default Tax -->
-
-                        <div class="form-group">
-
-                            <label for="default_tax">
-                                Default Tax
-                            </label>
-
-                            <div class="input-with-suffix">
-
-                                <input
-                                    type="number"
-                                    id="default_tax"
-                                    name="default_tax"
-                                    min="0"
-                                    step="0.01"
-                                    value="18"
-                                >
-
-                                <span>
-                                    %
-                                </span>
-
+                    <div class="settings-option">
+                        <div class="settings-option-info">
+                            <div class="settings-option-title">Remember sidebar state</div>
+                            <div class="settings-option-description">
+                                Remember your sidebar preference on this device.
                             </div>
-
                         </div>
-
-
-                        <!-- Date Format -->
-
-                        <div class="form-group">
-
-                            <label for="date_format">
-                                Date Format
-                            </label>
-
-                            <select
-                                id="date_format"
-                                name="date_format"
-                            >
-
-                                <option value="DD-MM-YYYY">
-                                    DD-MM-YYYY
-                                </option>
-
-                                <option value="MM-DD-YYYY">
-                                    MM-DD-YYYY
-                                </option>
-
-                                <option value="YYYY-MM-DD">
-                                    YYYY-MM-DD
-                                </option>
-
-                            </select>
-
-                        </div>
-
+                        <label class="settings-toggle">
+                            <input type="checkbox" id="rememberSidebar" checked>
+                            <span class="settings-toggle-slider"></span>
+                            <span class="sr-only">Remember sidebar state</span>
+                        </label>
                     </div>
 
+                    <div class="settings-form-actions">
+                        <button type="button" class="btn btn-primary"
+                                id="saveSidebarSettings">
+                            Save Preferences
+                        </button>
+                    </div>
+                    <p class="settings-feedback" id="sidebarFeedback"
+                       role="status" aria-live="polite"></p>
+                </div>
+            </article>
+        </section>
 
-                    <div class="form-actions">
+        <!-- NOTIFICATIONS -->
+        <section class="settings-section"
+                 id="notifications" role="tabpanel"
+                 aria-labelledby="tab-notifications">
 
-                        <button
-                            type="button"
-                            class="btn btn-primary"
-                            id="saveInventorySettings"
-                        >
+            <div class="settings-section-header">
+                <div class="settings-section-title">
+                    <span class="settings-card-icon" aria-hidden="true">♧</span>
+                    <div>
+                        <h2>Notifications</h2>
+                        <p>Choose which inventory and system notifications you want to receive.</p>
+                    </div>
+                </div>
+            </div>
+
+            <article class="settings-card">
+                <div class="settings-card-header">
+                    <div class="settings-card-title-group">
+                        <span class="settings-card-icon" aria-hidden="true">♧</span>
+                        <div>
+                            <h3>Notification Preferences</h3>
+                            <p>Control the alerts shown by the application.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-card-body">
+                    <div class="settings-option-list">
+                        <div class="settings-option">
+                            <div class="settings-option-info">
+                                <div class="settings-option-title">Low Stock Alerts</div>
+                                <div class="settings-option-description">
+                                    Get notified when products reach their reorder level.
+                                </div>
+                            </div>
+                            <label class="settings-toggle">
+                                <input type="checkbox" id="lowStockAlerts" checked>
+                                <span class="settings-toggle-slider"></span>
+                                <span class="sr-only">Low stock alerts</span>
+                            </label>
+                        </div>
+
+                        <div class="settings-option">
+                            <div class="settings-option-info">
+                                <div class="settings-option-title">Out of Stock Alerts</div>
+                                <div class="settings-option-description">
+                                    Get notified when a product reaches zero stock.
+                                </div>
+                            </div>
+                            <label class="settings-toggle">
+                                <input type="checkbox" id="outOfStockAlerts" checked>
+                                <span class="settings-toggle-slider"></span>
+                                <span class="sr-only">Out of stock alerts</span>
+                            </label>
+                        </div>
+
+                        <div class="settings-option">
+                            <div class="settings-option-info">
+                                <div class="settings-option-title">Sale Completed</div>
+                                <div class="settings-option-description">
+                                    Receive a notification after a sale is recorded.
+                                </div>
+                            </div>
+                            <label class="settings-toggle">
+                                <input type="checkbox" id="saleCompleted" checked>
+                                <span class="settings-toggle-slider"></span>
+                                <span class="sr-only">Sale completed notifications</span>
+                            </label>
+                        </div>
+
+                        <div class="settings-option">
+                            <div class="settings-option-info">
+                                <div class="settings-option-title">Security Alerts</div>
+                                <div class="settings-option-description">
+                                    Receive important account and security notifications.
+                                </div>
+                            </div>
+                            <label class="settings-toggle">
+                                <input type="checkbox" id="securityAlerts" checked>
+                                <span class="settings-toggle-slider"></span>
+                                <span class="sr-only">Security alerts</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="settings-form-actions">
+                        <button type="button" class="btn btn-primary"
+                                id="saveNotifications">
+                            Save Preferences
+                        </button>
+                    </div>
+                    <p class="settings-feedback" id="notificationsFeedback"
+                       role="status" aria-live="polite"></p>
+                </div>
+            </article>
+        </section>
+
+        <!-- INVENTORY -->
+        <section class="settings-section"
+                 id="inventory" role="tabpanel"
+                 aria-labelledby="tab-inventory">
+
+            <div class="settings-section-header">
+                <div class="settings-section-title">
+                    <span class="settings-card-icon" aria-hidden="true">▣</span>
+                    <div>
+                        <h2>Inventory Settings</h2>
+                        <p>Configure default values used throughout your inventory.</p>
+                    </div>
+                </div>
+            </div>
+
+            <article class="settings-card">
+                <div class="settings-card-header">
+                    <div class="settings-card-title-group">
+                        <span class="settings-card-icon" aria-hidden="true">▣</span>
+                        <div>
+                            <h3>Inventory Defaults</h3>
+                            <p>Set default values for products, sales and reports.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-card-body">
+                    <div class="settings-form settings-form-grid">
+                        <div class="form-group">
+                            <label for="default_reorder">Default Reorder Level</label>
+                            <div class="settings-input-wrap">
+                                <span class="settings-input-icon" aria-hidden="true">▣</span>
+                                <input type="number" id="default_reorder"
+                                       name="default_reorder" min="0" value="10">
+                            </div>
+                            <small>Default threshold for new products.</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="currency">Currency</label>
+                            <div class="settings-input-wrap">
+                                <span class="settings-input-icon" aria-hidden="true">¤</span>
+                                <select id="currency" name="currency">
+                                    <option value="INR" selected>INR — ₹ Indian Rupee</option>
+                                    <option value="USD">USD — $ US Dollar</option>
+                                    <option value="EUR">EUR — € Euro</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="default_tax">Default Tax (%)</label>
+                            <div class="settings-input-wrap">
+                                <span class="settings-input-icon" aria-hidden="true">%</span>
+                                <input type="number" id="default_tax" name="default_tax"
+                                       min="0" max="100" step="0.01" value="18">
+                            </div>
+                            <small>Default tax percentage for sales.</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="date_format">Date Format</label>
+                            <div class="settings-input-wrap">
+                                <span class="settings-input-icon" aria-hidden="true">▦</span>
+                                <select id="date_format" name="date_format">
+                                    <option value="DD-MM-YYYY" selected>DD-MM-YYYY</option>
+                                    <option value="MM-DD-YYYY">MM-DD-YYYY</option>
+                                    <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-form-actions">
+                        <button type="button" class="btn btn-primary"
+                                id="saveInventorySettings">
                             Save Settings
                         </button>
-
                     </div>
-
-                </div>
-
-            </section>
-
-
-            <!-- =================================
-                 APPEARANCE
-                 ================================= -->
-
-            <section
-                class="settings-section"
-                id="appearance"
-            >
-
-                <div class="dashboard-card settings-card">
-
-                    <div class="settings-card-header">
-
-                        <div class="settings-card-heading">
-
-                            <div class="settings-section-icon">
-                                🎨
-                            </div>
-
-                            <div>
-
-                                <h2>
-                                    Appearance
-                                </h2>
-
-                                <p>
-                                    Customize how InCraft looks and feels.
-                                </p>
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-
-                    <!-- Theme -->
-
-                    <div class="settings-option">
-
-                        <div class="settings-option-content">
-
-                            <div class="settings-option-icon">
-                                ◐
-                            </div>
-
-                            <div>
-
-                                <strong>
-                                    Theme
-                                </strong>
-
-                                <p>
-                                    Choose your preferred appearance.
-                                </p>
-
-                            </div>
-
-                        </div>
-
-
-                        <div class="theme-options">
-
-                            <label class="theme-option">
-
-                                <input
-                                    type="radio"
-                                    name="theme"
-                                    value="light"
-                                    checked
-                                >
-
-                                <span>
-                                    Light
-                                </span>
-
-                            </label>
-
-
-                            <label class="theme-option">
-
-                                <input
-                                    type="radio"
-                                    name="theme"
-                                    value="dark"
-                                >
-
-                                <span>
-                                    Dark
-                                </span>
-
-                            </label>
-
-
-                            <label class="theme-option">
-
-                                <input
-                                    type="radio"
-                                    name="theme"
-                                    value="system"
-                                >
-
-                                <span>
-                                    System
-                                </span>
-
-                            </label>
-
-                        </div>
-
-                    </div>
-
-
-                    <!-- Compact Sidebar -->
-
-                    <div class="settings-option">
-
-                        <div class="settings-option-content">
-
-                            <div class="settings-option-icon">
-                                ☰
-                            </div>
-
-                            <div>
-
-                                <strong>
-                                    Compact Sidebar
-                                </strong>
-
-                                <p>
-                                    Use a compact sidebar layout.
-                                </p>
-
-                            </div>
-
-                        </div>
-
-
-                        <label class="switch">
-
-                            <input
-                                type="checkbox"
-                                id="compactSidebar"
-                            >
-
-                            <span class="slider"></span>
-
-                        </label>
-
-                    </div>
-
-
-                    <!-- Compact Tables -->
-
-                    <div class="settings-option">
-
-                        <div class="settings-option-content">
-
-                            <div class="settings-option-icon">
-                                ▤
-                            </div>
-
-                            <div>
-
-                                <strong>
-                                    Compact Tables
-                                </strong>
-
-                                <p>
-                                    Display more rows using reduced
-                                    table spacing.
-                                </p>
-
-                            </div>
-
-                        </div>
-
-
-                        <label class="switch">
-
-                            <input
-                                type="checkbox"
-                                id="compactTables"
-                            >
-
-                            <span class="slider"></span>
-
-                        </label>
-
-                    </div>
-
-
-                    <div class="form-actions">
-
-                        <button
-                            type="button"
-                            class="btn btn-primary"
-                            id="saveAppearance"
-                        >
-                            Save Preferences
-                        </button>
-
-                    </div>
-
-                </div>
-
-            </section>
-
-
-            <!-- =================================
-                 ABOUT
-                 ================================= -->
-
-            <section
-                class="settings-section"
-                id="about"
-            >
-
-                <div class="dashboard-card about-card">
-
-                    <div class="about-logo">
-                        IC
-                    </div>
-
-
-                    <span class="page-eyebrow">
-                        ABOUT INCRAFT
-                    </span>
-
-
-                    <h2>
-                        The Art of Intelligent Inventory
-                    </h2>
-
-
-                    <p class="about-description">
-
-                        A simple and intelligent inventory management
-                        system designed to help businesses manage
-                        products, stock, sales and analytics efficiently.
-
+                    <p class="settings-feedback" id="inventoryFeedback"
+                       role="status" aria-live="polite"></p>
+                    <p class="settings-help-text">
+                        These values are editable in this interface. Persistent application-wide changes require backend settings support.
                     </p>
-
-
-                    <div class="about-details">
-
-
-                        <div>
-
-                            <span>
-                                Version
-                            </span>
-
-                            <strong>
-                                1.0.0
-                            </strong>
-
-                        </div>
-
-
-                        <div>
-
-                            <span>
-                                Frontend
-                            </span>
-
-                            <strong>
-                                HTML • CSS • JavaScript
-                            </strong>
-
-                        </div>
-
-
-                        <div>
-
-                            <span>
-                                Backend
-                            </span>
-
-                            <strong>
-                                Python • Flask
-                            </strong>
-
-                        </div>
-
-
-                        <div>
-
-                            <span>
-                                Database
-                            </span>
-
-                            <strong>
-                                MySQL
-                            </strong>
-
-                        </div>
-
-                    </div>
-
-
-                    <div class="about-footer">
-
-                        <span class="about-footer-dot"></span>
-
-                        <span>
-                            Intelligent inventory management
-                        </span>
-
-                    </div>
-
                 </div>
+            </article>
+        </section>
 
-            </section>
+        <!-- SYSTEM -->
+        <section class="settings-section"
+                 id="system" role="tabpanel"
+                 aria-labelledby="tab-system">
 
-        </div>
+            <div class="settings-section-header">
+                <div class="settings-section-title">
+                    <span class="settings-card-icon" aria-hidden="true">⚙</span>
+                    <div>
+                        <h2>System Information</h2>
+                        <p>Application information and system-level preferences.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-main-grid system-settings-grid">
+                <article class="settings-card">
+                    <div class="settings-card-header">
+                        <div class="settings-card-title-group">
+                            <span class="settings-card-icon" aria-hidden="true">⚙</span>
+                            <div>
+                                <h3>System Preferences</h3>
+                                <p>Adjust general interface behavior.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-card-body">
+                        <div class="settings-option">
+                            <div class="settings-option-info">
+                                <div class="settings-option-title">Reduce animations</div>
+                                <div class="settings-option-description">
+                                    Limit interface motion and transitions.
+                                </div>
+                            </div>
+                            <label class="settings-toggle">
+                                <input type="checkbox" id="reduceAnimations">
+                                <span class="settings-toggle-slider"></span>
+                                <span class="sr-only">Reduce animations</span>
+                            </label>
+                        </div>
+
+                        <div class="settings-option">
+                            <div class="settings-option-info">
+                                <div class="settings-option-title">Confirm before leaving forms</div>
+                                <div class="settings-option-description">
+                                    Help prevent accidental loss of unsaved work.
+                                </div>
+                            </div>
+                            <label class="settings-toggle">
+                                <input type="checkbox" id="confirmNavigation" checked>
+                                <span class="settings-toggle-slider"></span>
+                                <span class="sr-only">Confirm before leaving forms</span>
+                            </label>
+                        </div>
+
+                        <p class="settings-help-text">
+                            System preferences are local UI settings unless connected to a backend.
+                        </p>
+                    </div>
+                </article>
+
+                <article class="settings-card">
+                    <div class="settings-card-header">
+                        <div class="settings-card-title-group">
+                            <span class="settings-card-icon" aria-hidden="true">ⓘ</span>
+                            <div>
+                                <h3>About InCraft</h3>
+                                <p>The Art of Intelligent Inventory.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-card-body">
+                        <div class="settings-about-brand">
+                            <div class="settings-about-logo" aria-hidden="true">IC</div>
+                            <div>
+                                <div class="settings-about-title">InCraft</div>
+                                <div class="settings-about-version">
+                                    The Art of Intelligent Inventory
+                                </div>
+                            </div>
+                        </div>
+
+                        <p class="settings-about-description">
+                            InCraft is an inventory management application designed to help businesses
+                            manage products, stock, sales and analytics efficiently.
+                        </p>
+
+                        <div class="settings-about-details">
+                            <div class="settings-about-item">
+                                <span>Frontend</span>
+                                <strong>HTML · CSS · JavaScript</strong>
+                            </div>
+                            <div class="settings-about-item">
+                                <span>Backend</span>
+                                <strong>Python · Flask</strong>
+                            </div>
+                            <div class="settings-about-item">
+                                <span>Database</span>
+                                <strong>MySQL</strong>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            </div>
+        </section>
 
     </div>
 
-</main>
+    <!-- Delete account confirmation dialog.
+         Deliberately does not submit or delete data without a backend. -->
+    <dialog class="settings-dialog" id="deleteAccountDialog"
+            aria-labelledby="deleteDialogTitle">
+        <div class="settings-dialog-content">
+            <div class="settings-dialog-icon" aria-hidden="true">⚠</div>
+            <h2 id="deleteDialogTitle">Delete Account?</h2>
+            <p>
+                Account deletion is permanent and may remove your inventory, sales,
+                and settings. This action is not available until a secure backend
+                deletion endpoint and reauthentication flow are configured.
+            </p>
+            <div class="settings-dialog-actions">
+                <button type="button" class="btn btn-secondary"
+                        id="cancelDeleteDialog">Cancel</button>
+                <button type="button" class="btn btn-danger"
+                        id="confirmDeleteAccount" disabled>
+                    Delete Unavailable
+                </button>
+            </div>
+        </div>
+    </dialog>
 
+</main>
 {% endblock %}
 
-
 {% block extra_js %}
-
-<script
-    src="{{ url_for('static', filename='js/settings.js') }}"
-></script>
-
-
-<script>
-
-document.addEventListener(
-    "DOMContentLoaded",
-    function () {
-
-
-        /* =========================================
-           SETTINGS NAVIGATION
-           ========================================= */
-
-        const navItems =
-            document.querySelectorAll(
-                ".settings-nav-item"
-            );
-
-
-        const sections =
-            document.querySelectorAll(
-                ".settings-section"
-            );
-
-
-        navItems.forEach(
-            function (item) {
-
-                item.addEventListener(
-                    "click",
-                    function () {
-
-                        const target =
-                            item.dataset.section;
-
-
-                        navItems.forEach(
-                            function (nav) {
-
-                                nav.classList.remove(
-                                    "active"
-                                );
-
-                            }
-                        );
-
-
-                        sections.forEach(
-                            function (section) {
-
-                                section.classList.remove(
-                                    "active"
-                                );
-
-                            }
-                        );
-
-
-                        item.classList.add(
-                            "active"
-                        );
-
-
-                        const targetSection =
-                            document.getElementById(
-                                target
-                            );
-
-
-                        if (targetSection) {
-
-                            targetSection.classList.add(
-                                "active"
-                            );
-
-                        }
-
-                    }
-                );
-
-            }
-        );
-
-
-        /* =========================================
-           SAVE NOTIFICATIONS
-           ========================================= */
-
-        const saveNotifications =
-            document.getElementById(
-                "saveNotifications"
-            );
-
-
-        if (saveNotifications) {
-
-            saveNotifications.addEventListener(
-                "click",
-                function () {
-
-                    alert(
-                        "Notification preferences are ready for backend integration."
-                    );
-
-                }
-            );
-
-        }
-
-
-        /* =========================================
-           SAVE INVENTORY SETTINGS
-           ========================================= */
-
-        const saveInventorySettings =
-            document.getElementById(
-                "saveInventorySettings"
-            );
-
-
-        if (saveInventorySettings) {
-
-            saveInventorySettings.addEventListener(
-                "click",
-                function () {
-
-                    alert(
-                        "Inventory preferences are ready for backend integration."
-                    );
-
-                }
-            );
-
-        }
-
-
-        /* =========================================
-           THEME
-           ========================================= */
-
-        const themeOptions =
-            document.querySelectorAll(
-                'input[name="theme"]'
-            );
-
-
-        themeOptions.forEach(
-            function (option) {
-
-                option.addEventListener(
-                    "change",
-                    function () {
-
-                        if (option.checked) {
-
-                            document.body.dataset.theme =
-                                option.value;
-
-                        }
-
-                    }
-                );
-
-            }
-        );
-
-
-        /* =========================================
-           SAVE APPEARANCE
-           ========================================= */
-
-        const saveAppearance =
-            document.getElementById(
-                "saveAppearance"
-            );
-
-
-        if (saveAppearance) {
-
-            saveAppearance.addEventListener(
-                "click",
-                function () {
-
-                    alert(
-                        "Appearance preferences are ready for backend integration."
-                    );
-
-                }
-            );
-
-        }
-
-
-        /* =========================================
-           COMPACT TABLES
-           ========================================= */
-
-        const compactTables =
-            document.getElementById(
-                "compactTables"
-            );
-
-
-        if (compactTables) {
-
-            compactTables.addEventListener(
-                "change",
-                function () {
-
-                    document.body.classList.toggle(
-                        "compact-tables",
-                        compactTables.checked
-                    );
-
-                }
-            );
-
-        }
-
-
-        /* =========================================
-           COMPACT SIDEBAR
-           ========================================= */
-
-        const compactSidebar =
-            document.getElementById(
-                "compactSidebar"
-            );
-
-
-        if (compactSidebar) {
-
-            compactSidebar.addEventListener(
-                "change",
-                function () {
-
-                    document.body.classList.toggle(
-                        "compact-sidebar",
-                        compactSidebar.checked
-                    );
-
-                }
-            );
-
-        }
-
-    }
-);
-
-</script>
-
+<script src="{{ url_for('static', filename='js/settings.js') }}"></script>
 {% endblock %}

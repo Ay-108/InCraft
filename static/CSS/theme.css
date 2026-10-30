@@ -1,0 +1,1255 @@
+
+/* =========================================================
+   InCraft — Premium Dark / Warm Orange Theme
+   Global theme layer: Dark + Light
+   Existing HTML classes, IDs, routes and JS hooks preserved.
+   ========================================================= */
+
+
+/* =========================================================
+   DESIGN TOKENS — DEFAULT DARK THEME
+   ========================================================= */
+
+:root {
+    color-scheme: dark;
+
+    --bg-primary: #0B0B0B;
+    --bg-secondary: #121212;
+    --bg-surface: #181818;
+    --bg-input: #1B1B1B;
+
+    --border-color: #2B2B2B;
+    --border-hover: #3A3A3A;
+
+    --primary-orange: #F0782B;
+    --primary-orange-hover: #E96820;
+    --bright-orange: #FF8A2B;
+    --dark-orange: #C95A17;
+
+    --text-primary: #F5F5F5;
+    --text-secondary: #A3A3A3;
+    --text-muted: #777777;
+    --text-disabled: #666666;
+
+    --success: #3FB950;
+    --warning: #E3A008;
+    --danger: #E5534B;
+    --info: #5B9BF3;
+
+    --surface-success: rgba(63, 149, 80, 0.12);
+    --surface-warning: rgba(227, 160, 8, 0.12);
+    --surface-danger: rgba(229, 83, 75, 0.12);
+    --surface-orange: rgba(240, 120, 43, 0.12);
+
+    --ic-dark: var(--bg-secondary);
+    --ic-dark-soft: var(--bg-surface);
+    --ic-dark-hover: #202020;
+
+    --ic-orange: var(--primary-orange);
+    --ic-orange-dark: var(--dark-orange);
+    --ic-orange-soft: var(--surface-orange);
+
+    --ic-bg: var(--bg-primary);
+    --ic-surface: var(--bg-surface);
+    --ic-surface-soft: var(--bg-secondary);
+
+    --ic-text: var(--text-primary);
+    --ic-text-soft: var(--text-secondary);
+    --ic-muted: var(--text-muted);
+
+    --ic-border: var(--border-color);
+    --ic-border-soft: var(--border-color);
+
+    --ic-radius-sm: 8px;
+    --ic-radius: 10px;
+    --ic-radius-lg: 14px;
+
+    --ic-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.22);
+    --ic-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+    --ic-shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.35);
+}
+
+
+/* =========================================================
+   LIGHT THEME TOKENS
+   Activated by html[data-theme="light"]
+   ========================================================= */
+
+html[data-theme="light"] {
+    color-scheme: light;
+
+    --bg-primary: #F5F7FA;
+    --bg-secondary: #FFFFFF;
+    --bg-surface: #FFFFFF;
+    --bg-input: #FFFFFF;
+
+    --border-color: #E2E8F0;
+    --border-hover: #CBD5E1;
+
+    --text-primary: #172033;
+    --text-secondary: #475569;
+    --text-muted: #64748B;
+    --text-disabled: #94A3B8;
+
+    --surface-success: #DCFCE7;
+    --surface-warning: #FEF3C7;
+    --surface-danger: #FEE2E2;
+    --surface-orange: #FFF0E5;
+
+    --ic-dark: #FFFFFF;
+    --ic-dark-soft: #F8FAFC;
+    --ic-dark-hover: #F1F5F9;
+
+    --ic-orange: var(--primary-orange);
+    --ic-orange-dark: var(--dark-orange);
+    --ic-orange-soft: var(--surface-orange);
+
+    --ic-bg: var(--bg-primary);
+    --ic-surface: var(--bg-surface);
+    --ic-surface-soft: #F8FAFC;
+
+    --ic-text: var(--text-primary);
+    --ic-text-soft: var(--text-secondary);
+    --ic-muted: var(--text-muted);
+
+    --ic-border: var(--border-color);
+    --ic-border-soft: #E5E7EB;
+
+    --ic-shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.04);
+    --ic-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+    --ic-shadow-lg: 0 16px 40px rgba(15, 23, 42, 0.12);
+}
+
+
+/* =========================================================
+   GLOBAL DOCUMENT
+   ========================================================= */
+
+html,
+body {
+    background: var(--bg-primary) !important;
+    color: var(--text-primary) !important;
+}
+
+body {
+    font-family:
+        Inter,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif !important;
+}
+
+
+/* =========================================================
+   APPLICATION SHELL
+   ========================================================= */
+
+.app-layout,
+.main-area {
+    background: var(--bg-primary) !important;
+}
+
+.main-content {
+    background: var(--bg-primary) !important;
+    color: var(--text-primary) !important;
+}
+
+
+/* =========================================================
+   TOPBAR
+   ========================================================= */
+
+.topbar {
+    background: var(--bg-secondary) !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    box-shadow: 0 2px 14px rgba(0, 0, 0, 0.20) !important;
+}
+
+.topbar h1,
+.topbar-page h1,
+#pageTitle {
+    color: var(--text-primary) !important;
+}
+
+.sidebar-toggle {
+    background: var(--bg-surface) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-secondary) !important;
+}
+
+.sidebar-toggle:hover {
+    background: var(--ic-dark-hover) !important;
+    border-color: var(--border-hover) !important;
+    color: var(--text-primary) !important;
+}
+
+.global-search,
+.global-search input,
+.search-box,
+.search-box input {
+    background: var(--bg-input) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+}
+
+.global-search:focus-within,
+.search-box:focus-within {
+    border-color: var(--primary-orange) !important;
+    box-shadow: 0 0 0 3px rgba(240, 120, 43, 0.10) !important;
+}
+
+.global-search input::placeholder,
+.search-box input::placeholder {
+    color: var(--text-muted) !important;
+}
+
+.search-icon,
+.search-shortcut {
+    color: var(--text-muted) !important;
+}
+
+.global-search-results {
+    background: var(--bg-surface) !important;
+    border: 1px solid var(--border-color) !important;
+    box-shadow: var(--ic-shadow-lg) !important;
+}
+
+.search-results-header {
+    color: var(--text-primary) !important;
+    border-bottom-color: var(--border-color) !important;
+}
+
+.search-result-item:hover {
+    background: var(--ic-dark-hover) !important;
+}
+
+
+/* =========================================================
+   SIDEBAR
+   ========================================================= */
+
+.sidebar {
+    background: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+    border-right-color: var(--border-color) !important;
+    box-shadow: 8px 0 24px rgba(0, 0, 0, 0.25) !important;
+}
+
+.sidebar-brand {
+    border-bottom-color: var(--border-color) !important;
+}
+
+.brand-link,
+.brand-name {
+    color: var(--text-primary) !important;
+}
+
+.brand-tagline {
+    color: var(--text-muted) !important;
+}
+
+.brand-mark {
+    background: linear-gradient(
+        145deg,
+        var(--bright-orange),
+        var(--dark-orange)
+    ) !important;
+
+    color: var(--bg-primary) !important;
+    box-shadow: 0 5px 16px rgba(240, 120, 43, 0.16) !important;
+}
+
+.nav-section-title {
+    color: var(--text-muted) !important;
+}
+
+.nav-item {
+    color: var(--text-secondary) !important;
+    border-radius: 8px !important;
+}
+
+.nav-item:hover {
+    background: var(--bg-surface) !important;
+    color: var(--text-primary) !important;
+}
+
+.nav-item.active {
+    background: var(--surface-orange) !important;
+    color: var(--primary-orange) !important;
+}
+
+.nav-item.active::before {
+    background: var(--primary-orange) !important;
+}
+
+.nav-icon {
+    color: inherit !important;
+}
+
+
+/* =========================================================
+   PAGE HEADERS
+   ========================================================= */
+
+.page-header {
+    color: var(--text-primary) !important;
+}
+
+.page-eyebrow,
+.card-eyebrow {
+    color: var(--primary-orange) !important;
+}
+
+.page-header h1,
+.page-header h2,
+.page-header h3,
+.card-heading,
+.settings-card-heading {
+    color: var(--text-primary) !important;
+}
+
+.page-header p,
+.page-header-content p,
+.stat-description,
+.card-description,
+.settings-card-description {
+    color: var(--text-secondary) !important;
+}
+
+
+/* =========================================================
+   CARDS AND PANELS
+   ========================================================= */
+
+.dashboard-card,
+.stat-card,
+.chart-card,
+.insight-card,
+.settings-card,
+.settings-option,
+.table-container,
+.card,
+.panel,
+.modal-content {
+    background: var(--bg-surface) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+    box-shadow: var(--ic-shadow-sm) !important;
+}
+
+.dashboard-card:hover,
+.stat-card:hover,
+.chart-card:hover,
+.insight-card:hover,
+.settings-card:hover,
+.settings-option:hover {
+    border-color: var(--border-hover) !important;
+}
+
+.card-header,
+.stat-card-header,
+.settings-card-header,
+.insight-card-header {
+    border-color: var(--border-color) !important;
+}
+
+.stat-title,
+.card-title,
+.stat-heading {
+    color: var(--text-secondary) !important;
+}
+
+.stat-value {
+    color: var(--text-primary) !important;
+}
+
+.stat-trend,
+.stat-value.highlight,
+.metric-value,
+.highlight {
+    color: var(--primary-orange) !important;
+}
+
+.stat-icon,
+.insight-icon,
+.settings-option-icon,
+.settings-section-icon {
+    background: var(--surface-orange) !important;
+    color: var(--primary-orange) !important;
+}
+
+.stat-footer {
+    border-color: var(--border-color) !important;
+}
+
+.stat-footer.positive,
+.positive {
+    color: var(--success) !important;
+}
+
+
+/* =========================================================
+   BUTTONS
+   ========================================================= */
+
+.btn,
+button.btn,
+.action-btn,
+.action-icon,
+.pagination-btn {
+    transition:
+        background-color 150ms ease,
+        border-color 150ms ease,
+        color 150ms ease,
+        transform 150ms ease,
+        box-shadow 150ms ease !important;
+}
+
+.btn-primary,
+button.btn-primary {
+    background: var(--primary-orange) !important;
+    border-color: var(--primary-orange) !important;
+    color: #FFFFFF !important;
+}
+
+.btn-primary:hover,
+button.btn-primary:hover {
+    background: var(--bright-orange) !important;
+    border-color: var(--bright-orange) !important;
+    color: #FFFFFF !important;
+}
+
+.btn-primary:active,
+button.btn-primary:active {
+    background: var(--dark-orange) !important;
+    border-color: var(--dark-orange) !important;
+}
+
+.btn-secondary,
+button.btn-secondary,
+.action-btn {
+    background: var(--bg-input) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-primary) !important;
+}
+
+.btn-secondary:hover,
+button.btn-secondary:hover,
+.action-btn:hover {
+    background: var(--ic-dark-hover) !important;
+    border-color: var(--border-hover) !important;
+    color: var(--text-primary) !important;
+}
+
+.btn-icon {
+    color: inherit !important;
+}
+
+
+/* =========================================================
+   FORMS
+   ========================================================= */
+
+input,
+select,
+textarea,
+.form-control,
+.inventory-filter,
+.filter-select {
+    background: var(--bg-input) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: var(--text-muted) !important;
+}
+
+input:focus,
+select:focus,
+textarea:focus,
+.form-control:focus,
+.inventory-filter:focus,
+.filter-select:focus {
+    border-color: var(--primary-orange) !important;
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(240, 120, 43, 0.10) !important;
+}
+
+label,
+.form-label {
+    color: var(--text-secondary) !important;
+}
+
+.form-group small,
+.form-help {
+    color: var(--text-muted) !important;
+}
+
+.form-actions {
+    border-color: var(--border-color) !important;
+}
+
+
+/* =========================================================
+   DATA TABLES
+   ========================================================= */
+
+.data-table {
+    background: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+}
+
+.data-table thead,
+.data-table th {
+    background: var(--bg-surface) !important;
+    color: var(--text-secondary) !important;
+    border-color: var(--border-color) !important;
+}
+
+.data-table tbody,
+.data-table tr {
+    background: var(--bg-secondary) !important;
+}
+
+.data-table td {
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+}
+
+.data-table tbody tr:hover {
+    background: var(--bg-surface) !important;
+}
+
+.data-table td.secondary,
+.data-table .secondary {
+    color: var(--text-secondary) !important;
+}
+
+.empty-table-cell,
+.empty-state {
+    color: var(--text-secondary) !important;
+}
+
+
+/* =========================================================
+   STATUS BADGES
+   ========================================================= */
+
+.status-badge {
+    border: 1px solid transparent !important;
+}
+
+.status-badge.success,
+.status-badge.success-badge,
+.success {
+    background: var(--surface-success) !important;
+    color: var(--success) !important;
+}
+
+.status-badge.warning,
+.status-badge.warning-badge,
+.warning {
+    background: var(--surface-warning) !important;
+    color: var(--warning) !important;
+}
+
+.status-badge.danger,
+.status-badge.danger-badge,
+.danger {
+    background: var(--surface-danger) !important;
+    color: var(--danger) !important;
+}
+
+.status-badge.orange,
+.status-badge.info,
+.orange {
+    background: var(--surface-orange) !important;
+    color: var(--primary-orange) !important;
+}
+
+
+/* =========================================================
+   CHARTS
+   ========================================================= */
+
+.chart-container,
+.chart-card canvas {
+    background: var(--bg-surface) !important;
+}
+
+.chart-container {
+    border-color: var(--border-color) !important;
+}
+
+
+/* =========================================================
+   INSIGHTS
+   ========================================================= */
+
+.insight-card {
+    position: relative;
+}
+
+.insight-message,
+.insight-content {
+    color: var(--text-secondary) !important;
+}
+
+.insight-metric,
+.insight-label {
+    color: var(--text-primary) !important;
+}
+
+.insight-priority {
+    background: var(--surface-orange) !important;
+    color: var(--primary-orange) !important;
+}
+
+.insight-action {
+    color: var(--primary-orange) !important;
+}
+
+
+/* =========================================================
+   INVENTORY
+   ========================================================= */
+
+.inventory-toolbar,
+.inventory-search-form,
+.inventory-filters {
+    background: transparent !important;
+}
+
+.product-icon {
+    background: var(--surface-orange) !important;
+    color: var(--primary-orange) !important;
+}
+
+
+/* =========================================================
+   PAGINATION
+   ========================================================= */
+
+.pagination-btn {
+    background: var(--bg-input) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-secondary) !important;
+}
+
+.pagination-btn:hover,
+.pagination-btn.active {
+    background: var(--surface-orange) !important;
+    border-color: var(--primary-orange) !important;
+    color: var(--primary-orange) !important;
+}
+
+
+/* =========================================================
+   SETTINGS
+   ========================================================= */
+
+.settings-nav-item {
+    color: var(--text-secondary) !important;
+}
+
+.settings-nav-item:hover {
+    background: var(--bg-surface) !important;
+    color: var(--text-primary) !important;
+}
+
+.settings-nav-item.active {
+    background: var(--surface-orange) !important;
+    color: var(--primary-orange) !important;
+}
+
+.settings-section {
+    border-color: var(--border-color) !important;
+}
+
+.switch input:checked + .slider {
+    background: var(--primary-orange) !important;
+}
+
+
+/* =========================================================
+   MODALS AND OVERLAYS
+   ========================================================= */
+
+.modal-overlay,
+.dialog-overlay {
+    background: rgba(0, 0, 0, 0.70) !important;
+}
+
+.modal {
+    background: var(--bg-surface) !important;
+    color: var(--text-primary) !important;
+}
+
+.modal-content,
+.modal-dialog,
+.dialog {
+    background: var(--bg-surface) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border-color) !important;
+    box-shadow: var(--ic-shadow-lg) !important;
+}
+
+.modal-header,
+.modal-footer {
+    border-color: var(--border-color) !important;
+}
+
+.modal-close,
+.close-btn {
+    color: var(--text-secondary) !important;
+}
+
+.modal-close:hover,
+.close-btn:hover {
+    color: var(--primary-orange) !important;
+}
+
+
+/* =========================================================
+   DROPDOWNS
+   ========================================================= */
+
+.dropdown-menu,
+.admin-dropdown,
+.notification-dropdown {
+    background: var(--bg-surface) !important;
+    border-color: var(--border-color) !important;
+    box-shadow: var(--ic-shadow-lg) !important;
+}
+
+.dropdown-item,
+.notification-item {
+    color: var(--text-secondary) !important;
+}
+
+.dropdown-item:hover,
+.notification-item:hover {
+    background: var(--bg-input) !important;
+    color: var(--text-primary) !important;
+}
+
+
+/* =========================================================
+   EMPTY STATES
+   ========================================================= */
+
+.empty-state-icon {
+    background: var(--surface-orange) !important;
+    color: var(--primary-orange) !important;
+}
+
+.empty-state h3,
+.empty-state-title {
+    color: var(--text-primary) !important;
+}
+
+
+/* =========================================================
+   AUTHENTICATION
+   ========================================================= */
+
+.auth-layout,
+.login-page {
+    background:
+        radial-gradient(
+            circle at 50% 0%,
+            rgba(240, 120, 43, 0.07),
+            transparent 38%
+        ),
+        var(--bg-primary) !important;
+
+    color: var(--text-primary) !important;
+}
+
+.login-card {
+    background: var(--bg-surface) !important;
+    border: 1px solid var(--border-color) !important;
+    box-shadow: var(--ic-shadow-lg) !important;
+}
+
+.login-logo,
+.login-brand {
+    color: var(--text-primary) !important;
+}
+
+.login-logo {
+    background: linear-gradient(
+        145deg,
+        var(--bright-orange),
+        var(--dark-orange)
+    ) !important;
+
+    color: #FFFFFF !important;
+}
+
+.login-heading h1,
+.login-heading h2,
+.login-card h1,
+.login-card h2 {
+    color: var(--text-primary) !important;
+}
+
+.login-heading p,
+.login-footer,
+.login-card p {
+    color: var(--text-secondary) !important;
+}
+
+.login-form input {
+    background: var(--bg-input) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+}
+
+.login-form input:focus {
+    border-color: var(--primary-orange) !important;
+    box-shadow: 0 0 0 3px rgba(240, 120, 43, 0.10) !important;
+}
+
+.login-button {
+    background: var(--primary-orange) !important;
+    color: #FFFFFF !important;
+    border-color: var(--primary-orange) !important;
+}
+
+.login-button:hover {
+    background: var(--bright-orange) !important;
+    border-color: var(--bright-orange) !important;
+}
+
+.login-footer a,
+.login-card a {
+    color: var(--primary-orange) !important;
+}
+
+
+/* =========================================================
+   FLASH MESSAGES
+   ========================================================= */
+
+.flash-message.success {
+    background: var(--surface-success) !important;
+    color: var(--success) !important;
+    border-color: rgba(63, 149, 80, 0.28) !important;
+}
+
+.flash-message.warning {
+    background: var(--surface-warning) !important;
+    color: var(--warning) !important;
+    border-color: rgba(227, 160, 8, 0.28) !important;
+}
+
+.flash-message.error,
+.flash-message.danger {
+    background: var(--surface-danger) !important;
+    color: var(--danger) !important;
+    border-color: rgba(229, 83, 75, 0.28) !important;
+}
+
+.flash-message.info {
+    background: rgba(91, 155, 243, 0.12) !important;
+    color: var(--info) !important;
+    border-color: rgba(91, 155, 243, 0.25) !important;
+}
+
+
+/* =========================================================
+   ACCESSIBILITY
+   ========================================================= */
+
+:focus-visible {
+    outline: 2px solid var(--primary-orange) !important;
+    outline-offset: 2px;
+}
+
+::selection {
+    background: rgba(240, 120, 43, 0.30);
+    color: var(--text-primary);
+}
+
+
+/* =========================================================
+   RESPONSIVE REFINEMENTS
+   ========================================================= */
+
+@media (max-width: 900px) {
+    .main-content {
+        padding-left: 18px !important;
+        padding-right: 18px !important;
+    }
+}
+
+@media (max-width: 640px) {
+    .topbar {
+        padding: 0 14px !important;
+    }
+
+    .dashboard-card,
+    .stat-card,
+    .chart-card,
+    .insight-card,
+    .settings-card {
+        border-radius: 10px !important;
+    }
+}
+
+
+/* =========================================================
+   GLOBAL LIGHT THEME COMPONENT OVERRIDES
+   Ensures shared components use light colors when selected.
+   ========================================================= */
+
+html[data-theme="light"],
+html[data-theme="light"] body,
+html[data-theme="light"] .app-layout,
+html[data-theme="light"] .main-area,
+html[data-theme="light"] .main-content,
+html[data-theme="light"] .auth-layout,
+html[data-theme="light"] .login-page {
+    background: var(--bg-primary) !important;
+    color: var(--text-primary) !important;
+}
+
+
+/* ---------- Light navigation ---------- */
+
+html[data-theme="light"] .sidebar,
+html[data-theme="light"] .topbar {
+    background: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+    box-shadow: 0 2px 14px rgba(15, 23, 42, 0.05) !important;
+}
+
+html[data-theme="light"] .sidebar-brand,
+html[data-theme="light"] .card-header,
+html[data-theme="light"] .settings-card-header {
+    border-color: var(--border-color) !important;
+}
+
+html[data-theme="light"] .brand-link,
+html[data-theme="light"] .brand-name,
+html[data-theme="light"] .topbar h1,
+html[data-theme="light"] .topbar-page h1,
+html[data-theme="light"] #pageTitle,
+html[data-theme="light"] .page-header h1,
+html[data-theme="light"] .page-header h2,
+html[data-theme="light"] .page-header h3,
+html[data-theme="light"] .card-heading,
+html[data-theme="light"] .settings-card-heading {
+    color: var(--text-primary) !important;
+}
+
+html[data-theme="light"] .brand-tagline,
+html[data-theme="light"] .nav-section-title,
+html[data-theme="light"] .nav-item {
+    color: var(--text-secondary) !important;
+}
+
+html[data-theme="light"] .nav-item:hover,
+html[data-theme="light"] .sidebar-toggle:hover,
+html[data-theme="light"] .search-result-item:hover {
+    background: #F1F5F9 !important;
+    color: var(--text-primary) !important;
+}
+
+html[data-theme="light"] .nav-item.active,
+html[data-theme="light"] .settings-nav-item.active {
+    background: #FFF0E5 !important;
+    color: var(--primary-orange) !important;
+}
+
+html[data-theme="light"] .sidebar-toggle {
+    background: #FFFFFF !important;
+    color: var(--text-secondary) !important;
+    border-color: var(--border-color) !important;
+}
+
+
+/* ---------- Light cards and panels ---------- */
+
+html[data-theme="light"] .dashboard-card,
+html[data-theme="light"] .stat-card,
+html[data-theme="light"] .chart-card,
+html[data-theme="light"] .insight-card,
+html[data-theme="light"] .settings-card,
+html[data-theme="light"] .settings-option,
+html[data-theme="light"] .table-container,
+html[data-theme="light"] .card,
+html[data-theme="light"] .panel,
+html[data-theme="light"] .modal-content,
+html[data-theme="light"] .login-card {
+    background: var(--bg-surface) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+    box-shadow: var(--ic-shadow-sm) !important;
+}
+
+html[data-theme="light"] .page-header p,
+html[data-theme="light"] .page-header-content p,
+html[data-theme="light"] .stat-description,
+html[data-theme="light"] .card-description,
+html[data-theme="light"] .settings-card-description,
+html[data-theme="light"] .insight-message,
+html[data-theme="light"] .insight-content {
+    color: var(--text-secondary) !important;
+}
+
+
+/* ---------- Light tables ---------- */
+
+html[data-theme="light"] .data-table,
+html[data-theme="light"] .data-table tbody,
+html[data-theme="light"] .data-table tr {
+    background: #FFFFFF !important;
+    color: var(--text-primary) !important;
+}
+
+html[data-theme="light"] .data-table thead,
+html[data-theme="light"] .data-table th {
+    background: #F8FAFC !important;
+    color: var(--text-secondary) !important;
+    border-color: var(--border-color) !important;
+}
+
+html[data-theme="light"] .data-table td,
+html[data-theme="light"] .table-product strong {
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+}
+
+html[data-theme="light"] .data-table tbody tr:hover {
+    background: #FFF7F0 !important;
+}
+
+html[data-theme="light"] .data-table td.secondary,
+html[data-theme="light"] .data-table .secondary {
+    color: var(--text-secondary) !important;
+}
+
+
+/* ---------- Light forms and search ---------- */
+
+html[data-theme="light"] input,
+html[data-theme="light"] select,
+html[data-theme="light"] textarea,
+html[data-theme="light"] .form-control,
+html[data-theme="light"] .inventory-filter,
+html[data-theme="light"] .filter-select,
+html[data-theme="light"] .global-search,
+html[data-theme="light"] .global-search input,
+html[data-theme="light"] .search-box,
+html[data-theme="light"] .search-box input,
+html[data-theme="light"] .form-group input,
+html[data-theme="light"] .form-group select,
+html[data-theme="light"] .form-group textarea,
+html[data-theme="light"] .pagination button {
+    background: #FFFFFF !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+}
+
+html[data-theme="light"] input::placeholder,
+html[data-theme="light"] textarea::placeholder,
+html[data-theme="light"] .global-search input::placeholder,
+html[data-theme="light"] .search-box input::placeholder {
+    color: var(--text-muted) !important;
+}
+
+html[data-theme="light"] label,
+html[data-theme="light"] .form-label,
+html[data-theme="light"] .form-group label {
+    color: var(--text-secondary) !important;
+}
+
+html[data-theme="light"] .form-group small,
+html[data-theme="light"] .form-help {
+    color: var(--text-muted) !important;
+}
+
+
+/* ---------- Light buttons ---------- */
+
+html[data-theme="light"] .btn-secondary,
+html[data-theme="light"] button.btn-secondary,
+html[data-theme="light"] .action-btn {
+    background: #FFFFFF !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+}
+
+html[data-theme="light"] .btn-secondary:hover,
+html[data-theme="light"] button.btn-secondary:hover,
+html[data-theme="light"] .action-btn:hover {
+    background: #F1F5F9 !important;
+    border-color: var(--border-hover) !important;
+}
+
+html[data-theme="light"] .btn-primary,
+html[data-theme="light"] button.btn-primary,
+html[data-theme="light"] .login-button {
+    color: #FFFFFF !important;
+}
+
+
+/* ---------- Light dropdowns ---------- */
+
+html[data-theme="light"] .global-search-results,
+html[data-theme="light"] .dropdown-menu,
+html[data-theme="light"] .admin-dropdown,
+html[data-theme="light"] .notification-dropdown {
+    background: #FFFFFF !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+    box-shadow: var(--ic-shadow-lg) !important;
+}
+
+html[data-theme="light"] .dropdown-item,
+html[data-theme="light"] .notification-item {
+    color: var(--text-secondary) !important;
+}
+
+html[data-theme="light"] .dropdown-item:hover,
+html[data-theme="light"] .notification-item:hover {
+    background: #F1F5F9 !important;
+    color: var(--text-primary) !important;
+}
+
+
+/* ---------- Light modals ---------- */
+
+html[data-theme="light"] .modal-overlay,
+html[data-theme="light"] .dialog-overlay {
+    background: rgba(15, 23, 42, 0.45) !important;
+}
+
+html[data-theme="light"] .modal,
+html[data-theme="light"] .modal-content,
+html[data-theme="light"] .modal-dialog,
+html[data-theme="light"] .dialog {
+    background: #FFFFFF !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+}
+
+html[data-theme="light"] .modal-header,
+html[data-theme="light"] .modal-footer {
+    border-color: var(--border-color) !important;
+}
+
+
+/* ---------- Light footer ---------- */
+
+html[data-theme="light"] .footer {
+    background: #FFFFFF !important;
+    color: var(--text-muted) !important;
+    border-color: var(--border-color) !important;
+}
+
+
+/* ---------- Light settings ---------- */
+
+html[data-theme="light"] .settings-nav-item {
+    color: var(--text-secondary) !important;
+}
+
+html[data-theme="light"] .settings-nav-item:hover {
+    background: #F1F5F9 !important;
+    color: var(--text-primary) !important;
+}
+
+html[data-theme="light"] .settings-section {
+    border-color: var(--border-color) !important;
+}
+
+
+/* ---------- Light authentication ---------- */
+
+html[data-theme="light"] .login-heading h1,
+html[data-theme="light"] .login-heading h2,
+html[data-theme="light"] .login-card h1,
+html[data-theme="light"] .login-card h2,
+html[data-theme="light"] .login-logo,
+html[data-theme="light"] .login-brand {
+    color: var(--text-primary) !important;
+}
+
+html[data-theme="light"] .login-heading p,
+html[data-theme="light"] .login-footer,
+html[data-theme="light"] .login-card p {
+    color: var(--text-secondary) !important;
+}
+
+html[data-theme="light"] .login-form input {
+    background: #FFFFFF !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+}
+
+
+/* =========================================================
+   REDUCED MOTION
+   Respects the existing Settings preference.
+   ========================================================= */
+
+.reduce-motion *,
+.reduce-motion *::before,
+.reduce-motion *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+}
+
+
+/* =========================================================
+   PRINT
+   ========================================================= */
+
+@media print {
+    html,
+    body,
+    .app-layout,
+    .main-area,
+    .main-content {
+        background: #FFFFFF !important;
+        color: #111827 !important;
+    }
+
+    .sidebar,
+    .topbar,
+    .footer,
+    .page-header-actions,
+    .inventory-actions,
+    .table-actions,
+    .btn {
+        display: none !important;
+    }
+
+    .main-area {
+        margin-left: 0 !important;
+        width: 100% !important;
+    }
+
+    .main-content {
+        padding: 0 !important;
+    }
+
+    .dashboard-card,
+    .stat-card,
+    .form-card,
+    .analytics-card,
+    .settings-card {
+        box-shadow: none !important;
+        border: 1px solid #CBD5E1 !important;
+    }
+}

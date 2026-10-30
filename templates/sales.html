@@ -5,135 +5,218 @@
 {% endblock %}
 
 
+{% block extra_css %}
+
+<link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/sales.css') }}"
+>
+
+{% endblock %}
+
+
 {% block content %}
 
-<main class="main-content">
+<main class="main-content sales-page">
 
-    <!-- Page Header -->
-    <section class="page-header sales-page-header">
+    <!-- =====================================================
+         PAGE HEADER
+         ===================================================== -->
 
-        <div>
-            <span class="page-eyebrow">SALES MANAGEMENT</span>
+    <section class="sales-page-header">
 
-            <h1>Sales</h1>
+        <div class="sales-header-content">
 
-            <p>
-                Manage sales transactions and invoices.
-            </p>
-        </div>
+            <div class="sales-header-text">
+
+                <span class="page-eyebrow">
+                    SALES MANAGEMENT
+                </span>
+
+                <h1>
+                    Sales
+                </h1>
+
+                <p>
+                    Manage sales transactions and invoices.
+                </p>
+
+            </div>
 
 
-        <div class="page-header-actions">
+            <div class="sales-header-actions">
 
-            <button
-                type="button"
-                class="btn btn-primary"
-                id="openSaleModal"
-            >
-                + Record Sale
-            </button>
+                <button
+                    type="button"
+                    class="btn btn-primary sales-record-btn"
+                    id="openSaleModal"
+                >
+                    <span class="btn-icon">
+                        +
+                    </span>
+
+                    Record Sale
+                </button>
+
+            </div>
 
         </div>
 
     </section>
 
 
-    <!-- Sales Summary -->
-    <section class="dashboard-stats">
+    <!-- =====================================================
+         SALES SUMMARY
+         ===================================================== -->
+
+    <section class="sales-overview">
 
         <!-- Today's Sales -->
-        <div class="stat-card">
+        <div class="sales-stat-card">
 
-            <div class="stat-card-header">
-                <span class="stat-title">
-                    Today's Sales
-                </span>
+            <div class="sales-stat-top">
 
-                <span class="stat-icon">
+                <div>
+
+                    <span class="sales-stat-label">
+                        Today's Sales
+                    </span>
+
+                    <strong class="sales-stat-value">
+                        ₹{{ todays_sales|default(0, true) }}
+                    </strong>
+
+                </div>
+
+
+                <span class="sales-stat-icon">
                     ₹
                 </span>
+
             </div>
 
-            <div class="stat-value">
-                ₹{{ todays_sales|default(0) }}
-            </div>
 
-            <div class="stat-footer positive">
-                ↑ 9%
-                <span>from yesterday</span>
+            <div class="sales-stat-footer positive">
+
+                <span class="sales-stat-trend">
+                    ↑ 9%
+                </span>
+
+                <span>
+                    from yesterday
+                </span>
+
             </div>
 
         </div>
 
 
         <!-- Orders -->
-        <div class="stat-card">
+        <div class="sales-stat-card">
 
-            <div class="stat-card-header">
-                <span class="stat-title">
-                    Orders
-                </span>
+            <div class="sales-stat-top">
 
-                <span class="stat-icon">
+                <div>
+
+                    <span class="sales-stat-label">
+                        Orders
+                    </span>
+
+                    <strong class="sales-stat-value">
+                        {{ total_orders|default(0, true) }}
+                    </strong>
+
+                </div>
+
+
+                <span class="sales-stat-icon">
                     #
                 </span>
+
             </div>
 
-            <div class="stat-value">
-                {{ total_orders|default(0) }}
-            </div>
 
-            <div class="stat-footer positive">
-                ↑ 5%
-                <span>from yesterday</span>
+            <div class="sales-stat-footer positive">
+
+                <span class="sales-stat-trend">
+                    ↑ 5%
+                </span>
+
+                <span>
+                    from yesterday
+                </span>
+
             </div>
 
         </div>
 
 
         <!-- Revenue -->
-        <div class="stat-card">
+        <div class="sales-stat-card">
 
-            <div class="stat-card-header">
-                <span class="stat-title">
-                    Revenue
-                </span>
+            <div class="sales-stat-top">
 
-                <span class="stat-icon">
+                <div>
+
+                    <span class="sales-stat-label">
+                        Revenue
+                    </span>
+
+                    <strong class="sales-stat-value">
+                        ₹{{ total_revenue|default(0, true) }}
+                    </strong>
+
+                </div>
+
+
+                <span class="sales-stat-icon">
                     ₹
                 </span>
+
             </div>
 
-            <div class="stat-value">
-                ₹{{ total_revenue|default(0) }}
-            </div>
 
-            <div class="stat-footer positive">
-                ↑ 12%
-                <span>this month</span>
+            <div class="sales-stat-footer positive">
+
+                <span class="sales-stat-trend">
+                    ↑ 12%
+                </span>
+
+                <span>
+                    this month
+                </span>
+
             </div>
 
         </div>
 
 
         <!-- Pending Payments -->
-        <div class="stat-card">
+        <div class="sales-stat-card">
 
-            <div class="stat-card-header">
-                <span class="stat-title">
-                    Pending Payments
-                </span>
+            <div class="sales-stat-top">
 
-                <span class="stat-icon warning">
+                <div>
+
+                    <span class="sales-stat-label">
+                        Pending Payments
+                    </span>
+
+                    <strong class="sales-stat-value">
+                        ₹{{ pending_payments|default(0, true) }}
+                    </strong>
+
+                </div>
+
+
+                <span class="sales-stat-icon warning">
                     !
                 </span>
+
             </div>
 
-            <div class="stat-value">
-                ₹{{ pending_payments|default(0) }}
-            </div>
 
-            <div class="stat-footer warning-text">
+            <div class="sales-stat-footer warning-text">
                 Needs attention
             </div>
 
@@ -142,95 +225,170 @@
     </section>
 
 
-    <!-- Search / Filters -->
-    <section class="dashboard-card sales-filter-card">
+    <!-- =====================================================
+         SEARCH & FILTER
+         ===================================================== -->
 
-        <div class="sales-filter-row">
+    <section class="sales-filter-card">
 
-            <!-- Search -->
-            <div class="inventory-search">
+        <div class="sales-section-header">
 
-                <span class="search-icon">
-                    ⌕
+            <div>
+
+                <span class="section-label">
+                    TRANSACTIONS
                 </span>
 
-                <input
-                    type="search"
-                    id="salesSearch"
-                    placeholder="Search invoice or customer..."
-                    autocomplete="off"
-                >
+                <h2>
+                    Search & Filter
+                </h2>
+
+                <p>
+                    Find sales records quickly using invoice,
+                    customer, payment method, or date.
+                </p>
 
             </div>
 
-
-            <!-- Payment Filter -->
-            <select id="paymentFilter">
-
-                <option value="">
-                    Payment Method
-                </option>
-
-                <option value="cash">
-                    Cash
-                </option>
-
-                <option value="upi">
-                    UPI
-                </option>
-
-                <option value="card">
-                    Card
-                </option>
-
-                <option value="bank">
-                    Bank
-                </option>
-
-            </select>
+        </div>
 
 
-            <!-- Date Filter -->
-            <select id="dateFilter">
+        <div class="sales-filter-body">
 
-                <option value="">
-                    Date
-                </option>
+            <div class="sales-filter-grid">
 
-                <option value="today">
-                    Today
-                </option>
+                <!-- Search -->
+                <div class="form-group sales-search-field">
 
-                <option value="week">
-                    This Week
-                </option>
+                    <label for="salesSearch">
+                        Search
+                    </label>
 
-                <option value="month">
-                    This Month
-                </option>
+                    <div class="sales-search-wrapper">
 
-            </select>
+                        <span class="search-icon">
+                            ⌕
+                        </span>
+
+                        <input
+                            type="search"
+                            id="salesSearch"
+                            placeholder="Search invoice or customer..."
+                            autocomplete="off"
+                        >
+
+                    </div>
+
+                </div>
 
 
-            <!-- Export -->
-            <a
-                href="{{ url_for('main.export_sales') }}"
-                class="btn btn-secondary"
-            >
-                Export
-            </a>
+                <!-- Payment Filter -->
+                <div class="form-group">
+
+                    <label for="paymentFilter">
+                        Payment Method
+                    </label>
+
+                    <div class="sales-select-wrapper">
+
+                        <select id="paymentFilter">
+
+                            <option value="">
+                                Payment Method
+                            </option>
+
+                            <option value="cash">
+                                Cash
+                            </option>
+
+                            <option value="upi">
+                                UPI
+                            </option>
+
+                            <option value="card">
+                                Card
+                            </option>
+
+                            <option value="bank">
+                                Bank
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Date Filter -->
+                <div class="form-group">
+
+                    <label for="dateFilter">
+                        Date Range
+                    </label>
+
+                    <div class="sales-select-wrapper">
+
+                        <select id="dateFilter">
+
+                            <option value="">
+                                Date
+                            </option>
+
+                            <option value="today">
+                                Today
+                            </option>
+
+                            <option value="week">
+                                This Week
+                            </option>
+
+                            <option value="month">
+                                This Month
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Export -->
+                <div class="sales-filter-action">
+
+                    <a
+                        href="{{ url_for('main.export_sales') }}"
+                        class="sales-export-btn"
+                    >
+                        <span class="export-icon">
+                            ↓
+                        </span>
+
+                        Export
+                    </a>
+
+                </div>
+
+            </div>
 
         </div>
 
     </section>
 
 
-    <!-- Sales Table -->
-    <section class="dashboard-card sales-table-card">
+    <!-- =====================================================
+         SALES TABLE
+         ===================================================== -->
 
-        <div class="card-header">
+    <section class="sales-table-card">
+
+        <!-- Table Header -->
+
+        <div class="sales-table-header">
 
             <div>
+
                 <span class="section-label">
                     TRANSACTION HISTORY
                 </span>
@@ -242,24 +400,33 @@
                 <p>
                     Recent sales and payment records.
                 </p>
+
             </div>
 
 
-            <div class="product-count">
-                <span id="salesCount">
+            <div class="sales-count-badge">
+
+                <strong id="salesCount">
                     {{ sales|length if sales else 0 }}
+                </strong>
+
+                <span>
+                    transactions
                 </span>
 
-                transactions
             </div>
 
         </div>
 
 
-        <div class="table-container">
+        <!-- =================================================
+             TABLE
+             ================================================= -->
+
+        <div class="sales-table-wrapper">
 
             <table
-                class="data-table"
+                class="sales-table"
                 id="salesTable"
             >
 
@@ -302,75 +469,163 @@
 
                         {% for sale in sales %}
 
-                            {% set payment_method =
-                                sale.payment_method|default('cash')|lower
+                            <!--
+                                Safely handle NULL values coming
+                                from the database.
+                            -->
+
+                            {% set invoice_number =
+                                sale.invoice_number|default('INV-0000', true)
                             %}
+
+                            {% set customer_name =
+                                sale.customer_name|default('Walk-in Customer', true)
+                            %}
+
+                            {% set payment_method =
+                                sale.payment_method|default('cash', true)|lower
+                            %}
+
+                            {% set sale_date =
+                                sale.sale_date|default('N/A', true)
+                            %}
+
+                            {% set total_amount =
+                                sale.total_amount|default(0, true)
+                            %}
+
 
                             <tr
                                 class="sales-row"
-                                data-invoice="{{ sale.invoice_number|default('')|lower }}"
-                                data-customer="{{ sale.customer_name|default('Walk-in Customer')|lower }}"
+                                data-invoice="{{ invoice_number|lower }}"
+                                data-customer="{{ customer_name|lower }}"
                                 data-payment="{{ payment_method }}"
-                                data-date="{{ sale.sale_date|default('') }}"
+                                data-date="{{ sale_date }}"
                             >
 
-                                <!-- Invoice -->
+                                <!-- =========================
+                                     INVOICE
+                                     ========================= -->
+
                                 <td>
 
-                                    <strong class="invoice-number">
-                                        {{ sale.invoice_number|default('INV-0000') }}
-                                    </strong>
+                                    <div class="sale-invoice-cell">
+
+                                        <span class="invoice-icon">
+                                            #
+                                        </span>
+
+
+                                        <div class="invoice-details">
+
+                                            <strong class="invoice-number">
+                                                {{ invoice_number }}
+                                            </strong>
+
+                                            <span class="invoice-label">
+                                                Invoice
+                                            </span>
+
+                                        </div>
+
+                                    </div>
 
                                 </td>
 
 
-                                <!-- Customer -->
+                                <!-- =========================
+                                     CUSTOMER
+                                     ========================= -->
+
                                 <td>
-                                    {{ sale.customer_name|default('Walk-in Customer') }}
+
+                                    <div class="customer-cell">
+
+                                        <span class="customer-avatar">
+                                            {{ customer_name|first|upper }}
+                                        </span>
+
+
+                                        <span class="sale-customer">
+                                            {{ customer_name }}
+                                        </span>
+
+                                    </div>
+
                                 </td>
 
 
-                                <!-- Amount -->
+                                <!-- =========================
+                                     AMOUNT
+                                     ========================= -->
+
                                 <td>
 
                                     <strong class="sale-amount">
-                                        ₹{{ sale.total_amount|default(0) }}
+                                        ₹{{ total_amount }}
                                     </strong>
 
                                 </td>
 
 
-                                <!-- Payment -->
+                                <!-- =========================
+                                     PAYMENT
+                                     ========================= -->
+
                                 <td>
 
                                     {% if payment_method == 'cash' %}
 
-                                        <span class="status-badge success">
+                                        <span class="payment-badge cash">
+
+                                            <span class="payment-dot"></span>
+
                                             Cash
+
                                         </span>
+
 
                                     {% elif payment_method == 'upi' %}
 
-                                        <span class="status-badge success">
+                                        <span class="payment-badge upi">
+
+                                            <span class="payment-dot"></span>
+
                                             UPI
+
                                         </span>
+
 
                                     {% elif payment_method == 'card' %}
 
-                                        <span class="status-badge success">
+                                        <span class="payment-badge card">
+
+                                            <span class="payment-dot"></span>
+
                                             Card
+
                                         </span>
 
-                                    {% elif payment_method == 'bank' %}
 
-                                        <span class="status-badge success">
+                                    {% elif payment_method == 'bank' or payment_method == 'bank_transfer' %}
+
+                                        <span class="payment-badge bank">
+
+                                            <span class="payment-dot"></span>
+
                                             Bank
+
                                         </span>
+
 
                                     {% else %}
 
-                                        <span class="status-badge warning">
-                                            {{ sale.payment_method|default('Unknown') }}
+                                        <span class="payment-badge unknown">
+
+                                            <span class="payment-dot"></span>
+
+                                            {{ payment_method|upper }}
+
                                         </span>
 
                                     {% endif %}
@@ -378,21 +633,32 @@
                                 </td>
 
 
-                                <!-- Date -->
+                                <!-- =========================
+                                     DATE
+                                     ========================= -->
+
                                 <td>
-                                    {{ sale.sale_date|default('N/A') }}
+
+                                    <span class="sale-date">
+                                        {{ sale_date }}
+                                    </span>
+
                                 </td>
 
 
-                                <!-- Actions -->
+                                <!-- =========================
+                                     ACTIONS
+                                     ========================= -->
+
                                 <td>
 
                                     <div class="table-actions">
 
                                         <button
                                             type="button"
-                                            class="action-btn view-sale-btn"
-                                            data-invoice="{{ sale.invoice_number|default('') }}"
+                                            class="table-action-btn view-sale-btn"
+                                            data-invoice="{{ invoice_number }}"
+                                            title="View Sale"
                                         >
                                             View
                                         </button>
@@ -400,8 +666,9 @@
 
                                         <button
                                             type="button"
-                                            class="action-btn print-sale-btn"
-                                            data-invoice="{{ sale.invoice_number|default('') }}"
+                                            class="table-action-btn print-sale-btn"
+                                            data-invoice="{{ invoice_number }}"
+                                            title="Print Sale"
                                         >
                                             Print
                                         </button>
@@ -417,6 +684,10 @@
 
                     {% else %}
 
+                        <!-- =========================
+                             NO SALES
+                             ========================= -->
+
                         <tr>
 
                             <td
@@ -430,14 +701,17 @@
                                         ₹
                                     </div>
 
+
                                     <h3>
                                         No Sales Found
                                     </h3>
+
 
                                     <p>
                                         Record your first sale to start
                                         tracking transactions.
                                     </p>
+
 
                                     <button
                                         type="button"
@@ -456,7 +730,10 @@
                     {% endif %}
 
 
-                    <!-- No Search Results -->
+                    <!-- =========================
+                         NO SEARCH RESULTS
+                         ========================= -->
+
                     <tr
                         id="noSalesResults"
                         style="display: none;"
@@ -473,9 +750,11 @@
                                     ⌕
                                 </div>
 
+
                                 <h3>
                                     No Results Found
                                 </h3>
+
 
                                 <p>
                                     Try a different search term or filter.
@@ -494,8 +773,11 @@
         </div>
 
 
-        <!-- Pagination -->
-        <div class="pagination">
+        <!-- =================================================
+             PAGINATION
+             ================================================= -->
+
+        <div class="sales-pagination">
 
             <button
                 type="button"
@@ -535,24 +817,27 @@
 </main>
 
 
-<!-- =========================================
+<!-- =========================================================
      RECORD SALE MODAL
-     ========================================= -->
+     ========================================================= -->
 
 <div
     class="modal-overlay"
     id="saleModal"
     hidden
     aria-hidden="true"
-    style="display: none;"
 >
 
     <div class="modal sale-modal">
 
-        <!-- Modal Header -->
+        <!-- =================================================
+             MODAL HEADER
+             ================================================= -->
+
         <div class="modal-header">
 
             <div>
+
                 <span class="section-label">
                     NEW TRANSACTION
                 </span>
@@ -564,6 +849,7 @@
                 <p>
                     Create a new sales transaction.
                 </p>
+
             </div>
 
 
@@ -579,38 +865,62 @@
         </div>
 
 
-        <!-- Sale Form -->
+        <!-- =================================================
+             SALE FORM
+             ================================================= -->
+
         <form
             id="saleForm"
             method="POST"
             action="{{ url_for('main.create_sale') }}"
         >
 
+            <!-- CSRF SECURITY TOKEN -->
+            <input
+                type="hidden"
+                name="csrf_token"
+                value="{{ csrf_token() }}"
+            >
+
+            <!-- Unique key reused for retries of this same sale attempt. -->
+            <input
+                type="hidden"
+                name="idempotency_key"
+                id="saleIdempotencyKey"
+                value="{{ sale_idempotency_key|default('', true) }}"
+            >
+
             <div class="modal-body">
 
                 <!-- Customer -->
+
                 <div class="form-group">
 
                     <label for="customer_name">
                         Customer
                     </label>
 
+
                     <input
                         type="text"
                         id="customer_name"
                         name="customer_name"
                         placeholder="Enter customer name"
+                        maxlength="120"
+                        autocomplete="name"
                     >
 
                 </div>
 
 
                 <!-- Product -->
+
                 <div class="form-group">
 
                     <label for="saleProduct">
                         Product
                     </label>
+
 
                     <select
                         id="saleProduct"
@@ -629,11 +939,14 @@
 
                                 <option
                                     value="{{ product.product_id }}"
-                                    data-price="{{ product.price|default(0) }}"
-                                    data-stock="{{ product.quantity|default(0) }}"
+                                    data-price="{{ product.price|default(0, true) }}"
+                                    data-stock="{{ product.quantity|default(0, true) }}"
                                 >
+
                                     {{ product.name }}
-                                    — ₹{{ product.price|default(0) }}
+
+                                    — ₹{{ product.price|default(0, true) }}
+
                                 </option>
 
                             {% endfor %}
@@ -661,17 +974,20 @@
 
 
                 <!-- Quantity -->
+
                 <div class="form-group">
 
                     <label for="quantity">
                         Quantity
                     </label>
 
+
                     <input
                         type="number"
                         id="quantity"
                         name="quantity"
                         min="1"
+                        step="1"
                         value="1"
                         required
                     >
@@ -680,17 +996,20 @@
 
 
                 <!-- Unit Price -->
+
                 <div class="form-group">
 
                     <label for="unitPrice">
                         Unit Price
                     </label>
 
+
                     <div class="input-with-prefix">
 
                         <span>
                             ₹
                         </span>
+
 
                         <input
                             type="number"
@@ -706,36 +1025,46 @@
                 </div>
 
 
-                <!-- Sale Total -->
-                <div class="sale-total-box">
+                <!-- =================================================
+                     SALE SUMMARY
+                     ================================================= -->
 
-                    <div>
+                <div class="sale-summary">
+
+                    <div class="sale-summary-row">
+
                         <span>
                             Quantity
                         </span>
 
+
                         <strong id="saleQuantityPreview">
                             0
                         </strong>
+
                     </div>
 
 
-                    <div>
+                    <div class="sale-summary-row">
+
                         <span>
                             Unit Price
                         </span>
 
+
                         <strong id="saleUnitPricePreview">
                             ₹0.00
                         </strong>
+
                     </div>
 
 
-                    <div class="grand-total">
+                    <div class="sale-summary-row total">
 
                         <span>
                             Total
                         </span>
+
 
                         <strong id="grandTotal">
                             ₹0.00
@@ -746,7 +1075,10 @@
                 </div>
 
 
-                <!-- Payment Method -->
+                <!-- =================================================
+                     PAYMENT METHOD
+                     ================================================= -->
+
                 <div class="form-group">
 
                     <label>
@@ -756,44 +1088,64 @@
 
                     <div class="radio-group">
 
-                        <label>
+                        <label class="payment-option">
+
                             <input
                                 type="radio"
                                 name="payment_method"
                                 value="cash"
                                 checked
                             >
-                            Cash
+
+                            <span>
+                                Cash
+                            </span>
+
                         </label>
 
 
-                        <label>
+                        <label class="payment-option">
+
                             <input
                                 type="radio"
                                 name="payment_method"
                                 value="upi"
                             >
-                            UPI
+
+                            <span>
+                                UPI
+                            </span>
+
                         </label>
 
 
-                        <label>
+                        <label class="payment-option">
+
                             <input
                                 type="radio"
                                 name="payment_method"
                                 value="card"
                             >
-                            Card
+
+                            <span>
+                                Card
+                            </span>
+
                         </label>
 
 
-                        <label>
+                        <label class="payment-option">
+
                             <input
                                 type="radio"
                                 name="payment_method"
                                 value="bank_transfer"
                             >
-                            Bank
+
+                            <span>
+                                Bank
+                            </span>
+
                         </label>
 
                     </div>
@@ -801,17 +1153,25 @@
                 </div>
 
 
-                <!-- Error -->
+                <!-- =================================================
+                     FORM MESSAGE
+                     ================================================= -->
+
                 <div
                     id="saleFormMessage"
                     class="login-message"
+                    role="status"
+                    aria-live="polite"
                     hidden
                 ></div>
 
             </div>
 
 
-            <!-- Modal Footer -->
+            <!-- =================================================
+                 MODAL FOOTER
+                 ================================================= -->
+
             <div class="modal-footer">
 
                 <button
@@ -840,8 +1200,16 @@
 </div>
 
 
+<!-- =========================================================
+     PAGE END
+     ========================================================= -->
+
 {% endblock %}
 
+
+<!-- =========================================================
+     SALES JAVASCRIPT
+     ========================================================= -->
 
 {% block extra_js %}
 

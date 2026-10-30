@@ -1,80 +1,115 @@
+
+
 <!-- =========================================
-     InCraft - Navbar / Topbar
+
+     InCraft — Navbar / Topbar
+
      Dark + Orange Theme
+
      ========================================= -->
+
+
 
 <header class="topbar">
 
-    <!-- Left Section -->
+
+
+    <!-- Sidebar Toggle -->
+
     <div class="topbar-left">
 
-        <!-- Sidebar Toggle -->
         <button
-            type="button"
-            class="sidebar-toggle"
-            id="sidebarToggle"
-            aria-label="Toggle sidebar"
-            title="Toggle Sidebar"
-            aria-expanded="false"
-        >
-            <span class="menu-icon">☰</span>
-        </button>
 
-        <!-- Page Information -->
-        <div class="topbar-page">
-            <h1 id="pageTitle">
-                {% if page_title %}
-                    {{ page_title }}
-                {% else %}
-                    InCraft
-                {% endif %}
-            </h1>
-        </div>
+            type="button"
+
+            class="sidebar-toggle topbar-sidebar-toggle"
+
+            id="sidebarToggle"
+
+            aria-label="Toggle sidebar"
+
+            aria-controls="sidebar"
+
+            aria-expanded="true"
+
+            title="Toggle sidebar"
+
+        >
+
+            <span class="sidebar-toggle-icon" aria-hidden="true">☰</span>
+
+        </button>
 
     </div>
 
 
-    <!-- Center Section -->
+
+    <!-- Global Search -->
+
     <div class="topbar-search">
 
         <div class="global-search">
 
-            <span class="search-icon">⌕</span>
+            <span class="search-icon" aria-hidden="true">⌕</span>
+
+
 
             <input
+
                 type="search"
+
                 id="globalSearch"
+
                 placeholder="Search products, sales or records..."
+
                 autocomplete="off"
-                aria-label="Global search"
+
+                aria-label="Search products, sales or records"
+
+                aria-controls="globalSearchResults"
+
             >
 
-            <span class="search-shortcut">/</span>
+
+
+            <span class="search-shortcut" aria-hidden="true">/</span>
 
         </div>
 
 
-        <!-- Search Results -->
+
         <div
+
             class="global-search-results"
+
             id="globalSearchResults"
+
             style="display: none;"
+
+            role="listbox"
+
+            aria-label="Search results"
+
         >
 
-            <div class="search-results-header">
-                Search Results
-            </div>
+            <div class="search-results-header">Search Results</div>
 
-            <div id="searchResultsList">
-                <!-- Results inserted by JavaScript -->
-            </div>
+            <div id="searchResultsList"></div>
+
+
 
             <div
+
                 class="search-empty"
+
                 id="searchEmpty"
+
                 style="display: none;"
+
             >
+
                 No results found.
+
             </div>
 
         </div>
@@ -82,49 +117,83 @@
     </div>
 
 
+
     <!-- Right Section -->
+
     <div class="topbar-right">
 
+
+
         <!-- Notifications -->
+
         <div class="notification-wrapper">
 
             <button
+
                 type="button"
+
                 class="topbar-icon-btn"
+
                 id="notificationButton"
+
                 aria-label="Notifications"
+
+                aria-expanded="false"
+
+                aria-controls="notificationDropdown"
+
                 title="Notifications"
+
             >
-                <span class="topbar-icon">🔔</span>
+
+                <span class="topbar-icon" aria-hidden="true">🔔</span>
+
+
 
                 {% if notification_count|default(0) > 0 %}
-                    <span class="notification-badge">
-                        {{ notification_count }}
-                    </span>
+
+                <span class="notification-badge">
+
+                    {{ notification_count }}
+
+                </span>
+
                 {% endif %}
 
             </button>
 
 
-            <!-- Notification Dropdown -->
+
             <div
+
                 class="notification-dropdown"
+
                 id="notificationDropdown"
+
                 style="display: none;"
+
             >
 
                 <div class="dropdown-header">
 
                     <strong>Notifications</strong>
 
+
+
                     <button
+
                         type="button"
+
                         id="markNotificationsRead"
+
                     >
+
                         Mark all as read
+
                     </button>
 
                 </div>
+
 
 
                 <div class="notification-list">
@@ -133,45 +202,43 @@
 
                         {% for notification in notifications %}
 
-                            <div class="notification-item">
+                        <div class="notification-item">
 
-                                <div class="notification-item-icon">
-                                    {{ notification.icon|default('•') }}
-                                </div>
+                            <div class="notification-item-icon">
 
-                                <div class="notification-item-content">
-
-                                    <strong>
-                                        {{ notification.title }}
-                                    </strong>
-
-                                    <p>
-                                        {{ notification.message }}
-                                    </p>
-
-                                    <small>
-                                        {{ notification.time|default('Recently') }}
-                                    </small>
-
-                                </div>
+                                {{ notification.icon|default('•') }}
 
                             </div>
+
+
+
+                            <div class="notification-item-content">
+
+                                <strong>{{ notification.title }}</strong>
+
+                                <p>{{ notification.message }}</p>
+
+                                <small>
+
+                                    {{ notification.time|default('Recently') }}
+
+                                </small>
+
+                            </div>
+
+                        </div>
 
                         {% endfor %}
 
                     {% else %}
 
-                        <div class="notification-empty">
+                    <div class="notification-empty">
 
-                            <strong>
-                                No new notifications
-                            </strong>
+                        <strong>No new notifications</strong>
 
-                            <p>
-                                You're all caught up.
-                            </p>
+                        <p>You're all caught up.</p>
 
-                        </div>
+                    </div>
 
                     {% endif %}
 
@@ -182,70 +249,87 @@
         </div>
 
 
+
         <!-- User Profile -->
+
         <div class="user-menu-wrapper">
 
             <button
+
                 type="button"
+
                 class="user-menu-button"
+
                 id="userMenuButton"
+
                 aria-label="Open user menu"
+
+                aria-expanded="false"
+
+                aria-controls="userDropdown"
+
             >
 
                 <div class="user-avatar">
 
                     {% if user and user.profile_image %}
 
-                        <img
-                            src="{{ url_for(
-                                'static',
-                                filename=user.profile_image
-                            ) }}"
-                            alt="Profile"
-                        >
+                    <img
+
+                        src="{{ url_for('static', filename=user.profile_image) }}"
+
+                        alt="Profile"
+
+                    >
 
                     {% else %}
 
-                        <span>
-                            {{ user.name[0]|upper
-                               if user and user.name
-                               else 'A' }}
-                        </span>
+                    <span>
+
+                        {{ user.name[0]|upper if user and user.name else 'A' }}
+
+                    </span>
 
                     {% endif %}
 
                 </div>
 
 
+
                 <div class="user-info">
 
                     <strong>
-                        {{ user.name
-                           if user and user.name
-                           else 'Admin' }}
+
+                        {{ user.name if user and user.name else 'Admin' }}
+
                     </strong>
 
                     <span>
-                        {{ user.role
-                           if user and user.role
-                           else 'Administrator' }}
+
+                        {{ user.role|title if user and user.role else 'Administrator' }}
+
                     </span>
 
                 </div>
 
 
-                <span class="user-menu-arrow">
-                    ▼
-                </span>
+
+                <span class="user-menu-arrow" aria-hidden="true">⌄</span>
 
             </button>
 
 
-            <!-- User Dropdown -->
+
+            <!-- Profile Dropdown -->
+
             <div
+
                 class="user-dropdown"
+
                 id="userDropdown"
+
                 style="display: none;"
+
             >
 
                 <div class="user-dropdown-header">
@@ -254,80 +338,109 @@
 
                         {% if user and user.profile_image %}
 
-                            <img
-                                src="{{ url_for(
-                                    'static',
-                                    filename=user.profile_image
-                                ) }}"
-                                alt="Profile"
-                            >
+                        <img
+
+                            src="{{ url_for('static', filename=user.profile_image) }}"
+
+                            alt="Profile"
+
+                        >
 
                         {% else %}
 
-                            <span>
-                                {{ user.name[0]|upper
-                                   if user and user.name
-                                   else 'A' }}
-                            </span>
+                        <span>
+
+                            {{ user.name[0]|upper if user and user.name else 'A' }}
+
+                        </span>
 
                         {% endif %}
 
                     </div>
 
 
-                    <div>
+
+                    <div class="user-dropdown-details">
 
                         <strong>
-                            {{ user.name
-                               if user and user.name
-                               else 'Admin' }}
+
+                            {{ user.name if user and user.name else 'Admin' }}
+
                         </strong>
 
                         <span>
-                            {{ user.email
-                               if user and user.email
-                               else '' }}
+
+                            {{ user.email if user and user.email else '' }}
+
                         </span>
+
+                        <small>
+
+                            {{ user.role|title if user and user.role else 'Administrator' }}
+
+                        </small>
 
                     </div>
 
                 </div>
 
 
+
                 <div class="dropdown-divider"></div>
 
 
-                <!-- Settings -->
+
                 <a
+
                     href="{{ url_for('main.settings') }}"
+
                     class="dropdown-item"
+
                 >
-                    <span>⚙</span>
-                    Settings
+
+                    <span aria-hidden="true">⚙</span>
+
+                    <span>Settings</span>
+
                 </a>
 
 
-                <!-- Activity -->
+
                 <a
+
                     href="{{ url_for('main.activity') }}"
+
                     class="dropdown-item"
+
                 >
-                    <span>◷</span>
-                    Activity
+
+                    <span aria-hidden="true">◷</span>
+
+                    <span>Activity History</span>
+
                 </a>
+
 
 
                 <div class="dropdown-divider"></div>
 
 
-                <!-- Logout -->
-                <a
-                    href="{{ url_for('main.logout') }}"
-                    class="dropdown-item danger-item"
+
+                <form
+                    method="POST"
+                    action="{{ url_for('main.logout') }}"
+                    class="logout-form"
                 >
-                    <span>↪</span>
-                    Logout
-                </a>
+                    {{ csrf_token() }}
+                    <button
+                        type="submit"
+                        class="dropdown-item danger-item"
+                        style="width: 100%; background: transparent; border: 0; text-align: left; cursor: pointer; font-family: inherit;"
+                    >
+                        <span aria-hidden="true">↪</span>
+                        <span>Logout</span>
+                    </button>
+                </form>
 
             </div>
 
@@ -338,544 +451,1140 @@
 </header>
 
 
-<!-- =========================================
-     NAVBAR JAVASCRIPT
-     ========================================= -->
+
+<!-- Navbar Styles -->
+
+<style>
+
+.topbar-left {
+
+    display: flex;
+
+    align-items: center;
+
+    flex: 0 0 auto;
+
+    margin-right: 12px;
+
+}
+
+
+
+.topbar-sidebar-toggle {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    width: 38px;
+
+    height: 38px;
+
+    padding: 0;
+
+    color: #bdbdbd;
+
+    background: transparent;
+
+    border: 1px solid transparent;
+
+    border-radius: 9px;
+
+    cursor: pointer;
+
+    transition:
+
+        color 0.2s ease,
+
+        background 0.2s ease,
+
+        border-color 0.2s ease;
+
+}
+
+
+
+.topbar-sidebar-toggle:hover,
+
+.topbar-sidebar-toggle:focus-visible {
+
+    color: #f47521;
+
+    background: #202020;
+
+    border-color: #333333;
+
+    outline: none;
+
+}
+
+
+
+.sidebar-toggle-icon {
+
+    display: block;
+
+    font-size: 19px;
+
+    line-height: 1;
+
+}
+
+
+
+.topbar {
+
+    min-width: 0;
+
+}
+
+
+
+.topbar-search {
+
+    min-width: 0;
+
+    flex: 1;
+
+}
+
+
+
+.global-search {
+
+    position: relative;
+
+    min-width: 0;
+
+}
+
+
+
+.global-search input {
+
+    width: 100%;
+
+    min-width: 0;
+
+}
+
+
+
+.topbar-right {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: flex-end;
+
+    gap: 12px;
+
+    flex-shrink: 0;
+
+}
+
+
+
+.notification-wrapper,
+
+.user-menu-wrapper {
+
+    position: relative;
+
+}
+
+
+
+.user-menu-button {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
+
+    min-width: 0;
+
+    padding: 7px 10px;
+
+    color: #f5f5f5;
+
+    background: #171717;
+
+    border: 1px solid #2c2c2c;
+
+    border-radius: 12px;
+
+    cursor: pointer;
+
+    transition:
+
+        background 0.2s ease,
+
+        border-color 0.2s ease;
+
+}
+
+
+
+.user-menu-button:hover,
+
+.user-menu-button[aria-expanded="true"] {
+
+    background: #202020;
+
+    border-color: #454545;
+
+}
+
+
+
+.user-avatar {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    flex-shrink: 0;
+
+    width: 36px;
+
+    height: 36px;
+
+    overflow: hidden;
+
+    color: #fff;
+
+    background: #e87932;
+
+    border-radius: 50%;
+
+    font-size: 14px;
+
+    font-weight: 700;
+
+}
+
+
+
+.user-avatar img {
+
+    width: 100%;
+
+    height: 100%;
+
+    object-fit: cover;
+
+}
+
+
+
+.user-info {
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: flex-start;
+
+    min-width: 0;
+
+    gap: 3px;
+
+}
+
+
+
+.user-info strong {
+
+    max-width: 130px;
+
+    overflow: hidden;
+
+    color: #f5f5f5;
+
+    font-size: 12px;
+
+    font-weight: 600;
+
+    text-overflow: ellipsis;
+
+    white-space: nowrap;
+
+}
+
+
+
+.user-info span {
+
+    color: #858585;
+
+    font-size: 10px;
+
+    text-transform: capitalize;
+
+}
+
+
+
+.user-menu-arrow {
+
+    margin-left: 2px;
+
+    color: #969696;
+
+    font-size: 15px;
+
+}
+
+
+
+.user-dropdown {
+
+    position: absolute;
+
+    top: calc(100% + 10px);
+
+    right: 0;
+
+    z-index: 1200;
+
+    width: 260px;
+
+    padding: 8px;
+
+    color: #f5f5f5;
+
+    background: #181818;
+
+    border: 1px solid #303030;
+
+    border-radius: 12px;
+
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
+
+}
+
+
+
+.user-dropdown-header {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 12px;
+
+    padding: 12px 8px;
+
+}
+
+
+
+.user-avatar.large {
+
+    width: 44px;
+
+    height: 44px;
+
+    font-size: 16px;
+
+}
+
+
+
+.user-dropdown-details {
+
+    display: flex;
+
+    flex-direction: column;
+
+    min-width: 0;
+
+    gap: 4px;
+
+}
+
+
+
+.user-dropdown-details strong {
+
+    overflow: hidden;
+
+    color: #fff;
+
+    font-size: 13px;
+
+    text-overflow: ellipsis;
+
+    white-space: nowrap;
+
+}
+
+
+
+.user-dropdown-details span {
+
+    overflow: hidden;
+
+    color: #aaa;
+
+    font-size: 11px;
+
+    text-overflow: ellipsis;
+
+    white-space: nowrap;
+
+}
+
+
+
+.user-dropdown-details small {
+
+    color: #e87932;
+
+    font-size: 10px;
+
+    text-transform: capitalize;
+
+}
+
+
+
+.dropdown-divider {
+
+    height: 1px;
+
+    margin: 5px 0;
+
+    background: #303030;
+
+}
+
+
+
+.user-dropdown .dropdown-item {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 11px;
+
+    padding: 11px 10px;
+
+    color: #d0d0d0;
+
+    border-radius: 7px;
+
+    font-size: 12px;
+
+    text-decoration: none;
+
+    transition:
+
+        background 0.15s ease,
+
+        color 0.15s ease;
+
+}
+
+
+
+.user-dropdown .dropdown-item > span:first-child {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    width: 18px;
+
+    color: #e87932;
+
+}
+
+
+
+.user-dropdown .dropdown-item:hover {
+
+    color: #fff;
+
+    background: #272727;
+
+}
+
+
+
+.user-dropdown .dropdown-item.danger-item,
+
+.user-dropdown .dropdown-item.danger-item > span:first-child {
+
+    color: #ff7777;
+
+}
+
+
+
+.user-dropdown .dropdown-item.danger-item:hover {
+
+    background: rgba(255, 80, 80, 0.09);
+
+}
+
+
+
+@media (max-width: 600px) {
+
+    .topbar-left {
+
+        margin-right: 6px;
+
+    }
+
+
+
+    .topbar-sidebar-toggle {
+
+        width: 34px;
+
+        height: 34px;
+
+    }
+
+
+
+    .user-menu-button {
+
+        gap: 0;
+
+        padding: 5px;
+
+    }
+
+
+
+    .user-info,
+
+    .user-menu-arrow {
+
+        display: none;
+
+    }
+
+
+
+    .user-dropdown {
+
+        width: min(260px, calc(100vw - 24px));
+
+    }
+
+
+
+    .topbar-right {
+
+        gap: 7px;
+
+    }
+
+
+
+    .search-shortcut {
+
+        display: none;
+
+    }
+
+}
+
+</style>
+
+
+
+<!-- Navbar JavaScript -->
 
 <script>
 
 (function () {
 
-    /* =========================================
-       Sidebar Toggle
-       ========================================= */
-
-    function initializeSidebarToggle() {
-
-        const sidebarToggle =
-            document.getElementById("sidebarToggle");
-
-        if (!sidebarToggle) {
-            return;
-        }
-
-        /*
-         * Prevent duplicate event listeners if
-         * this component is initialized again.
-         */
-
-        if (sidebarToggle.dataset.initialized === "true") {
-            return;
-        }
-
-        sidebarToggle.dataset.initialized = "true";
+    "use strict";
 
 
-        sidebarToggle.addEventListener(
-            "click",
-            function (event) {
 
-                event.preventDefault();
-                event.stopPropagation();
+    function initializeNavbar() {
 
+        const searchInput = document.getElementById("globalSearch");
 
-                /*
-                 * Toggle sidebar state.
-                 *
-                 * Closed:
-                 * body does NOT have sidebar-collapsed
-                 *
-                 * Open:
-                 * body HAS sidebar-collapsed
-                 */
+        const resultsPanel = document.getElementById("globalSearchResults");
 
-                const isOpen =
-                    document.body.classList.toggle(
-                        "sidebar-collapsed"
-                    );
+        const resultsList = document.getElementById("searchResultsList");
+
+        const emptyMessage = document.getElementById("searchEmpty");
 
 
-                /*
-                 * Keep accessibility state
-                 * synchronized with the sidebar.
-                 */
 
-                sidebarToggle.setAttribute(
-                    "aria-expanded",
-                    isOpen ? "true" : "false"
-                );
+        const notificationButton =
+
+            document.getElementById("notificationButton");
+
+        const notificationDropdown =
+
+            document.getElementById("notificationDropdown");
+
+        const markReadButton =
+
+            document.getElementById("markNotificationsRead");
+
+
+
+        const userButton = document.getElementById("userMenuButton");
+
+        const userDropdown = document.getElementById("userDropdown");
+
+
+
+        // Global Search
+
+        if (searchInput && searchInput.dataset.initialized !== "true") {
+
+            searchInput.dataset.initialized = "true";
+
+
+
+            let searchTimer = null;
+
+            let activeController = null;
+
+
+
+            function closeSearch() {
+
+                if (resultsPanel) {
+
+                    resultsPanel.style.display = "none";
+
+                }
 
             }
-        );
-
-    }
 
 
-    /*
-     * Initialize immediately when possible.
-     *
-     * This avoids relying only on DOMContentLoaded.
-     */
 
-    if (document.readyState === "loading") {
+            function renderResults(results) {
 
-        document.addEventListener(
-            "DOMContentLoaded",
-            initializeSidebarToggle
-        );
-
-    } else {
-
-        initializeSidebarToggle();
-
-    }
+                resultsList.replaceChildren();
 
 
-    /* =========================================
-       Global Search
-       ========================================= */
 
-    function initializeGlobalSearch() {
+                if (!results.length) {
 
-        const globalSearch =
-            document.getElementById("globalSearch");
+                    emptyMessage.style.display = "block";
 
-        const searchResults =
-            document.getElementById(
-                "globalSearchResults"
-            );
+                    resultsPanel.style.display = "block";
 
-        const searchResultsList =
-            document.getElementById(
-                "searchResultsList"
-            );
+                    return;
 
-        const searchEmpty =
-            document.getElementById(
-                "searchEmpty"
-            );
+                }
 
 
-        if (
-            !globalSearch ||
-            !searchResults ||
-            !searchResultsList ||
-            !searchEmpty
-        ) {
-            return;
-        }
+
+                emptyMessage.style.display = "none";
 
 
-        if (globalSearch.dataset.initialized === "true") {
-            return;
-        }
 
-        globalSearch.dataset.initialized = "true";
+                results.forEach(function (result) {
+
+                    const link = document.createElement("a");
+
+                    link.className = "search-result-item";
+
+                    link.href = result.url || "#";
+
+                    link.setAttribute("role", "option");
 
 
-        globalSearch.addEventListener(
-            "input",
-            function () {
 
-                const query =
-                    globalSearch.value
-                        .trim()
-                        .toLowerCase();
+                    const title = document.createElement("strong");
+
+                    title.textContent = result.title || "Search result";
+
+
+
+                    const subtitle = document.createElement("span");
+
+                    subtitle.textContent = [result.type, result.subtitle]
+
+                        .filter(Boolean)
+
+                        .join(" · ");
+
+
+
+                    link.append(title, subtitle);
+
+                    resultsList.appendChild(link);
+
+                });
+
+
+
+                resultsPanel.style.display = "block";
+
+            }
+
+
+
+            searchInput.addEventListener("input", function () {
+
+                const query = searchInput.value.trim();
+
+
+
+                clearTimeout(searchTimer);
+
+
+
+                if (activeController) {
+
+                    activeController.abort();
+
+                    activeController = null;
+
+                }
+
 
 
                 if (!query) {
 
-                    searchResults.style.display =
-                        "none";
+                    closeSearch();
+
+                    resultsList.replaceChildren();
+
+                    emptyMessage.style.display = "none";
 
                     return;
+
                 }
 
 
-                /*
-                 * Global search will later be connected
-                 * to Flask/MySQL.
-                 *
-                 * For now, this provides the UI state.
-                 */
 
-                searchResults.style.display =
-                    "block";
+                searchTimer = setTimeout(async function () {
+
+                    activeController = new AbortController();
 
 
-                searchResultsList.innerHTML = `
-                    <div class="search-result-item">
-                        <strong>Search</strong>
-                        <span>
-                            Searching for "${query}"
-                        </span>
-                    </div>
-                `;
+
+                    try {
+
+                        const response = await fetch(
+
+                            "/api/search?q=" + encodeURIComponent(query),
+
+                            {
+
+                                headers: { "Accept": "application/json" },
+
+                                signal: activeController.signal
+
+                            }
+
+                        );
 
 
-                searchEmpty.style.display =
-                    "none";
 
-            }
-        );
+                        if (!response.ok) {
+
+                            throw new Error("Search request failed");
+
+                        }
 
 
-        /* Close search with Escape */
 
-        globalSearch.addEventListener(
-            "keydown",
-            function (event) {
+                        const data = await response.json();
+
+
+
+                        if (searchInput.value.trim() !== query) {
+
+                            return;
+
+                        }
+
+
+
+                        if (data.success && Array.isArray(data.results)) {
+
+                            renderResults(data.results);
+
+                        } else {
+
+                            renderResults([]);
+
+                        }
+
+                    } catch (error) {
+
+                        if (error.name !== "AbortError") {
+
+                            resultsList.replaceChildren();
+
+                            emptyMessage.textContent =
+
+                                "Unable to search right now.";
+
+                            emptyMessage.style.display = "block";
+
+                            resultsPanel.style.display = "block";
+
+                        }
+
+                    }
+
+                }, 250);
+
+            });
+
+
+
+            searchInput.addEventListener("keydown", function (event) {
 
                 if (event.key === "Escape") {
 
-                    globalSearch.value = "";
+                    closeSearch();
 
-                    searchResults.style.display =
-                        "none";
+                    searchInput.blur();
 
                 }
 
-            }
-        );
-
-    }
 
 
-    if (document.readyState === "loading") {
+                if (event.key === "Enter") {
 
-        document.addEventListener(
-            "DOMContentLoaded",
-            initializeGlobalSearch
-        );
-
-    } else {
-
-        initializeGlobalSearch();
-
-    }
+                    const firstResult = resultsList.querySelector("a");
 
 
-    /* =========================================
-       Search Shortcut
-       ========================================= */
 
-    document.addEventListener(
-        "keydown",
-        function (event) {
+                    if (firstResult) {
 
-            if (
-                event.key === "/" &&
-                document.activeElement.tagName !== "INPUT" &&
-                document.activeElement.tagName !== "TEXTAREA"
-            ) {
+                        window.location.href = firstResult.href;
 
-                event.preventDefault();
+                    }
 
-
-                const globalSearch =
-                    document.getElementById(
-                        "globalSearch"
-                    );
-
-
-                if (globalSearch) {
-                    globalSearch.focus();
                 }
 
-            }
+            });
 
         }
-    );
 
 
-    /* =========================================
-       Notifications
-       ========================================= */
 
-    function initializeNotifications() {
-
-        const notificationButton =
-            document.getElementById(
-                "notificationButton"
-            );
-
-        const notificationDropdown =
-            document.getElementById(
-                "notificationDropdown"
-            );
-
+        // Notifications Dropdown
 
         if (
-            !notificationButton ||
-            !notificationDropdown
+
+            notificationButton &&
+
+            notificationDropdown &&
+
+            notificationButton.dataset.initialized !== "true"
+
         ) {
-            return;
-        }
+
+            notificationButton.dataset.initialized = "true";
 
 
-        if (
-            notificationButton.dataset.initialized ===
-            "true"
-        ) {
-            return;
-        }
 
-        notificationButton.dataset.initialized =
-            "true";
-
-
-        notificationButton.addEventListener(
-            "click",
-            function (event) {
+            notificationButton.addEventListener("click", function (event) {
 
                 event.stopPropagation();
 
 
-                const isOpen =
-                    notificationDropdown.style.display ===
-                    "block";
+
+                const open =
+
+                    notificationDropdown.style.display !== "block";
 
 
-                notificationDropdown.style.display =
-                    isOpen
-                        ? "none"
-                        : "block";
 
+                notificationDropdown.style.display = open ? "block" : "none";
 
-                const userDropdown =
-                    document.getElementById(
-                        "userDropdown"
-                    );
+                notificationButton.setAttribute("aria-expanded", String(open));
+
 
 
                 if (userDropdown) {
 
-                    userDropdown.style.display =
-                        "none";
+                    userDropdown.style.display = "none";
 
                 }
 
-            }
-        );
-
-    }
 
 
-    if (document.readyState === "loading") {
+                if (userButton) {
 
-        document.addEventListener(
-            "DOMContentLoaded",
-            initializeNotifications
-        );
+                    userButton.setAttribute("aria-expanded", "false");
 
-    } else {
+                }
 
-        initializeNotifications();
-
-    }
+            });
 
 
-    /* =========================================
-       Mark Notifications as Read
-       ========================================= */
 
-    function initializeNotificationRead() {
+            notificationDropdown.addEventListener("click", function (event) {
 
-        const markNotificationsRead =
-            document.getElementById(
-                "markNotificationsRead"
-            );
+                event.stopPropagation();
 
+            });
 
-        if (!markNotificationsRead) {
-            return;
         }
 
+
+
+        // User Profile Dropdown
 
         if (
-            markNotificationsRead.dataset.initialized ===
-            "true"
+
+            userButton &&
+
+            userDropdown &&
+
+            userButton.dataset.initialized !== "true"
+
         ) {
-            return;
-        }
 
-        markNotificationsRead.dataset.initialized =
-            "true";
+            userButton.dataset.initialized = "true";
 
 
-        markNotificationsRead.addEventListener(
-            "click",
-            function (event) {
+
+            userButton.addEventListener("click", function (event) {
 
                 event.stopPropagation();
 
 
-                const badge =
-                    document.querySelector(
-                        ".notification-badge"
-                    );
+
+                const open = userDropdown.style.display !== "block";
 
 
-                if (badge) {
-                    badge.remove();
-                }
 
-            }
-        );
+                userDropdown.style.display = open ? "block" : "none";
 
-    }
+                userButton.setAttribute("aria-expanded", String(open));
 
-
-    if (document.readyState === "loading") {
-
-        document.addEventListener(
-            "DOMContentLoaded",
-            initializeNotificationRead
-        );
-
-    } else {
-
-        initializeNotificationRead();
-
-    }
-
-
-    /* =========================================
-       User Menu
-       ========================================= */
-
-    function initializeUserMenu() {
-
-        const userMenuButton =
-            document.getElementById(
-                "userMenuButton"
-            );
-
-        const userDropdown =
-            document.getElementById(
-                "userDropdown"
-            );
-
-
-        if (
-            !userMenuButton ||
-            !userDropdown
-        ) {
-            return;
-        }
-
-
-        if (
-            userMenuButton.dataset.initialized ===
-            "true"
-        ) {
-            return;
-        }
-
-        userMenuButton.dataset.initialized =
-            "true";
-
-
-        userMenuButton.addEventListener(
-            "click",
-            function (event) {
-
-                event.stopPropagation();
-
-
-                const isOpen =
-                    userDropdown.style.display ===
-                    "block";
-
-
-                userDropdown.style.display =
-                    isOpen
-                        ? "none"
-                        : "block";
-
-
-                const notificationDropdown =
-                    document.getElementById(
-                        "notificationDropdown"
-                    );
 
 
                 if (notificationDropdown) {
 
-                    notificationDropdown.style.display =
-                        "none";
+                    notificationDropdown.style.display = "none";
 
                 }
 
-            }
-        );
+
+
+                if (notificationButton) {
+
+                    notificationButton.setAttribute("aria-expanded", "false");
+
+                }
+
+            });
+
+
+
+            userDropdown.addEventListener("click", function (event) {
+
+                event.stopPropagation();
+
+            });
+
+        }
+
+
+
+        // Mark Notifications as Read
+
+        if (
+
+            markReadButton &&
+
+            markReadButton.dataset.initialized !== "true"
+
+        ) {
+
+            markReadButton.dataset.initialized = "true";
+
+
+
+            markReadButton.addEventListener("click", function (event) {
+
+                event.stopPropagation();
+
+
+
+                const badge = document.querySelector(".notification-badge");
+
+
+
+                if (badge) {
+
+                    badge.remove();
+
+                }
+
+
+
+                if (notificationDropdown) {
+
+                    notificationDropdown
+
+                        .querySelectorAll(".notification-item")
+
+                        .forEach(function (item) {
+
+                            item.classList.add("is-read");
+
+                        });
+
+                }
+
+            });
+
+        }
+
+
+
+        // Close Dropdowns When Clicking Outside
+
+        if (document.body.dataset.navbarOutsideClick !== "true") {
+
+            document.body.dataset.navbarOutsideClick = "true";
+
+
+
+            document.addEventListener("click", function () {
+
+                if (notificationDropdown) {
+
+                    notificationDropdown.style.display = "none";
+
+                }
+
+
+
+                if (notificationButton) {
+
+                    notificationButton.setAttribute("aria-expanded", "false");
+
+                }
+
+
+
+                if (userDropdown) {
+
+                    userDropdown.style.display = "none";
+
+                }
+
+
+
+                if (userButton) {
+
+                    userButton.setAttribute("aria-expanded", "false");
+
+                }
+
+
+
+                if (resultsPanel) {
+
+                    resultsPanel.style.display = "none";
+
+                }
+
+            });
+
+        }
+
+
+
+        // "/" Keyboard Shortcut for Global Search
+
+        if (document.documentElement.dataset.navbarShortcut !== "true") {
+
+            document.documentElement.dataset.navbarShortcut = "true";
+
+
+
+            document.addEventListener("keydown", function (event) {
+
+                const target = event.target;
+
+
+
+                const typing = target &&
+
+                    (
+
+                        target.isContentEditable ||
+
+                        ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)
+
+                    );
+
+
+
+                if (
+
+                    event.key === "/" &&
+
+                    !typing &&
+
+                    !event.ctrlKey &&
+
+                    !event.metaKey &&
+
+                    !event.altKey
+
+                ) {
+
+                    event.preventDefault();
+
+
+
+                    if (searchInput) {
+
+                        searchInput.focus();
+
+                    }
+
+                }
+
+            });
+
+        }
 
     }
+
 
 
     if (document.readyState === "loading") {
 
-        document.addEventListener(
-            "DOMContentLoaded",
-            initializeUserMenu
-        );
+        document.addEventListener("DOMContentLoaded", initializeNavbar, {
+
+            once: true
+
+        });
 
     } else {
 
-        initializeUserMenu();
+        initializeNavbar();
 
     }
-
-
-    /* =========================================
-       Close Dropdowns
-       ========================================= */
-
-    document.addEventListener(
-        "click",
-        function () {
-
-            const notificationDropdown =
-                document.getElementById(
-                    "notificationDropdown"
-                );
-
-            const userDropdown =
-                document.getElementById(
-                    "userDropdown"
-                );
-
-            const searchResults =
-                document.getElementById(
-                    "globalSearchResults"
-                );
-
-
-            if (notificationDropdown) {
-
-                notificationDropdown.style.display =
-                    "none";
-
-            }
-
-
-            if (userDropdown) {
-
-                userDropdown.style.display =
-                    "none";
-
-            }
-
-
-            if (searchResults) {
-
-                searchResults.style.display =
-                    "none";
-
-            }
-
-        }
-    );
 
 })();
 

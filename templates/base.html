@@ -18,6 +18,111 @@
 
 
     <!-- =========================================
+         GLOBAL THEME INITIALIZATION
+         Runs before CSS to prevent theme flashing
+         ========================================= -->
+
+    <script>
+        (function () {
+            "use strict";
+
+            var preference = "dark";
+
+            try {
+                var savedTheme = localStorage.getItem("incraftTheme");
+
+                if (
+                    savedTheme === "dark" ||
+                    savedTheme === "light" ||
+                    savedTheme === "system"
+                ) {
+                    preference = savedTheme;
+                }
+            } catch (error) {
+                // Fall back to dark theme if storage is unavailable.
+            }
+
+            var systemThemeQuery = window.matchMedia
+                ? window.matchMedia("(prefers-color-scheme: light)")
+                : null;
+
+            function applyGlobalTheme() {
+                var effectiveTheme = preference === "system"
+                    ? (
+                        systemThemeQuery && systemThemeQuery.matches
+                            ? "light"
+                            : "dark"
+                    )
+                    : preference;
+
+                document.documentElement.dataset.theme = effectiveTheme;
+                document.documentElement.dataset.themePreference = preference;
+
+                document.documentElement.classList.toggle(
+                    "theme-light",
+                    effectiveTheme === "light"
+                );
+
+                document.documentElement.classList.toggle(
+                    "theme-dark",
+                    effectiveTheme === "dark"
+                );
+            }
+
+            applyGlobalTheme();
+
+            if (systemThemeQuery) {
+                var handleSystemThemeChange = function () {
+                    if (preference === "system") {
+                        applyGlobalTheme();
+                    }
+                };
+
+                if (systemThemeQuery.addEventListener) {
+                    systemThemeQuery.addEventListener(
+                        "change",
+                        handleSystemThemeChange
+                    );
+                } else if (systemThemeQuery.addListener) {
+                    systemThemeQuery.addListener(
+                        handleSystemThemeChange
+                    );
+                }
+            }
+
+            // Keep the active theme synchronized between browser tabs.
+            window.addEventListener("storage", function (event) {
+                if (event.key !== "incraftTheme") {
+                    return;
+                }
+
+                var newPreference = event.newValue;
+
+                preference = (
+                    newPreference === "dark" ||
+                    newPreference === "light" ||
+                    newPreference === "system"
+                )
+                    ? newPreference
+                    : "dark";
+
+                applyGlobalTheme();
+            });
+        })();
+    </script>
+
+
+    <!-- =========================================
+         FONT AWESOME ICONS
+         ========================================= -->
+
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+    >
+
+
+    <!-- =========================================
          GLOBAL CSS
          ========================================= -->
 
@@ -48,6 +153,16 @@
     {% block head %}
     {% endblock %}
 
+
+    <!-- =========================================
+         INCRAFT THEME STYLES
+         ========================================= -->
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/theme.css') }}"
+    >
+
 </head>
 
 
@@ -61,7 +176,6 @@
              ========================================= -->
 
         <div class="auth-layout">
-
 
     {% else %}
 
@@ -81,7 +195,6 @@
                 <!-- Navbar -->
                 {% include 'components/navbar.html' %}
 
-
     {% endif %}
 
 
@@ -96,7 +209,6 @@
     {% if request.endpoint in ['main.login', 'main.register'] %}
 
         </div>
-
 
     {% else %}
 
@@ -116,7 +228,10 @@
     ></script>
 
 
-    <!-- Page-specific JavaScript -->
+    <!-- =========================================
+         PAGE-SPECIFIC JAVASCRIPT
+         ========================================= -->
+
     {% block extra_js %}
     {% endblock %}
 

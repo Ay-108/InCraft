@@ -10,8 +10,25 @@ All database-related operations should go through this module.
 
 import mysql.connector  # pyright: ignore[reportMissingImports]
 from mysql.connector import Error  # pyright: ignore[reportMissingImports]
+from typing import Optional, Tuple, cast
 
 from backend.config import get_database_config
+
+
+def _safe_close_resources(cursor=None, connection=None):
+    """Close database resources without masking the original operation result."""
+    if cursor is not None:
+        try:
+            cursor.close()
+        except Exception as error:
+            print(f"Database cursor cleanup error: {error}")
+
+    if connection is not None:
+        try:
+            if connection.is_connected():
+                connection.close()
+        except Exception as error:
+            print(f"Database connection cleanup error: {error}")
 
 
 # ============================================================
@@ -27,6 +44,7 @@ def get_db_connection():
         A database connection if successful, otherwise None.
     """
 
+    connection = None
     try:
         db_config = get_database_config()
 
@@ -41,9 +59,11 @@ def get_db_connection():
         if connection.is_connected():
             return connection
 
-    except Error as error:
+    except Exception as error:
+        # Connection/configuration details belong in server logs, not responses.
         print(f"Database connection error: {error}")
 
+    _safe_close_resources(connection=connection)
     return None
 
 
@@ -104,11 +124,7 @@ def fetch_one(query, params=None):
         return None
 
     finally:
-        if cursor is not None:
-            cursor.close()
-
-        if connection is not None and connection.is_connected():
-            connection.close()
+        _safe_close_resources(cursor, connection)
 
 
 def fetch_all(query, params=None):
@@ -143,11 +159,7 @@ def fetch_all(query, params=None):
         return []
 
     finally:
-        if cursor is not None:
-            cursor.close()
-
-        if connection is not None and connection.is_connected():
-            connection.close()
+        _safe_close_resources(cursor, connection)
 
 
 # ============================================================
@@ -197,11 +209,7 @@ def execute_query(query, params=None):
         return None
 
     finally:
-        if cursor is not None:
-            cursor.close()
-
-        if connection is not None and connection.is_connected():
-            connection.close()
+        _safe_close_resources(cursor, connection)
 
 
 # ============================================================
@@ -247,48 +255,33 @@ def execute_many(query, data):
         return None
 
     finally:
-        if cursor is not None:
-            cursor.close()
-
-        if connection is not None and connection.is_connected():
-            connection.close()
+        _safe_close_resources(cursor, connection)
 
 
 # ============================================================
 # TRANSACTION SUPPORT
 # ============================================================
 
+
 def execute_transaction(queries):
     """
-    Execute multiple SQL queries as a single transaction.
+    Execute multiple SQL statements as one atomic transaction.
 
-    If any query fails, all changes are rolled back.
+    Each item can be:
+        (query, params)
+        (query, params, expected_rowcount)
 
-    Parameters:
-        queries (list):
-            List of tuples in the form:
-            (query, params)
-
-    Example:
-        queries = [
-            (
-                "INSERT INTO products (...) VALUES (...)",
-                (...)
-            ),
-            (
-                "UPDATE inventory SET ... WHERE ...",
-                (...)
-            )
-        ]
-
-    Returns:
-        bool: True if the transaction succeeds, otherwise False.
+    If expected_rowcount is provided, the transaction is rolled
+    back when the statement affects a different number of rows.
     """
-
     connection = None
     cursor = None
 
     try:
+        if not queries:
+            print("Transaction error: no statements were supplied.")
+            return False
+
         connection = get_db_connection()
 
         if connection is None:
@@ -296,26 +289,43 @@ def execute_transaction(queries):
 
         cursor = connection.cursor()
 
-        for query, params in queries:
+        for item in queries:
+            if len(item) == 2:
+                query, params = item
+                expected_rowcount = None
+            elif len(item) == 3:
+                query, params, expected_rowcount = item
+            else:
+                raise ValueError(
+                    "Each transaction item must contain 2 or 3 elements."
+                )
+
             cursor.execute(query, params or ())
 
-        connection.commit()
+            if (
+                expected_rowcount is not None
+                and cursor.rowcount != expected_rowcount
+            ):
+                raise RuntimeError(
+                    "Transaction aborted: unexpected affected-row count."
+                )
 
+        connection.commit()
         return True
 
-    except Error as error:
+    except Exception as error:
         if connection is not None:
-            connection.rollback()
+            try:
+                connection.rollback()
+            except Error as rollback_error:
+                print(f"Transaction rollback error: {rollback_error}")
 
         print(f"Transaction error: {error}")
         return False
 
     finally:
-        if cursor is not None:
-            cursor.close()
+        _safe_close_resources(cursor, connection)
 
-        if connection is not None and connection.is_connected():
-            connection.close()
 
 
 # ============================================================
@@ -359,11 +369,7 @@ def get_last_inserted_id(query, params=None):
         return None
 
     finally:
-        if cursor is not None:
-            cursor.close()
-
-        if connection is not None and connection.is_connected():
-            connection.close()
+        _safe_close_resources(cursor, connection)
 
 
 def record_exists(query, params=None):
@@ -388,13 +394,7 @@ def record_exists(query, params=None):
 # ============================================================
 
 def get_database_status():
-    """
-    Return basic database connection status.
-
-    Returns:
-        dict: Database status information.
-    """
-
+    """Return basic database connection status without exposing internals."""
     connection = get_db_connection()
 
     if connection is None:
@@ -403,15 +403,12 @@ def get_database_status():
             "message": "Unable to connect to database."
         }
 
+    cursor = None
     try:
         cursor = connection.cursor()
-
         cursor.execute("SELECT DATABASE()")
-
-        database_name = cursor.fetchone()[0]
-
-        cursor.close()
-        connection.close()
+        database_row = cast(Optional[Tuple[object, ...]], cursor.fetchone())
+        database_name = database_row[0] if database_row is not None else None
 
         return {
             "connected": True,
@@ -419,14 +416,15 @@ def get_database_status():
             "message": "Database connection successful."
         }
 
-    except Error as error:
-        if connection.is_connected():
-            connection.close()
-
+    except Exception as error:
+        print(f"Database status probe failed: {error}")
         return {
             "connected": False,
-            "message": str(error)
+            "message": "Database status is unavailable."
         }
+
+    finally:
+        _safe_close_resources(cursor, connection)
 
 
 # ============================================================

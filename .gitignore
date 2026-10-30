@@ -33,3 +33,5 @@ Thumbs.db
 
 # Database dumps / local database files
 *.sql.bak
+backups/
+*.bak

@@ -1,53 +1,142 @@
 {% extends "base.html" %}
 
+
 {% block title %}
 Activity | InCraft
 {% endblock %}
 
+
+{% block extra_css %}
+
+<link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/activity.css') }}"
+>
+
+{% endblock %}
+
+
 {% block content %}
 
-<main class="main-content">
+<main class="main-content activity-page">
 
-    <!-- Page Header -->
-    <section class="page-header">
+    {# =========================================================
+       CALCULATE ACTIVITY SUMMARY
+       ========================================================= #}
 
-        <div class="page-header-content">
+    {% set ns = namespace(
+        total=0,
+        products=0,
+        sales=0,
+        system=0,
+        users=[]
+    ) %}
 
-            <div class="page-eyebrow">
-                ACTIVITY HISTORY
+
+    {% if activities %}
+
+        {% set ns.total = activities|length %}
+
+
+        {% for activity in activities %}
+
+            {% set entity_type =
+                activity.entity_type|default('SYSTEM')|upper
+            %}
+
+
+            {% if entity_type == 'PRODUCT' %}
+
+                {% set ns.products = ns.products + 1 %}
+
+            {% elif entity_type in ['SALE', 'SALES'] %}
+
+                {% set ns.sales = ns.sales + 1 %}
+
+            {% else %}
+
+                {% set ns.system = ns.system + 1 %}
+
+            {% endif %}
+
+
+            {% if activity.username
+                and activity.username not in ns.users %}
+
+                {% set ns.users =
+                    ns.users + [activity.username]
+                %}
+
+            {% endif %}
+
+        {% endfor %}
+
+    {% endif %}
+
+
+    <!-- =====================================================
+         PAGE HEADER
+         ===================================================== -->
+
+    <section class="activity-header">
+
+        <div class="activity-header-content">
+
+            <div class="activity-header-text">
+
+                <div class="activity-eyebrow">
+                    ACTIVITY HISTORY
+                </div>
+
+                <h1>
+                    Activity
+                </h1>
+
+                <p>
+                    Track inventory, sales and system events.
+                </p>
+
             </div>
 
-            <h1>
-                Activity
-            </h1>
 
-            <p>
-                Track inventory, sales and system events.
-            </p>
+            <div class="activity-header-actions">
 
-        </div>
+                <button
+                    type="button"
+                    class="activity-export-btn"
+                    id="exportActivityBtn"
+                >
 
-        <div class="page-header-actions">
+                    <span class="export-icon">
+                        ↓
+                    </span>
 
-            <button
-                type="button"
-                class="btn btn-secondary"
-                id="exportActivityBtn"
-            >
-                Export Activity Log
-            </button>
+                    <span>
+                        Export Activity Log
+                    </span>
+
+                </button>
+
+            </div>
 
         </div>
 
     </section>
 
 
-    <!-- Search and Filters -->
-    <section class="dashboard-card activity-filter-card">
+    <!-- =====================================================
+         FILTER PANEL
+         ===================================================== -->
 
-        <div class="card-header">
+    <section class="activity-filter-panel">
 
-            <div>
+        <div class="panel-header">
+
+            <div class="panel-heading">
+
+                <span class="panel-eyebrow">
+                    ACTIVITY LOG
+                </span>
 
                 <h2>
                     Activity Filters
@@ -64,246 +153,332 @@ Activity | InCraft
 
         <div class="activity-filters">
 
-            <!-- Search -->
-            <div class="inventory-search">
 
-                <span class="search-icon">
+            <!-- SEARCH -->
+
+            <div class="activity-search">
+
+                <span
+                    class="search-icon"
+                    aria-hidden="true"
+                >
                     ⌕
                 </span>
+
 
                 <input
                     type="search"
                     id="activitySearch"
                     placeholder="Search activity..."
                     autocomplete="off"
+                    aria-label="Search activity"
                 >
 
             </div>
 
 
-            <!-- Date -->
-            <select id="activityDateFilter">
+            <!-- DATE -->
 
-                <option value="">
+            <div class="filter-field">
+
+                <label for="activityDateFilter">
                     Date
-                </option>
-
-                <option value="today">
-                    Today
-                </option>
-
-                <option value="yesterday">
-                    Yesterday
-                </option>
-
-                <option value="week">
-                    This Week
-                </option>
-
-                <option value="month">
-                    This Month
-                </option>
-
-            </select>
+                </label>
 
 
-            <!-- Type -->
-            <select id="activityTypeFilter">
+                <select id="activityDateFilter">
 
-                <option value="">
+                    <option value="">
+                        All Dates
+                    </option>
+
+                    <option value="today">
+                        Today
+                    </option>
+
+                    <option value="yesterday">
+                        Yesterday
+                    </option>
+
+                    <option value="week">
+                        This Week
+                    </option>
+
+                    <option value="month">
+                        This Month
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <!-- TYPE -->
+
+            <div class="filter-field">
+
+                <label for="activityTypeFilter">
                     Type
-                </option>
-
-                <option value="product">
-                    Product
-                </option>
-
-                <option value="sale">
-                    Sale
-                </option>
-
-                <option value="inventory">
-                    Inventory
-                </option>
-
-                <option value="system">
-                    System
-                </option>
-
-            </select>
+                </label>
 
 
-            <!-- User -->
-            <select id="activityUserFilter">
+                <select id="activityTypeFilter">
 
-                <option value="">
+                    <option value="">
+                        All Types
+                    </option>
+
+                    <option value="product">
+                        Product
+                    </option>
+
+                    <option value="sale">
+                        Sale
+                    </option>
+
+                    <option value="inventory">
+                        Inventory
+                    </option>
+
+                    <option value="user">
+                        User
+                    </option>
+
+                    <option value="system">
+                        System
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <!-- USER -->
+
+            <div class="filter-field">
+
+                <label for="activityUserFilter">
                     User
-                </option>
+                </label>
 
-                {% if users %}
 
-                    {% for user in users %}
+                <select id="activityUserFilter">
 
-                        <option
-                            value="{{ user.user_id|default(user.id|default('')) }}"
-                        >
-                            {{ user.name|default('User') }}
+                    <option value="">
+                        All Users
+                    </option>
+
+
+                    {% for username in ns.users %}
+
+                        <option value="{{ username }}">
+                            {{ username }}
                         </option>
 
                     {% endfor %}
 
-                {% else %}
+                </select>
 
-                    <option value="admin">
-                        Admin
+            </div>
+
+
+            <!-- ACTION -->
+
+            <div class="filter-field">
+
+                <label for="activityActionFilter">
+                    Action
+                </label>
+
+
+                <select id="activityActionFilter">
+
+                    <option value="">
+                        All Actions
                     </option>
 
-                {% endif %}
+                    <option value="login">
+                        Login
+                    </option>
 
-            </select>
+                    <option value="logout">
+                        Logout
+                    </option>
 
+                    <option value="create">
+                        Create
+                    </option>
 
-            <!-- Status -->
-            <select id="activityStatusFilter">
+                    <option value="add">
+                        Add
+                    </option>
 
-                <option value="">
-                    Status
-                </option>
+                    <option value="update">
+                        Update
+                    </option>
 
-                <option value="success">
-                    Success
-                </option>
+                    <option value="edit">
+                        Edit
+                    </option>
 
-                <option value="warning">
-                    Warning
-                </option>
+                    <option value="delete">
+                        Delete
+                    </option>
 
-                <option value="error">
-                    Error
-                </option>
+                    <option value="sale">
+                        Sale
+                    </option>
 
-            </select>
+                </select>
+
+            </div>
 
         </div>
 
     </section>
 
 
-    <!-- Activity Summary -->
-    <section class="dashboard-stats">
+    <!-- =====================================================
+         SUMMARY CARDS
+         ===================================================== -->
 
-        <!-- Total Activities -->
-        <div class="stat-card">
+    <section class="activity-stats-grid">
 
-            <div class="stat-card-header">
 
-                <span class="stat-title">
+        <!-- TOTAL -->
+
+        <article class="activity-stat-card">
+
+            <div class="stat-card-top">
+
+                <div class="stat-card-icon total">
+                    #
+                </div>
+
+                <span class="stat-card-label">
                     Total Activities
                 </span>
 
-                <span class="stat-icon">
-                    #
-                </span>
-
             </div>
 
-            <div class="stat-value">
-                {{ total_activities|default(0) }}
+
+            <div class="stat-card-value">
+                {{ ns.total }}
             </div>
 
-            <div class="stat-footer">
+
+            <div class="stat-card-meta">
                 Recorded events
             </div>
 
-        </div>
+        </article>
 
 
-        <!-- Product Events -->
-        <div class="stat-card">
+        <!-- PRODUCT -->
 
-            <div class="stat-card-header">
+        <article class="activity-stat-card">
 
-                <span class="stat-title">
+            <div class="stat-card-top">
+
+                <div class="stat-card-icon product">
+                    📦
+                </div>
+
+                <span class="stat-card-label">
                     Product Events
                 </span>
 
-                <span class="stat-icon">
-                    📦
-                </span>
-
             </div>
 
-            <div class="stat-value">
-                {{ product_activities|default(0) }}
+
+            <div class="stat-card-value">
+                {{ ns.products }}
             </div>
 
-            <div class="stat-footer">
+
+            <div class="stat-card-meta">
                 Inventory changes
             </div>
 
-        </div>
+        </article>
 
 
-        <!-- Sales Events -->
-        <div class="stat-card">
+        <!-- SALES -->
 
-            <div class="stat-card-header">
+        <article class="activity-stat-card">
 
-                <span class="stat-title">
+            <div class="stat-card-top">
+
+                <div class="stat-card-icon sales">
+                    ₹
+                </div>
+
+                <span class="stat-card-label">
                     Sales Events
                 </span>
 
-                <span class="stat-icon">
-                    ₹
-                </span>
-
             </div>
 
-            <div class="stat-value">
-                {{ sales_activities|default(0) }}
+
+            <div class="stat-card-value">
+                {{ ns.sales }}
             </div>
 
-            <div class="stat-footer">
+
+            <div class="stat-card-meta">
                 Transaction activity
             </div>
 
-        </div>
+        </article>
 
 
-        <!-- System Events -->
-        <div class="stat-card">
+        <!-- SYSTEM -->
 
-            <div class="stat-card-header">
+        <article class="activity-stat-card">
 
-                <span class="stat-title">
+            <div class="stat-card-top">
+
+                <div class="stat-card-icon system">
+                    ⚙
+                </div>
+
+                <span class="stat-card-label">
                     System Events
                 </span>
 
-                <span class="stat-icon">
-                    ⚙
-                </span>
-
             </div>
 
-            <div class="stat-value">
-                {{ system_activities|default(0) }}
+
+            <div class="stat-card-value">
+                {{ ns.system }}
             </div>
 
-            <div class="stat-footer">
-                System activity
+
+            <div class="stat-card-meta">
+                Authentication & system activity
             </div>
 
-        </div>
+        </article>
 
     </section>
 
 
-    <!-- Activity Timeline -->
-    <section class="dashboard-card activity-card">
+    <!-- =====================================================
+         ACTIVITY TIMELINE
+         ===================================================== -->
 
-        <div class="card-header">
+    <section class="activity-panel">
+
+
+        <!-- PANEL HEADER -->
+
+        <div class="activity-panel-header">
 
             <div>
+
+                <span class="panel-eyebrow">
+                    RECENT EVENTS
+                </span>
 
                 <h2>
                     Activity Timeline
@@ -315,142 +490,226 @@ Activity | InCraft
 
             </div>
 
-            <span class="product-count">
 
-                <span id="activityCount">
-                    {{ activities|length if activities else 0 }}
+            <div class="activity-count">
+
+                <strong id="activityCount">
+                    {{ ns.total }}
+                </strong>
+
+                <span>
+                    activities
                 </span>
 
-                activities
-
-            </span>
+            </div>
 
         </div>
 
 
-        <!-- Timeline -->
+        <!-- TIMELINE -->
+
         <div
             class="activity-timeline"
             id="activityTimeline"
         >
 
+
             {% if activities %}
+
 
                 {% for activity in activities %}
 
-                    {% set activity_type =
-                        activity.type|default('system')|lower
+                    {% set entity_type =
+                        activity.entity_type|default('SYSTEM')|upper
                     %}
 
-                    {% set activity_status =
-                        activity.status|default('success')|lower
+                    {% set action =
+                        activity.action|default('ACTIVITY')|upper
                     %}
+
+
+                    {% if entity_type == 'PRODUCT' %}
+
+                        {% set activity_type = 'product' %}
+
+                    {% elif entity_type in ['SALE', 'SALES'] %}
+
+                        {% set activity_type = 'sale' %}
+
+                    {% elif entity_type == 'USER' %}
+
+                        {% set activity_type = 'user' %}
+
+                    {% elif entity_type in [
+                        'INVENTORY',
+                        'STOCK'
+                    ] %}
+
+                        {% set activity_type = 'inventory' %}
+
+                    {% else %}
+
+                        {% set activity_type = 'system' %}
+
+                    {% endif %}
+
 
                     <article
                         class="timeline-item"
-
+                        data-id="{{ activity.activity_id|default('') }}"
                         data-type="{{ activity_type }}"
-
-                        data-status="{{ activity_status }}"
-
-                        data-user="{{ activity.user_id|default(activity.user_id|default('')) }}"
-
+                        data-action="{{ action|lower }}"
+                        data-user="{{ activity.username|default('')|lower }}"
                         data-search="{{
                             (
-                                activity.title|default('') ~ ' ' ~
+                                activity.action|default('') ~ ' ' ~
+                                activity.entity_type|default('') ~ ' ' ~
                                 activity.description|default('') ~ ' ' ~
-                                activity.user_name|default('')
+                                activity.username|default('')
                             )|lower
+                        }}"
+                        data-date="{{
+                            activity.created_at.isoformat()
+                            if activity.created_at
+                            else ''
                         }}"
                     >
 
-                        <!-- Timeline Marker -->
-                        <div class="timeline-marker">
 
-                            {% if activity_type == 'sale' %}
+                        <!-- TIMELINE ICON -->
 
-                                ₹
+                        <div class="timeline-indicator">
 
-                            {% elif activity_type == 'product' %}
+                            <div class="timeline-icon">
 
-                                📦
 
-                            {% elif activity_type == 'inventory' %}
+                                {% if activity_type == 'product' %}
 
-                                #
+                                    📦
 
-                            {% else %}
+                                {% elif activity_type == 'sale' %}
 
-                                •
+                                    ₹
 
-                            {% endif %}
+                                {% elif activity_type == 'inventory' %}
+
+                                    #
+
+                                {% elif activity_type == 'user' %}
+
+                                    ●
+
+                                {% else %}
+
+                                    ⚙
+
+                                {% endif %}
+
+
+                            </div>
 
                         </div>
 
 
-                        <!-- Timeline Content -->
+                        <!-- TIMELINE CONTENT -->
+
                         <div class="timeline-content">
 
-                            <div class="timeline-header">
 
-                                <div>
+                            <div class="timeline-main">
+
+                                <div class="timeline-title-group">
+
 
                                     <h3>
-                                        {{ activity.title|default('Activity') }}
+
+                                        {{ activity.action|default(
+                                            'Activity'
+                                        )|replace('_', ' ')|title }}
+
                                     </h3>
 
+
                                     <p>
-                                        {{ activity.description|default('No description available.') }}
+
+                                        {{ activity.description|default(
+                                            'No description available.'
+                                        ) }}
+
                                     </p>
 
                                 </div>
 
-                                <time>
-                                    {{ activity.time|default('Recently') }}
+
+                                <time class="timeline-time">
+
+                                    {% if activity.created_at %}
+
+                                        {{ activity.created_at.strftime(
+                                            '%d %b %Y, %I:%M %p'
+                                        ) }}
+
+                                    {% else %}
+
+                                        Recently
+
+                                    {% endif %}
+
                                 </time>
 
                             </div>
 
 
-                            <div class="timeline-meta">
-
-                                {% if activity.user_name %}
-
-                                    <span>
-                                        By {{ activity.user_name }}
-                                    </span>
-
-                                {% endif %}
+                            <div class="timeline-footer">
 
 
-                                {% if activity_type %}
+                                <div class="timeline-meta">
+
+
+                                    {% if activity.username %}
+
+                                        <span class="timeline-user">
+
+                                            By
+                                            {{ activity.username }}
+
+                                        </span>
+
+                                    {% endif %}
+
 
                                     <span class="activity-type">
-                                        {{ activity_type|capitalize }}
+
+                                        {{ entity_type|replace(
+                                            '_',
+                                            ' '
+                                        )|title }}
+
                                     </span>
 
-                                {% endif %}
+
+                                    {% if activity.entity_id %}
+
+                                        <span class="activity-reference">
+
+                                            ID:
+                                            {{ activity.entity_id }}
+
+                                        </span>
+
+                                    {% endif %}
 
 
-                                {% if activity_status == 'success' %}
+                                </div>
+
+
+                                <div class="timeline-status">
 
                                     <span class="status-badge success">
                                         Success
                                     </span>
 
-                                {% elif activity_status == 'warning' %}
-
-                                    <span class="status-badge warning">
-                                        Warning
-                                    </span>
-
-                                {% else %}
-
-                                    <span class="status-badge danger">
-                                        Error
-                                    </span>
-
-                                {% endif %}
+                                </div>
 
                             </div>
 
@@ -463,7 +722,9 @@ Activity | InCraft
 
             {% else %}
 
-                <!-- Empty State -->
+
+                <!-- EMPTY STATE -->
+
                 <div class="empty-state">
 
                     <div class="empty-state-icon">
@@ -481,10 +742,12 @@ Activity | InCraft
 
                 </div>
 
+
             {% endif %}
 
 
-            <!-- No Search Results -->
+            <!-- NO FILTER RESULTS -->
+
             <div
                 class="empty-state"
                 id="noActivityResults"
@@ -500,16 +763,18 @@ Activity | InCraft
                 </h3>
 
                 <p>
-                    Try a different search term or filter.
+                    Try changing your search or filter options.
                 </p>
 
             </div>
 
+
         </div>
 
 
-        <!-- Pagination -->
-        <div class="pagination">
+        <!-- PAGINATION -->
+
+        <div class="activity-pagination">
 
             <button
                 type="button"
@@ -517,15 +782,19 @@ Activity | InCraft
                 id="previousActivityPage"
                 disabled
             >
-                Previous
+                ← Previous
             </button>
 
 
-            <div class="pagination-pages">
+            <div
+                class="pagination-pages"
+                id="activityPaginationPages"
+            >
 
                 <button
                     type="button"
                     class="pagination-page active"
+                    data-page="1"
                 >
                     1
                 </button>
@@ -539,7 +808,7 @@ Activity | InCraft
                 id="nextActivityPage"
                 disabled
             >
-                Next
+                Next →
             </button>
 
         </div>
@@ -547,12 +816,22 @@ Activity | InCraft
     </section>
 
 
-    <!-- Activity Table -->
-    <section class="dashboard-card activity-table-card">
+    <!-- =====================================================
+         DETAILED ACTIVITY TABLE
+         ===================================================== -->
 
-        <div class="card-header">
+    <section class="activity-table-panel">
+
+
+        <!-- HEADER -->
+
+        <div class="activity-panel-header">
 
             <div>
+
+                <span class="panel-eyebrow">
+                    DETAILED RECORD
+                </span>
 
                 <h2>
                     Activity Log
@@ -567,16 +846,18 @@ Activity | InCraft
         </div>
 
 
-        <div class="table-container">
+        <!-- TABLE -->
 
-            <table class="data-table">
+        <div class="activity-table-wrapper">
+
+            <table class="activity-table">
 
                 <thead>
 
                     <tr>
 
                         <th>
-                            Date & Time
+                            Date &amp; Time
                         </th>
 
                         <th>
@@ -602,69 +883,146 @@ Activity | InCraft
 
                 <tbody id="activityTableBody">
 
+
                     {% if activities %}
+
 
                         {% for activity in activities %}
 
-                            {% set activity_status =
-                                activity.status|default('success')|lower
+                            {% set entity_type =
+                                activity.entity_type
+                                |default('SYSTEM')
+                                |upper
                             %}
 
-                            <tr>
 
-                                <td>
-                                    {{ activity.time|default('Recently') }}
-                                </td>
-
-
-                                <td>
-
-                                    <strong>
-                                        {{ activity.title|default('Activity') }}
-                                    </strong>
-
-                                    <br>
-
-                                    <small>
-                                        {{ activity.description|default('') }}
-                                    </small>
-
-                                </td>
-
-
-                                <td>
-                                    {{ activity.type|default('System')|capitalize }}
-                                </td>
-
-
-                                <td>
-                                    {{ activity.user_name|default('System') }}
-                                </td>
+                            <tr
+                                data-type="{{ entity_type|lower }}"
+                                data-action="{{
+                                    activity.action
+                                    |default('')
+                                    |lower
+                                }}"
+                                data-user="{{
+                                    activity.username
+                                    |default('')
+                                    |lower
+                                }}"
+                                data-search="{{
+                                    (
+                                        activity.action|default('') ~ ' ' ~
+                                        activity.entity_type|default('') ~ ' ' ~
+                                        activity.description|default('') ~ ' ' ~
+                                        activity.username|default('')
+                                    )|lower
+                                }}"
+                                data-date="{{
+                                    activity.created_at.isoformat()
+                                    if activity.created_at
+                                    else ''
+                                }}"
+                            >
 
 
-                                <td>
+                                <!-- DATE -->
 
-                                    {% if activity_status == 'success' %}
+                                <td class="activity-date">
 
-                                        <span class="status-badge success">
-                                            Success
-                                        </span>
+                                    {% if activity.created_at %}
 
-                                    {% elif activity_status == 'warning' %}
-
-                                        <span class="status-badge warning">
-                                            Warning
-                                        </span>
+                                        {{ activity.created_at.strftime(
+                                            '%d %b %Y, %I:%M %p'
+                                        ) }}
 
                                     {% else %}
 
-                                        <span class="status-badge danger">
-                                            Error
-                                        </span>
+                                        Recently
 
                                     {% endif %}
 
                                 </td>
+
+
+                                <!-- ACTIVITY -->
+
+                                <td class="activity-description">
+
+                                    <strong>
+
+                                        {{ activity.action|default(
+                                            'Activity'
+                                        )|replace('_', ' ')|title }}
+
+                                    </strong>
+
+
+                                    <span>
+
+                                        {{ activity.description|default(
+                                            ''
+                                        ) }}
+
+                                    </span>
+
+                                </td>
+
+
+                                <!-- TYPE -->
+
+                                <td>
+
+                                    <span class="table-type">
+
+                                        {{ entity_type
+                                            |replace('_', ' ')
+                                            |title }}
+
+                                    </span>
+
+                                </td>
+
+
+                                <!-- USER -->
+
+                                <td>
+
+                                    <div class="activity-user">
+
+                                        <div class="activity-user-avatar">
+
+                                            {{
+                                                activity.username
+                                                |default('S')
+                                                |first
+                                                |upper
+                                            }}
+
+                                        </div>
+
+
+                                        <span class="table-user">
+
+                                            {{ activity.username|default(
+                                                'System'
+                                            ) }}
+
+                                        </span>
+
+                                    </div>
+
+                                </td>
+
+
+                                <!-- STATUS -->
+
+                                <td>
+
+                                    <span class="status-badge success">
+                                        Success
+                                    </span>
+
+                                </td>
+
 
                             </tr>
 
@@ -672,6 +1030,7 @@ Activity | InCraft
 
 
                     {% else %}
+
 
                         <tr>
 
@@ -701,7 +1060,9 @@ Activity | InCraft
 
                         </tr>
 
+
                     {% endif %}
+
 
                 </tbody>
 
@@ -710,6 +1071,7 @@ Activity | InCraft
         </div>
 
     </section>
+
 
 </main>
 
@@ -721,277 +1083,5 @@ Activity | InCraft
 <script
     src="{{ url_for('static', filename='js/activity.js') }}"
 ></script>
-
-
-<script>
-
-document.addEventListener(
-    "DOMContentLoaded",
-    function () {
-
-        /* Elements */
-
-        const searchInput =
-            document.getElementById(
-                "activitySearch"
-            );
-
-
-        const dateFilter =
-            document.getElementById(
-                "activityDateFilter"
-            );
-
-
-        const typeFilter =
-            document.getElementById(
-                "activityTypeFilter"
-            );
-
-
-        const userFilter =
-            document.getElementById(
-                "activityUserFilter"
-            );
-
-
-        const statusFilter =
-            document.getElementById(
-                "activityStatusFilter"
-            );
-
-
-        const noResults =
-            document.getElementById(
-                "noActivityResults"
-            );
-
-
-        const exportButton =
-            document.getElementById(
-                "exportActivityBtn"
-            );
-
-
-        /* Filter Activities */
-
-        function filterActivities() {
-
-            const search =
-                searchInput
-                    ? searchInput.value
-                        .toLowerCase()
-                        .trim()
-                    : "";
-
-
-            const type =
-                typeFilter
-                    ? typeFilter.value
-                        .toLowerCase()
-                    : "";
-
-
-            const user =
-                userFilter
-                    ? userFilter.value
-                    : "";
-
-
-            const status =
-                statusFilter
-                    ? statusFilter.value
-                        .toLowerCase()
-                    : "";
-
-
-            const timelineItems =
-                document.querySelectorAll(
-                    ".timeline-item"
-                );
-
-
-            let visibleCount = 0;
-
-
-            timelineItems.forEach(
-                function (item) {
-
-                    const itemSearch =
-                        item.dataset.search || "";
-
-
-                    const itemType =
-                        item.dataset.type || "";
-
-
-                    const itemUser =
-                        item.dataset.user || "";
-
-
-                    const itemStatus =
-                        item.dataset.status || "";
-
-
-                    const matchesSearch =
-                        !search ||
-                        itemSearch.includes(search);
-
-
-                    const matchesType =
-                        !type ||
-                        itemType === type;
-
-
-                    const matchesUser =
-                        !user ||
-                        itemUser === user;
-
-
-                    const matchesStatus =
-                        !status ||
-                        itemStatus === status;
-
-
-                    const visible =
-                        matchesSearch &&
-                        matchesType &&
-                        matchesUser &&
-                        matchesStatus;
-
-
-                    item.style.display =
-                        visible
-                            ? ""
-                            : "none";
-
-
-                    if (visible) {
-                        visibleCount++;
-                    }
-
-                }
-            );
-
-
-            if (noResults) {
-
-                noResults.style.display =
-                    visibleCount === 0 &&
-                    timelineItems.length > 0
-                        ? "block"
-                        : "none";
-
-            }
-
-
-            const activityCount =
-                document.getElementById(
-                    "activityCount"
-                );
-
-
-            if (activityCount) {
-
-                activityCount.textContent =
-                    visibleCount;
-
-            }
-
-        }
-
-
-        /* Event Listeners */
-
-        if (searchInput) {
-
-            searchInput.addEventListener(
-                "input",
-                filterActivities
-            );
-
-        }
-
-
-        if (typeFilter) {
-
-            typeFilter.addEventListener(
-                "change",
-                filterActivities
-            );
-
-        }
-
-
-        if (userFilter) {
-
-            userFilter.addEventListener(
-                "change",
-                filterActivities
-            );
-
-        }
-
-
-        if (statusFilter) {
-
-            statusFilter.addEventListener(
-                "change",
-                filterActivities
-            );
-
-        }
-
-
-        if (dateFilter) {
-
-            dateFilter.addEventListener(
-                "change",
-                function () {
-
-                    /*
-                     * Date filtering will be connected
-                     * to Flask/MySQL during backend
-                     * integration.
-                     */
-
-                    filterActivities();
-
-                }
-            );
-
-        }
-
-
-        /* Export */
-
-        if (exportButton) {
-
-            exportButton.addEventListener(
-                "click",
-                function () {
-
-                    /*
-                     * Export endpoint will be connected
-                     * during backend integration.
-                     */
-
-                    window.print();
-
-                }
-            );
-
-        }
-
-
-        /* Initial Filter State */
-
-        filterActivities();
-
-    }
-
-);
-
-</script>
 
 {% endblock %}

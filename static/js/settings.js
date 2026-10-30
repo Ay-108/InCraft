@@ -1,959 +1,1041 @@
-/* =========================================
+
+/* =========================================================
    InCraft — Settings JavaScript
-   static/js/settings.js
-   ========================================= */
+   File: static/js/settings.js
+
+   Features:
+   - Settings tab navigation
+   - Remember last selected tab
+   - Password visibility and strength validation
+   - Password confirmation validation
+   - Profile photo preview
+   - Theme preferences
+   - Compact sidebar and table preferences
+   - Notification preferences
+   - Inventory preferences
+   - Account and system preferences
+   - Save feedback
+   - Delete-account confirmation dialog
+
+   NOTE:
+   Browser preferences are saved in localStorage.
+   Profile and password changes require a working Flask
+   backend route at main.settings.
+   ========================================================= */
 
 document.addEventListener("DOMContentLoaded", function () {
+    "use strict";
 
-    /* =========================================
-       1. SETTINGS NAVIGATION
-       ========================================= */
+    /* =====================================================
+       HELPERS
+       ===================================================== */
 
-    const navItems =
-        document.querySelectorAll(
-            ".settings-nav-item"
-        );
+    const $ = (selector, parent = document) =>
+        parent.querySelector(selector);
 
-    const sections =
-        document.querySelectorAll(
-            ".settings-section"
-        );
+    const $$ = (selector, parent = document) =>
+        Array.from(parent.querySelectorAll(selector));
 
-
-    navItems.forEach(
-        function (item) {
-
-            item.addEventListener(
-                "click",
-                function () {
-
-                    const target =
-                        item.dataset.section;
-
-
-                    /* Remove active state */
-
-                    navItems.forEach(
-                        function (nav) {
-
-                            nav.classList.remove(
-                                "active"
-                            );
-
-                        }
-                    );
-
-
-                    sections.forEach(
-                        function (section) {
-
-                            section.classList.remove(
-                                "active"
-                            );
-
-                        }
-                    );
-
-
-                    /* Activate selected section */
-
-                    item.classList.add(
-                        "active"
-                    );
-
-
-                    const targetSection =
-                        document.getElementById(
-                            target
-                        );
-
-
-                    if (targetSection) {
-
-                        targetSection.classList.add(
-                            "active"
-                        );
-
-                    }
-
-
-                    /* Save selected section */
-
-                    try {
-
-                        localStorage.setItem(
-                            "incraftSettingsSection",
-                            target
-                        );
-
-                    } catch (error) {
-
-                        console.log(
-                            "Settings tab could not be saved."
-                        );
-
-                    }
-
-                }
-            );
-
+    function readStorage(key, fallback = null) {
+        try {
+            const value = localStorage.getItem(key);
+            return value === null ? fallback : value;
+        } catch (error) {
+            console.warn(`Unable to read preference: ${key}`, error);
+            return fallback;
         }
+    }
+
+    function writeStorage(key, value) {
+        try {
+            localStorage.setItem(key, value);
+            return true;
+        } catch (error) {
+            console.warn(`Unable to save preference: ${key}`, error);
+            return false;
+        }
+    }
+
+    function readJSON(key, fallback = {}) {
+        try {
+            const value = localStorage.getItem(key);
+            return value ? JSON.parse(value) : fallback;
+        } catch (error) {
+            console.warn(`Unable to parse preference: ${key}`, error);
+            return fallback;
+        }
+    }
+
+    function writeJSON(key, value) {
+        try {
+            localStorage.setItem(key, JSON.stringify(value));
+            return true;
+        } catch (error) {
+            console.warn(`Unable to save preference: ${key}`, error);
+            return false;
+        }
+    }
+
+    function setFeedback(elementId, message, type = "success") {
+        const element = document.getElementById(elementId);
+
+        if (!element) return;
+
+        element.textContent = message;
+        element.dataset.status = type;
+        element.classList.add("visible");
+
+        if (element._feedbackTimeout) {
+            clearTimeout(element._feedbackTimeout);
+        }
+
+        element._feedbackTimeout = setTimeout(() => {
+            element.classList.remove("visible");
+        }, 3000);
+    }
+
+    function showSaveFeedback(button, message = "Saved") {
+        if (!button) return;
+
+        const originalText = button.dataset.originalText ||
+            button.textContent.trim();
+
+        button.dataset.originalText = originalText;
+        button.textContent = message;
+        button.classList.add("is-saved");
+
+        if (button._feedbackTimeout) {
+            clearTimeout(button._feedbackTimeout);
+        }
+
+        button._feedbackTimeout = setTimeout(() => {
+            button.textContent = originalText;
+            button.classList.remove("is-saved");
+        }, 1600);
+    }
+
+    function setChecked(id, value) {
+        const element = document.getElementById(id);
+        if (element) element.checked = Boolean(value);
+    }
+
+    function setValue(id, value) {
+        const element = document.getElementById(id);
+
+        if (element && value !== undefined && value !== null) {
+            element.value = value;
+        }
+    }
+
+    function getChecked(id, fallback = false) {
+        const element = document.getElementById(id);
+        return element ? element.checked : fallback;
+    }
+
+    function getValue(id, fallback = "") {
+        const element = document.getElementById(id);
+        return element ? element.value : fallback;
+    }
+
+    /* =====================================================
+       SETTINGS NAVIGATION
+       ===================================================== */
+
+    const navItems = $$(".settings-nav-item");
+    const sections = $$(".settings-section");
+
+    function activateSection(sectionId, options = {}) {
+        const targetSection = document.getElementById(sectionId);
+        const targetNav = $(
+            `.settings-nav-item[data-section="${sectionId}"]`
+        );
+
+        if (!targetSection || !targetNav) return;
+
+        navItems.forEach((item) => {
+            const active = item === targetNav;
+
+            item.classList.toggle("active", active);
+            item.setAttribute("aria-selected", String(active));
+            item.setAttribute("tabindex", active ? "0" : "-1");
+        });
+
+        sections.forEach((section) => {
+            const active = section === targetSection;
+
+            section.classList.toggle("active", active);
+            section.setAttribute("aria-hidden", String(!active));
+            section.hidden = false;
+        });
+
+        writeStorage("incraftSettingsSection", sectionId);
+
+        if (options.scroll !== false) {
+            window.scrollTo({
+                top: 0,
+                behavior: "smooth"
+            });
+        }
+    }
+
+    navItems.forEach((item, index) => {
+        item.addEventListener("click", function () {
+            activateSection(item.dataset.section);
+        });
+
+        item.addEventListener("keydown", function (event) {
+            let nextIndex = index;
+
+            if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+                nextIndex = (index + 1) % navItems.length;
+            } else if (
+                event.key === "ArrowLeft" ||
+                event.key === "ArrowUp"
+            ) {
+                nextIndex = (index - 1 + navItems.length) % navItems.length;
+            } else if (event.key === "Home") {
+                nextIndex = 0;
+            } else if (event.key === "End") {
+                nextIndex = navItems.length - 1;
+            } else {
+                return;
+            }
+
+            event.preventDefault();
+
+            const nextItem = navItems[nextIndex];
+            activateSection(nextItem.dataset.section, { scroll: false });
+            nextItem.focus();
+        });
+    });
+
+    const savedSection = readStorage("incraftSettingsSection", "account");
+
+    activateSection(
+        document.getElementById(savedSection) &&
+        $(`.settings-nav-item[data-section="${savedSection}"]`)
+            ? savedSection
+            : "account",
+        { scroll: false }
     );
 
+    /* =====================================================
+       PASSWORD VISIBILITY
+       ===================================================== */
 
-    /* =========================================
-       2. RESTORE SETTINGS SECTION
-       ========================================= */
+    $$("[data-password-target]").forEach((button) => {
+        button.addEventListener("click", function () {
+            const targetId = button.dataset.passwordTarget;
+            const input = document.getElementById(targetId);
 
-    try {
+            if (!input) return;
 
-        const savedSection =
-            localStorage.getItem(
-                "incraftSettingsSection"
+            const showPassword = input.type === "password";
+
+            input.type = showPassword ? "text" : "password";
+            button.setAttribute("aria-pressed", String(showPassword));
+
+            const labels = {
+                current_password: "current password",
+                new_password: "new password",
+                confirm_password: "confirmation password"
+            };
+
+            const description = labels[targetId] || "password";
+
+            button.setAttribute(
+                "aria-label",
+                `${showPassword ? "Hide" : "Show"} ${description}`
             );
+        });
+    });
 
+    /* =====================================================
+       PASSWORD STRENGTH
+       ===================================================== */
 
-        if (savedSection) {
+    const passwordInput = $("#new_password");
+    const strengthFill = $("#passwordStrengthFill");
+    const strengthText = $("#passwordStrengthText");
+    const confirmPassword = $("#confirm_password");
 
-            const savedNav =
-                document.querySelector(
-                    `[data-section="${savedSection}"]`
-                );
+    function updatePasswordStrength() {
+        if (!passwordInput || !strengthFill || !strengthText) return;
 
-            const savedContent =
-                document.getElementById(
-                    savedSection
-                );
+        const password = passwordInput.value;
 
-
-            if (
-                savedNav &&
-                savedContent
-            ) {
-
-                navItems.forEach(
-                    function (nav) {
-
-                        nav.classList.remove(
-                            "active"
-                        );
-
-                    }
-                );
-
-
-                sections.forEach(
-                    function (section) {
-
-                        section.classList.remove(
-                            "active"
-                        );
-
-                    }
-                );
-
-
-                savedNav.classList.add(
-                    "active"
-                );
-
-                savedContent.classList.add(
-                    "active"
-                );
-
-            }
-
+        if (!password) {
+            strengthFill.style.width = "0%";
+            strengthText.textContent = "Enter a new password";
+            strengthText.dataset.strength = "empty";
+            return;
         }
 
-    } catch (error) {
+        let score = 0;
 
-        console.log(
-            "Saved settings section unavailable."
-        );
+        if (password.length >= 8) score++;
+        if (password.length >= 12) score++;
+        if (/[A-Z]/.test(password)) score++;
+        if (/[a-z]/.test(password)) score++;
+        if (/[0-9]/.test(password)) score++;
+        if (/[^A-Za-z0-9]/.test(password)) score++;
 
+        let label = "Very weak";
+        let width = 16;
+
+        if (score >= 6) {
+            label = "Very strong";
+            width = 100;
+        } else if (score === 5) {
+            label = "Strong";
+            width = 83;
+        } else if (score === 4) {
+            label = "Moderate";
+            width = 66;
+        } else if (score === 3) {
+            label = "Weak";
+            width = 50;
+        } else if (score === 2) {
+            label = "Very weak";
+            width = 33;
+        }
+
+        strengthFill.style.width = `${width}%`;
+        strengthText.textContent = `Password strength: ${label}`;
+        strengthText.dataset.strength = label.toLowerCase().replace(" ", "-");
     }
 
-
-    /* =========================================
-       3. PROFILE IMAGE PREVIEW
-       ========================================= */
-
-    const profileImage =
-        document.getElementById(
-            "profile_image"
-        );
-
-    const profileAvatar =
-        document.getElementById(
-            "profileAvatar"
-        );
-
-
-    if (
-        profileImage &&
-        profileAvatar
-    ) {
-
-        profileImage.addEventListener(
-            "change",
-            function () {
-
-                const file =
-                    profileImage.files[0];
-
-
-                if (!file) {
-                    return;
-                }
-
-
-                if (
-                    !file.type.startsWith(
-                        "image/"
-                    )
-                ) {
-
-                    alert(
-                        "Please select a valid image file."
-                    );
-
-                    profileImage.value = "";
-
-                    return;
-
-                }
-
-
-                const reader =
-                    new FileReader();
-
-
-                reader.onload =
-                    function (event) {
-
-                        profileAvatar.innerHTML = `
-                            <img
-                                src="${event.target.result}"
-                                alt="Profile Preview"
-                            >
-                        `;
-
-                    };
-
-
-                reader.readAsDataURL(file);
-
-            }
-        );
-
+    if (passwordInput) {
+        passwordInput.addEventListener("input", updatePasswordStrength);
     }
 
-
-    /* =========================================
-       4. PASSWORD VALIDATION
-       ========================================= */
-
-    const currentPassword =
-        document.getElementById(
-            "current_password"
-        );
-
-    const newPassword =
-        document.getElementById(
-            "new_password"
-        );
-
-    const confirmPassword =
-        document.getElementById(
-            "confirm_password"
-        );
-
+    /* =====================================================
+       PASSWORD MATCH VALIDATION
+       ===================================================== */
 
     function validatePasswords() {
+        if (!passwordInput || !confirmPassword) return true;
 
-        if (
-            !newPassword ||
-            !confirmPassword
-        ) {
+        const password = passwordInput.value;
+        const confirmation = confirmPassword.value;
 
+        if (!confirmation) {
+            confirmPassword.setCustomValidity("");
             return true;
-
         }
 
-
-        const newValue =
-            newPassword.value;
-
-        const confirmValue =
-            confirmPassword.value;
-
-
-        confirmPassword.classList.remove(
-            "input-error"
-        );
-
-
-        if (
-            confirmValue &&
-            newValue !== confirmValue
-        ) {
-
-            confirmPassword.classList.add(
-                "input-error"
-            );
-
+        if (password !== confirmation) {
+            confirmPassword.setCustomValidity("Passwords do not match.");
             return false;
-
         }
 
-
+        confirmPassword.setCustomValidity("");
         return true;
-
     }
-
-
-    if (newPassword) {
-
-        newPassword.addEventListener(
-            "input",
-            validatePasswords
-        );
-
-    }
-
 
     if (confirmPassword) {
-
-        confirmPassword.addEventListener(
-            "input",
-            validatePasswords
-        );
-
+        confirmPassword.addEventListener("input", validatePasswords);
     }
 
+    if (passwordInput) {
+        passwordInput.addEventListener("input", validatePasswords);
+    }
 
-    /* =========================================
-       5. PASSWORD FORM VALIDATION
-       ========================================= */
+    updatePasswordStrength();
 
-    const settingsForms =
-        document.querySelectorAll(
-            ".settings-card form"
+    /* =====================================================
+       PASSWORD FORM VALIDATION
+       ===================================================== */
+
+    const passwordForm = $("#passwordForm");
+
+    if (passwordForm) {
+        passwordForm.addEventListener("submit", function (event) {
+            if (!validatePasswords()) {
+                event.preventDefault();
+                confirmPassword.reportValidity();
+                confirmPassword.focus();
+                return;
+            }
+
+            if (passwordInput && passwordInput.value.length < 8) {
+                event.preventDefault();
+                passwordInput.setCustomValidity(
+                    "Your new password must contain at least 8 characters."
+                );
+                passwordInput.reportValidity();
+                passwordInput.focus();
+                return;
+            }
+
+            if (passwordInput) {
+                passwordInput.setCustomValidity("");
+            }
+        });
+    }
+
+    /* =====================================================
+       PROFILE FORM VALIDATION
+       ===================================================== */
+
+    const profileForm = $("#profileForm");
+
+    if (profileForm) {
+        profileForm.addEventListener("submit", function (event) {
+            const username = $("#username");
+            const email = $("#email");
+
+            if (username && !username.value.trim()) {
+                event.preventDefault();
+                username.setCustomValidity("Please enter a username.");
+                username.reportValidity();
+                username.focus();
+                return;
+            }
+
+            if (email && !email.checkValidity()) {
+                event.preventDefault();
+                email.reportValidity();
+                email.focus();
+                return;
+            }
+
+            if (username) username.setCustomValidity("");
+        });
+
+        const username = $("#username");
+
+        if (username) {
+            username.addEventListener("input", function () {
+                username.setCustomValidity("");
+            });
+        }
+    }
+
+    /* =====================================================
+       PROFILE PHOTO PREVIEW
+       ===================================================== */
+
+    const profilePhotoInput = $("#profilePhotoInput");
+    const profileAvatar = $("#profileAvatar");
+    const removeProfilePhoto = $("#removeProfilePhoto");
+
+    const defaultAvatarContent = profileAvatar
+        ? profileAvatar.innerHTML
+        : "";
+
+    let profilePhotoURL = null;
+
+    function clearProfilePhotoPreview() {
+        if (profilePhotoURL) {
+            URL.revokeObjectURL(profilePhotoURL);
+            profilePhotoURL = null;
+        }
+
+        if (profileAvatar) {
+            profileAvatar.innerHTML = defaultAvatarContent;
+            profileAvatar.style.backgroundImage = "";
+            profileAvatar.classList.remove("has-photo");
+        }
+
+        if (profilePhotoInput) {
+            profilePhotoInput.value = "";
+        }
+    }
+
+    if (profilePhotoInput) {
+        profilePhotoInput.addEventListener("change", function () {
+            const file = profilePhotoInput.files?.[0];
+
+            if (!file) return;
+
+            const allowedTypes = [
+                "image/jpeg",
+                "image/png",
+                "image/webp"
+            ];
+
+            if (!allowedTypes.includes(file.type)) {
+                alert("Choose a JPG, PNG or WebP image.");
+                profilePhotoInput.value = "";
+                return;
+            }
+
+            if (file.size > 5 * 1024 * 1024) {
+                alert("The profile image must be smaller than 5 MB.");
+                profilePhotoInput.value = "";
+                return;
+            }
+
+            if (profilePhotoURL) {
+                URL.revokeObjectURL(profilePhotoURL);
+            }
+
+            profilePhotoURL = URL.createObjectURL(file);
+
+            if (profileAvatar) {
+                profileAvatar.innerHTML = "";
+                profileAvatar.style.backgroundImage =
+                    `url("${profilePhotoURL}")`;
+                profileAvatar.style.backgroundSize = "cover";
+                profileAvatar.style.backgroundPosition = "center";
+                profileAvatar.classList.add("has-photo");
+            }
+        });
+    }
+
+    if (removeProfilePhoto) {
+        removeProfilePhoto.addEventListener("click", function () {
+            clearProfilePhotoPreview();
+        });
+    }
+
+    /* =====================================================
+       THEME PREFERENCES
+       ===================================================== */
+
+    const themeOptions = $$('input[name="theme"]');
+    const saveAppearance = $("#saveAppearance");
+    const compactTables = $("#compactTables");
+
+    /*
+     * Resolve the selected preference to the actual theme.
+     * The saved preference can be "system", while the effective
+     * theme applied to the page is either "light" or "dark".
+     */
+    function getPreferredTheme(theme) {
+        if (theme === "system") {
+            return window.matchMedia &&
+                window.matchMedia("(prefers-color-scheme: light)").matches
+                ? "light"
+                : "dark";
+        }
+
+        return theme === "light" ? "light" : "dark";
+    }
+
+    function applyTheme(theme, persist = true) {
+        const validThemes = ["dark", "light", "system"];
+
+        if (!validThemes.includes(theme)) {
+            theme = "dark";
+        }
+
+        const effectiveTheme = getPreferredTheme(theme);
+        const root = document.documentElement;
+        const body = document.body;
+
+        /*
+         * Keep the selected preference separate from the resolved theme.
+         *
+         * data-theme:
+         *   The effective theme used by theme.css.
+         *
+         * data-theme-preference:
+         *   The user's selected preference: dark, light, or system.
+         *
+         * This lets the shared base template and the Settings page
+         * use the same theme state across the entire application.
+         */
+        root.dataset.themePreference = theme;
+        root.dataset.theme = effectiveTheme;
+
+        body.dataset.themePreference = theme;
+        body.dataset.theme = effectiveTheme;
+
+        root.classList.toggle("theme-light", effectiveTheme === "light");
+        root.classList.toggle("theme-dark", effectiveTheme === "dark");
+
+        body.classList.toggle("theme-light", effectiveTheme === "light");
+        body.classList.toggle("theme-dark", effectiveTheme === "dark");
+
+        if (persist) {
+            writeStorage("incraftTheme", theme);
+        }
+
+        themeOptions.forEach((option) => {
+            option.checked = option.value === theme;
+        });
+    }
+
+    /*
+     * Restore the saved preference without rewriting localStorage.
+     * The global theme initialization in base.html should also read
+     * this same incraftTheme preference.
+     */
+    const storedTheme = readStorage("incraftTheme", "dark");
+    applyTheme(storedTheme, false);
+
+    themeOptions.forEach((option) => {
+        option.addEventListener("change", function () {
+            if (option.checked) {
+                applyTheme(option.value);
+            }
+        });
+    });
+
+    /*
+     * If "system" is selected, respond to changes in the operating
+     * system's light/dark preference while keeping "system" selected.
+     */
+    if (window.matchMedia) {
+        const systemTheme = window.matchMedia(
+            "(prefers-color-scheme: light)"
         );
 
+        const updateSystemTheme = () => {
+            if (readStorage("incraftTheme", "dark") === "system") {
+                applyTheme("system", false);
+            }
+        };
 
-    settingsForms.forEach(
-        function (form) {
-
-            form.addEventListener(
-                "submit",
-                function (event) {
-
-                    /*
-                     * Only validate password fields
-                     * when they are present in the form.
-                     */
-
-                    const formNewPassword =
-                        form.querySelector(
-                            "#new_password"
-                        );
-
-                    const formConfirmPassword =
-                        form.querySelector(
-                            "#confirm_password"
-                        );
-
-
-                    if (
-                        formNewPassword &&
-                        formConfirmPassword
-                    ) {
-
-                        if (
-                            formNewPassword.value &&
-                            formNewPassword.value.length < 6
-                        ) {
-
-                            event.preventDefault();
-
-                            alert(
-                                "New password must contain at least 6 characters."
-                            );
-
-                            formNewPassword.focus();
-
-                            return;
-
-                        }
-
-
-                        if (
-                            formNewPassword.value !==
-                            formConfirmPassword.value
-                        ) {
-
-                            event.preventDefault();
-
-                            alert(
-                                "New password and confirmation do not match."
-                            );
-
-                            formConfirmPassword.focus();
-
-                            return;
-
-                        }
-
-                    }
-
-                }
-            );
-
+        if (systemTheme.addEventListener) {
+            systemTheme.addEventListener("change", updateSystemTheme);
+        } else if (systemTheme.addListener) {
+            systemTheme.addListener(updateSystemTheme);
         }
+    }
+
+    /* =====================================================
+       COMPACT TABLES
+       ===================================================== */
+
+    function applyCompactTables(enabled) {
+        document.body.classList.toggle("compact-tables", enabled);
+        document.documentElement.classList.toggle("compact-tables", enabled);
+
+        writeStorage("incraftCompactTables", String(enabled));
+
+        if (compactTables) {
+            compactTables.checked = enabled;
+        }
+    }
+
+    applyCompactTables(
+        readStorage("incraftCompactTables", "false") === "true"
     );
-
-
-    /* =========================================
-       6. NOTIFICATION PREFERENCES
-       ========================================= */
-
-    const notificationInputs =
-        document.querySelectorAll(
-            '#notifications input[type="checkbox"]'
-        );
-
-
-    const saveNotifications =
-        document.getElementById(
-            "saveNotifications"
-        );
-
-
-    if (saveNotifications) {
-
-        saveNotifications.addEventListener(
-            "click",
-            function () {
-
-                const preferences = {};
-
-
-                notificationInputs.forEach(
-                    function (input) {
-
-                        preferences[input.name] =
-                            input.checked;
-
-                    }
-                );
-
-
-                /*
-                 * Backend API will be connected later.
-                 */
-
-                console.log(
-                    "Notification preferences:",
-                    preferences
-                );
-
-
-                showSettingsMessage(
-                    "Notification preferences saved."
-                );
-
-            }
-        );
-
-    }
-
-
-    /* =========================================
-       7. INVENTORY SETTINGS
-       ========================================= */
-
-    const saveInventorySettings =
-        document.getElementById(
-            "saveInventorySettings"
-        );
-
-
-    if (saveInventorySettings) {
-
-        saveInventorySettings.addEventListener(
-            "click",
-            function () {
-
-                const reorderLevel =
-                    document.getElementById(
-                        "default_reorder"
-                    );
-
-                const currency =
-                    document.getElementById(
-                        "currency"
-                    );
-
-                const tax =
-                    document.getElementById(
-                        "default_tax"
-                    );
-
-                const dateFormat =
-                    document.getElementById(
-                        "date_format"
-                    );
-
-
-                if (
-                    reorderLevel &&
-                    Number(reorderLevel.value) < 0
-                ) {
-
-                    alert(
-                        "Reorder level cannot be negative."
-                    );
-
-                    reorderLevel.focus();
-
-                    return;
-
-                }
-
-
-                if (
-                    tax &&
-                    (
-                        Number(tax.value) < 0 ||
-                        Number(tax.value) > 100
-                    )
-                ) {
-
-                    alert(
-                        "Tax must be between 0 and 100."
-                    );
-
-                    tax.focus();
-
-                    return;
-
-                }
-
-
-                const settings = {
-
-                    default_reorder:
-                        reorderLevel
-                            ? reorderLevel.value
-                            : "",
-
-                    currency:
-                        currency
-                            ? currency.value
-                            : "",
-
-                    default_tax:
-                        tax
-                            ? tax.value
-                            : "",
-
-                    date_format:
-                        dateFormat
-                            ? dateFormat.value
-                            : ""
-
-                };
-
-
-                /*
-                 * Flask/MySQL integration will be
-                 * connected later.
-                 */
-
-                console.log(
-                    "Inventory settings:",
-                    settings
-                );
-
-
-                showSettingsMessage(
-                    "Inventory settings saved."
-                );
-
-            }
-        );
-
-    }
-
-
-    /* =========================================
-       8. THEME
-       ========================================= */
-
-    const themeOptions =
-        document.querySelectorAll(
-            'input[name="theme"]'
-        );
-
-
-    function applyTheme(theme) {
-
-        document.body.dataset.theme =
-            theme;
-
-
-        try {
-
-            localStorage.setItem(
-                "incraftTheme",
-                theme
-            );
-
-        } catch (error) {
-
-            console.log(
-                "Theme preference could not be saved."
-            );
-
-        }
-
-    }
-
-
-    themeOptions.forEach(
-        function (option) {
-
-            option.addEventListener(
-                "change",
-                function () {
-
-                    if (option.checked) {
-
-                        applyTheme(
-                            option.value
-                        );
-
-                    }
-
-                }
-            );
-
-        }
-    );
-
-
-    /* Restore theme */
-
-    try {
-
-        const savedTheme =
-            localStorage.getItem(
-                "incraftTheme"
-            );
-
-
-        if (savedTheme) {
-
-            const matchingTheme =
-                document.querySelector(
-                    `input[name="theme"][value="${savedTheme}"]`
-                );
-
-
-            if (matchingTheme) {
-
-                matchingTheme.checked =
-                    true;
-
-                applyTheme(
-                    savedTheme
-                );
-
-            }
-
-        }
-
-    } catch (error) {
-
-        console.log(
-            "Saved theme unavailable."
-        );
-
-    }
-
-
-    /* =========================================
-       9. COMPACT SIDEBAR
-       ========================================= */
-
-    const compactSidebar =
-        document.getElementById(
-            "compactSidebar"
-        );
-
-
-    if (compactSidebar) {
-
-        try {
-
-            compactSidebar.checked =
-                localStorage.getItem(
-                    "incraftCompactSidebar"
-                ) === "true";
-
-        } catch (error) {
-
-            compactSidebar.checked =
-                false;
-
-        }
-
-
-        compactSidebar.addEventListener(
-            "change",
-            function () {
-
-                document.body.classList.toggle(
-                    "sidebar-collapsed",
-                    compactSidebar.checked
-                );
-
-
-                try {
-
-                    localStorage.setItem(
-                        "incraftCompactSidebar",
-                        compactSidebar.checked
-                    );
-
-                } catch (error) {
-
-                    console.log(
-                        "Sidebar preference could not be saved."
-                    );
-
-                }
-
-            }
-        );
-
-    }
-
-
-    /* =========================================
-       10. COMPACT TABLES
-       ========================================= */
-
-    const compactTables =
-        document.getElementById(
-            "compactTables"
-        );
-
 
     if (compactTables) {
-
-        try {
-
-            compactTables.checked =
-                localStorage.getItem(
-                    "incraftCompactTables"
-                ) === "true";
-
-        } catch (error) {
-
-            compactTables.checked =
-                false;
-
-        }
-
-
-        document.body.classList.toggle(
-            "compact-tables",
-            compactTables.checked
-        );
-
-
-        compactTables.addEventListener(
-            "change",
-            function () {
-
-                document.body.classList.toggle(
-                    "compact-tables",
-                    compactTables.checked
-                );
-
-
-                try {
-
-                    localStorage.setItem(
-                        "incraftCompactTables",
-                        compactTables.checked
-                    );
-
-                } catch (error) {
-
-                    console.log(
-                        "Table preference could not be saved."
-                    );
-
-                }
-
-            }
-        );
-
+        compactTables.addEventListener("change", function () {
+            applyCompactTables(compactTables.checked);
+        });
     }
 
-
-    /* =========================================
-       11. SAVE APPEARANCE
-       ========================================= */
-
-    const saveAppearance =
-        document.getElementById(
-            "saveAppearance"
-        );
-
+    /* =====================================================
+       APPEARANCE SAVE BUTTON
+       ===================================================== */
 
     if (saveAppearance) {
+        saveAppearance.addEventListener("click", function () {
+            const selectedTheme = $(
+                'input[name="theme"]:checked'
+            );
 
-        saveAppearance.addEventListener(
-            "click",
-            function () {
-
-                const selectedTheme =
-                    document.querySelector(
-                        'input[name="theme"]:checked'
-                    );
-
-
-                if (selectedTheme) {
-
-                    applyTheme(
-                        selectedTheme.value
-                    );
-
-                }
-
-
-                if (compactSidebar) {
-
-                    localStorage.setItem(
-                        "incraftCompactSidebar",
-                        compactSidebar.checked
-                    );
-
-                }
-
-
-                if (compactTables) {
-
-                    localStorage.setItem(
-                        "incraftCompactTables",
-                        compactTables.checked
-                    );
-
-                }
-
-
-                showSettingsMessage(
-                    "Appearance preferences saved."
-                );
-
+            if (selectedTheme) {
+                applyTheme(selectedTheme.value);
             }
-        );
 
+            applyCompactTables(getChecked("compactTables"));
+
+            showSaveFeedback(saveAppearance, "Preferences Saved");
+            setFeedback(
+                "appearanceFeedback",
+                "Appearance preferences saved on this device."
+            );
+        });
     }
 
+    /* =====================================================
+       SIDEBAR PREFERENCES
+       ===================================================== */
 
-    /* =========================================
-       12. SETTINGS MESSAGE
-       ========================================= */
+    const compactSidebar = $("#compactSidebar");
+    const rememberSidebar = $("#rememberSidebar");
+    const saveSidebarSettings = $("#saveSidebarSettings");
 
-    function showSettingsMessage(message) {
+    function applyCompactSidebar(enabled) {
+        document.body.classList.toggle("compact-sidebar", enabled);
+        document.documentElement.classList.toggle("compact-sidebar", enabled);
 
-        let messageBox =
-            document.getElementById(
-                "settingsMessage"
+        writeStorage("incraftCompactSidebar", String(enabled));
+
+        if (compactSidebar) {
+            compactSidebar.checked = enabled;
+        }
+    }
+
+    const savedCompactSidebar =
+        readStorage("incraftCompactSidebar", "false") === "true";
+
+    applyCompactSidebar(savedCompactSidebar);
+
+    if (compactSidebar) {
+        compactSidebar.addEventListener("change", function () {
+            applyCompactSidebar(compactSidebar.checked);
+        });
+    }
+
+    if (rememberSidebar) {
+        rememberSidebar.checked =
+            readStorage("incraftRememberSidebar", "true") === "true";
+    }
+
+    if (saveSidebarSettings) {
+        saveSidebarSettings.addEventListener("click", function () {
+            applyCompactSidebar(getChecked("compactSidebar"));
+
+            writeStorage(
+                "incraftRememberSidebar",
+                String(getChecked("rememberSidebar", true))
             );
 
+            showSaveFeedback(saveSidebarSettings, "Preferences Saved");
+            setFeedback(
+                "sidebarFeedback",
+                "Sidebar preferences saved on this device."
+            );
+        });
+    }
 
-        if (!messageBox) {
+    /* =====================================================
+       NOTIFICATION PREFERENCES
+       ===================================================== */
 
-            messageBox =
-                document.createElement(
-                    "div"
+    const notificationIds = [
+        "lowStockAlerts",
+        "outOfStockAlerts",
+        "saleCompleted",
+        "securityAlerts"
+    ];
+
+    function collectNotificationPreferences() {
+        return {
+            lowStock: getChecked("lowStockAlerts", true),
+            outOfStock: getChecked("outOfStockAlerts", true),
+            saleCompleted: getChecked("saleCompleted", true),
+            security: getChecked("securityAlerts", true)
+        };
+    }
+
+    function restoreNotificationPreferences() {
+        const saved = readJSON("incraftNotificationPreferences", null);
+
+        if (!saved) return;
+
+        setChecked("lowStockAlerts", saved.lowStock);
+        setChecked("outOfStockAlerts", saved.outOfStock);
+        setChecked("saleCompleted", saved.saleCompleted);
+        setChecked("securityAlerts", saved.security);
+    }
+
+    restoreNotificationPreferences();
+
+    const saveNotifications = $("#saveNotifications");
+
+    if (saveNotifications) {
+        saveNotifications.addEventListener("click", function () {
+            const saved = writeJSON(
+                "incraftNotificationPreferences",
+                collectNotificationPreferences()
+            );
+
+            if (saved) {
+                showSaveFeedback(saveNotifications, "Preferences Saved");
+                setFeedback(
+                    "notificationsFeedback",
+                    "Notification preferences saved on this device."
                 );
+            } else {
+                setFeedback(
+                    "notificationsFeedback",
+                    "Unable to save preferences in this browser.",
+                    "error"
+                );
+            }
+        });
+    }
 
-            messageBox.id =
-                "settingsMessage";
+    /* =====================================================
+       INVENTORY PREFERENCES
+       ===================================================== */
 
-            messageBox.style.position =
-                "fixed";
+    const saveInventorySettings = $("#saveInventorySettings");
 
-            messageBox.style.right =
-                "25px";
+    function collectInventoryPreferences() {
+        return {
+            reorderLevel: getValue("default_reorder", "10"),
+            currency: getValue("currency", "INR"),
+            tax: getValue("default_tax", "18"),
+            dateFormat: getValue("date_format", "DD-MM-YYYY")
+        };
+    }
 
-            messageBox.style.bottom =
-                "25px";
+    function restoreInventoryPreferences() {
+        const saved = readJSON("incraftInventoryPreferences", null);
 
-            messageBox.style.zIndex =
-                "2000";
+        if (!saved) return;
 
-            messageBox.style.padding =
-                "11px 16px";
+        setValue("default_reorder", saved.reorderLevel);
+        setValue("currency", saved.currency);
+        setValue("default_tax", saved.tax);
+        setValue("date_format", saved.dateFormat);
+    }
 
-            messageBox.style.borderRadius =
-                "7px";
+    restoreInventoryPreferences();
 
-            messageBox.style.background =
-                "#222222";
+    function validateInventoryPreferences() {
+        const reorder = $("#default_reorder");
+        const tax = $("#default_tax");
 
-            messageBox.style.color =
-                "#ffffff";
-
-            messageBox.style.fontSize =
-                "12px";
-
-            document.body.appendChild(
-                messageBox
-            );
-
+        if (reorder && (!reorder.checkValidity() || Number(reorder.value) < 0)) {
+            reorder.reportValidity();
+            reorder.focus();
+            return false;
         }
 
+        if (tax && (!tax.checkValidity() || Number(tax.value) < 0 ||
+            Number(tax.value) > 100)) {
+            tax.reportValidity();
+            tax.focus();
+            return false;
+        }
 
-        messageBox.textContent =
-            message;
-
-        messageBox.style.display =
-            "block";
-
-
-        clearTimeout(
-            messageBox.hideTimer
-        );
-
-
-        messageBox.hideTimer =
-            setTimeout(
-                function () {
-
-                    messageBox.style.display =
-                        "none";
-
-                },
-                2500
-            );
-
+        return true;
     }
 
+    if (saveInventorySettings) {
+        saveInventorySettings.addEventListener("click", function () {
+            if (!validateInventoryPreferences()) return;
 
-    /* =========================================
-       13. SETTINGS READY
-       ========================================= */
+            const saved = writeJSON(
+                "incraftInventoryPreferences",
+                collectInventoryPreferences()
+            );
 
-    document.body.classList.add(
-        "settings-ready"
-    );
+            if (saved) {
+                showSaveFeedback(saveInventorySettings, "Settings Saved");
+                setFeedback(
+                    "inventoryFeedback",
+                    "Inventory defaults saved on this device."
+                );
+            } else {
+                setFeedback(
+                    "inventoryFeedback",
+                    "Unable to save preferences in this browser.",
+                    "error"
+                );
+            }
+        });
+    }
 
+    /* =====================================================
+       ACCOUNT PREFERENCES
+       ===================================================== */
+
+    const accountPreferenceIds = [
+        "keepSignedIn",
+        "helpfulTips",
+        "keyboardShortcuts"
+    ];
+
+    function restoreAccountPreferences() {
+        const saved = readJSON("incraftAccountPreferences", null);
+
+        if (!saved) return;
+
+        accountPreferenceIds.forEach((id) => {
+            if (Object.prototype.hasOwnProperty.call(saved, id)) {
+                setChecked(id, saved[id]);
+            }
+        });
+    }
+
+    function saveAccountPreferences() {
+        const preferences = {};
+
+        accountPreferenceIds.forEach((id) => {
+            preferences[id] = getChecked(id);
+        });
+
+        writeJSON("incraftAccountPreferences", preferences);
+    }
+
+    restoreAccountPreferences();
+
+    accountPreferenceIds.forEach((id) => {
+        const input = document.getElementById(id);
+
+        if (input) {
+            input.addEventListener("change", saveAccountPreferences);
+        }
+    });
+
+    /* =====================================================
+       SYSTEM PREFERENCES
+       ===================================================== */
+
+    const systemPreferenceIds = [
+        "reduceAnimations",
+        "confirmNavigation"
+    ];
+
+    function applySystemPreferences() {
+        const reduceMotion = getChecked("reduceAnimations");
+
+        document.documentElement.classList.toggle(
+            "reduce-motion",
+            reduceMotion
+        );
+
+        document.body.classList.toggle(
+            "reduce-motion",
+            reduceMotion
+        );
+    }
+
+    function restoreSystemPreferences() {
+        const saved = readJSON("incraftSystemPreferences", null);
+
+        if (saved) {
+            systemPreferenceIds.forEach((id) => {
+                if (Object.prototype.hasOwnProperty.call(saved, id)) {
+                    setChecked(id, saved[id]);
+                }
+            });
+        }
+
+        applySystemPreferences();
+    }
+
+    function saveSystemPreferences() {
+        const preferences = {};
+
+        systemPreferenceIds.forEach((id) => {
+            preferences[id] = getChecked(id);
+        });
+
+        writeJSON("incraftSystemPreferences", preferences);
+        applySystemPreferences();
+    }
+
+    restoreSystemPreferences();
+
+    systemPreferenceIds.forEach((id) => {
+        const input = document.getElementById(id);
+
+        if (input) {
+            input.addEventListener("change", saveSystemPreferences);
+        }
+    });
+
+    /* =====================================================
+       REDUCED MOTION
+       ===================================================== */
+
+    const reducedMotionStyleId = "incraftReducedMotionStyle";
+
+    if (!document.getElementById(reducedMotionStyleId)) {
+        const style = document.createElement("style");
+        style.id = reducedMotionStyleId;
+        style.textContent = `
+            .reduce-motion *,
+            .reduce-motion *::before,
+            .reduce-motion *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                scroll-behavior: auto !important;
+                transition-duration: 0.01ms !important;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    /* =====================================================
+       DELETE ACCOUNT DIALOG
+       ===================================================== */
+
+    const openDeleteDialog = $("#openDeleteDialog");
+    const deleteAccountDialog = $("#deleteAccountDialog");
+    const cancelDeleteDialog = $("#cancelDeleteDialog");
+
+    if (openDeleteDialog && deleteAccountDialog) {
+        openDeleteDialog.addEventListener("click", function () {
+            if (typeof deleteAccountDialog.showModal === "function") {
+                deleteAccountDialog.showModal();
+            } else {
+                deleteAccountDialog.setAttribute("open", "");
+            }
+        });
+    }
+
+    if (cancelDeleteDialog && deleteAccountDialog) {
+        cancelDeleteDialog.addEventListener("click", function () {
+            if (typeof deleteAccountDialog.close === "function") {
+                deleteAccountDialog.close();
+            } else {
+                deleteAccountDialog.removeAttribute("open");
+            }
+        });
+    }
+
+    if (deleteAccountDialog) {
+        deleteAccountDialog.addEventListener("click", function (event) {
+            if (event.target === deleteAccountDialog) {
+                if (typeof deleteAccountDialog.close === "function") {
+                    deleteAccountDialog.close();
+                } else {
+                    deleteAccountDialog.removeAttribute("open");
+                }
+            }
+        });
+    }
+
+    /*
+     * The confirmDeleteAccount button intentionally remains disabled
+     * until a real, authenticated server-side deletion endpoint exists.
+     * Never delete account data using client-side JavaScript alone.
+     */
+
+    /* =====================================================
+       CONFIRM BEFORE LEAVING UNSAVED FORMS
+       ===================================================== */
+
+    let formHasChanges = false;
+
+    const trackedForms = [profileForm, passwordForm].filter(Boolean);
+
+    trackedForms.forEach((form) => {
+        form.addEventListener("input", function () {
+            formHasChanges = true;
+        });
+
+        form.addEventListener("change", function () {
+            formHasChanges = true;
+        });
+
+        form.addEventListener("submit", function () {
+            formHasChanges = false;
+        });
+    });
+
+    window.addEventListener("beforeunload", function (event) {
+        if (
+            formHasChanges &&
+            getChecked("confirmNavigation", true)
+        ) {
+            event.preventDefault();
+            event.returnValue = "";
+        }
+    });
+
+    /* =====================================================
+       INITIALIZATION
+       ===================================================== */
+
+    notificationIds.forEach((id) => {
+        const input = document.getElementById(id);
+        if (input) input.setAttribute("autocomplete", "off");
+    });
+
+    console.info("InCraft settings initialized.");
 });

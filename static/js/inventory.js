@@ -39,6 +39,10 @@ document.addEventListener("DOMContentLoaded", function () {
     const inventoryFile =
         document.getElementById("inventoryFile");
 
+    // Reuse the CSRF token rendered by Flask in the inventory page.
+    const csrfTokenInput =
+        document.querySelector('input[name="csrf_token"]');
+
     const printInventoryBtn =
         document.getElementById("printInventoryBtn");
 
@@ -685,7 +689,11 @@ document.addEventListener("DOMContentLoaded", function () {
                                 method: "POST",
                                 headers: {
                                     "X-Requested-With":
-                                        "XMLHttpRequest"
+                                        "XMLHttpRequest",
+                                    "X-CSRFToken":
+                                        csrfTokenInput
+                                            ? csrfTokenInput.value
+                                            : ""
                                 }
                             }
                         );
