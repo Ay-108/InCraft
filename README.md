@@ -175,7 +175,7 @@ InCraft/
 │
 ├── public/
 │   └── static/
-│       ├── CSS/
+│       ├── css/
 │       ├── images/
 │       └── js/
 │
