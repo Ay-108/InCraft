@@ -256,16 +256,20 @@ def admin_required(
 @main_bp.route("/")
 def index():
     """
-    InCraft entry point.
+    InCraft default entry point.
 
-    Logged-in users are sent to the dashboard.
-    New users are sent to the login page.
+    The root URL is the dashboard's canonical landing destination.
+    Authenticated users are redirected directly to the dashboard.
+    Visitors who are not signed in are sent to login and returned
+    to the dashboard after successful authentication.
     """
 
-    if "user_id" in session:
+    if get_current_user_id():
         return redirect(url_for("main.dashboard"))
 
-    return redirect(url_for("main.login"))
+    return redirect(
+        url_for("main.login", next=url_for("main.dashboard"))
+    )
 
 
 # ============================================================
