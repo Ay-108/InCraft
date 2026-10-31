@@ -258,18 +258,13 @@ def index():
     """
     InCraft default entry point.
 
-    The root URL is the dashboard's canonical landing destination.
-    Authenticated users are redirected directly to the dashboard.
-    Visitors who are not signed in are sent to login and returned
-    to the dashboard after successful authentication.
+    Always send visitors to the dashboard URL first. The dashboard's
+    active-user protection remains responsible for redirecting signed-out
+    visitors to login. After a successful login, the existing login flow
+    already returns users to the dashboard.
     """
 
-    if get_current_user_id():
-        return redirect(url_for("main.dashboard"))
-
-    return redirect(
-        url_for("main.login", next=url_for("main.dashboard"))
-    )
+    return redirect(url_for("main.dashboard"))
 
 
 # ============================================================
