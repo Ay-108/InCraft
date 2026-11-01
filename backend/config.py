@@ -135,6 +135,10 @@ DB_USER = os.getenv("DB_USER", "root").strip()
 # the DB_PASSWORD variable is explicitly present in the environment.
 DB_PASSWORD = os.getenv("DB_PASSWORD", "")
 
+# Aiven's managed MySQL endpoint requires TLS. Store the downloaded public
+# CA certificate as a multiline DB_SSL_CA environment variable in Vercel.
+DB_SSL_CA = os.getenv("DB_SSL_CA", "").strip()
+
 REQUIRED_DATABASE_ENV_VARS = (
     "DB_HOST",
     "DB_NAME",
@@ -148,6 +152,13 @@ MISSING_DATABASE_ENV_VARS = tuple(
     if name not in os.environ
     or (name != "DB_PASSWORD" and not os.getenv(name, "").strip())
 )
+
+# Do not consider an Aiven deployment database-ready until its CA is present.
+if DB_HOST.lower().endswith(".aivencloud.com") and not DB_SSL_CA:
+    MISSING_DATABASE_ENV_VARS = (
+        *MISSING_DATABASE_ENV_VARS,
+        "DB_SSL_CA",
+    )
 
 # "localhost" points back to the short-lived function container on Vercel,
 # not to a separately hosted MySQL instance.
@@ -177,6 +188,7 @@ def get_database_config():
         "database": DB_NAME,
         "user": DB_USER,
         "password": DB_PASSWORD,
+        "ssl_ca": DB_SSL_CA,
         "charset": "utf8mb4",
         "connection_timeout": 10,
     }
