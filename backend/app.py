@@ -65,6 +65,16 @@ def create_app():
     )
 
     # --------------------------------------------------------
+    # REQUEST-SCOPED DATABASE CONNECTION CLEANUP
+    # --------------------------------------------------------
+    # backend.db reuses one TLS connection for all queries in a request.
+    # Return/close that connection only after Flask has finished the response.
+    @app.teardown_appcontext
+    def close_request_database_connection(exception=None):
+        from backend.db import close_request_db_connection
+        close_request_db_connection()
+
+    # --------------------------------------------------------
     # REQUIRED PRODUCTION CONFIGURATION GATE
     # --------------------------------------------------------
     # A missing signing key must not crash the entire Vercel
