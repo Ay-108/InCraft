@@ -15,7 +15,32 @@ import mysql.connector  # pyright: ignore[reportMissingImports]
 from mysql.connector import Error  # pyright: ignore[reportMissingImports]
 from typing import Optional, Tuple, cast
 
+from flask import g, has_app_context, has_request_context
+
 from backend.config import get_database_config
+
+
+_REQUEST_DB_CONNECTION_KEY = "_incraft_database_connection"
+
+
+def close_request_db_connection():
+    """Close the database connection retained for the current Flask request."""
+    if not has_app_context():
+        return
+
+    connection = getattr(g, _REQUEST_DB_CONNECTION_KEY, None)
+    if connection is None:
+        return
+
+    try:
+        connection.close()
+    except Exception as error:
+        print(f"Request database cleanup error: {error}")
+    finally:
+        try:
+            delattr(g, _REQUEST_DB_CONNECTION_KEY)
+        except AttributeError:
+            pass
 
 
 # A Vercel serverless instance has a read-only application filesystem.
@@ -68,6 +93,14 @@ def _safe_close_resources(cursor=None, connection=None):
             print(f"Database cursor cleanup error: {error}")
 
     if connection is not None:
+        # Reuse one MySQL connection for all database helpers invoked during
+        # a single HTTP request. Flask teardown closes it after the response.
+        if (
+            has_request_context()
+            and getattr(g, _REQUEST_DB_CONNECTION_KEY, None) is connection
+        ):
+            return
+
         try:
             if connection.is_connected():
                 connection.close()
@@ -90,6 +123,18 @@ def get_db_connection():
 
     connection = None
     try:
+        # Keep one live connection in Flask's request context. Dashboard,
+        # authorization, and activity helpers can then reuse it instead of
+        # repeating TCP, TLS, and MySQL authentication handshakes.
+        if has_request_context():
+            cached_connection = getattr(
+                g,
+                _REQUEST_DB_CONNECTION_KEY,
+                None
+            )
+            if cached_connection is not None:
+                return cached_connection
+
         db_config = get_database_config()
 
         connection_args = {
@@ -122,6 +167,12 @@ def get_db_connection():
         connection = mysql.connector.connect(**connection_args)
 
         if connection.is_connected():
+            if has_request_context():
+                setattr(
+                    g,
+                    _REQUEST_DB_CONNECTION_KEY,
+                    connection
+                )
             return connection
 
     except Exception as error:
