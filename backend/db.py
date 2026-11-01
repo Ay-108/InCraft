@@ -8,11 +8,55 @@ Handles MySQL database connections and database operations.
 All database-related operations should go through this module.
 """
 
+import os
+import tempfile
+
 import mysql.connector  # pyright: ignore[reportMissingImports]
 from mysql.connector import Error  # pyright: ignore[reportMissingImports]
 from typing import Optional, Tuple, cast
 
 from backend.config import get_database_config
+
+
+# A Vercel serverless instance has a read-only application filesystem.
+# Materialize the Aiven CA certificate under /tmp once per warm instance.
+_SSL_CA_TEMP_PATH = None
+
+
+def _write_ssl_ca_certificate(certificate):
+    """Write a PEM certificate supplied through DB_SSL_CA to a temporary file."""
+    global _SSL_CA_TEMP_PATH
+
+    if not certificate:
+        return None
+
+    normalized_certificate = (
+        str(certificate)
+        .replace("\\r\\n", "\n")
+        .replace("\\n", "\n")
+        .strip()
+    )
+
+    if (
+        "-----BEGIN CERTIFICATE-----" not in normalized_certificate
+        or "-----END CERTIFICATE-----" not in normalized_certificate
+    ):
+        raise ValueError("DB_SSL_CA must contain a valid PEM certificate.")
+
+    if _SSL_CA_TEMP_PATH and os.path.isfile(_SSL_CA_TEMP_PATH):
+        return _SSL_CA_TEMP_PATH
+
+    with tempfile.NamedTemporaryFile(
+        mode="w",
+        encoding="utf-8",
+        prefix="incraft-mysql-ca-",
+        suffix=".pem",
+        delete=False,
+    ) as certificate_file:
+        certificate_file.write(normalized_certificate + "\n")
+        _SSL_CA_TEMP_PATH = certificate_file.name
+
+    return _SSL_CA_TEMP_PATH
 
 
 def _safe_close_resources(cursor=None, connection=None):
@@ -48,13 +92,34 @@ def get_db_connection():
     try:
         db_config = get_database_config()
 
-        connection = mysql.connector.connect(
-            host=db_config["host"],
-            port=db_config["port"],
-            database=db_config["database"],
-            user=db_config["user"],
-            password=db_config["password"]
+        connection_args = {
+            "host": db_config["host"],
+            "port": db_config["port"],
+            "database": db_config["database"],
+            "user": db_config["user"],
+            "password": db_config["password"],
+        }
+
+        ssl_ca_path = _write_ssl_ca_certificate(
+            db_config.get("ssl_ca")
         )
+
+        # Aiven requires TLS. Verify both the certificate chain and the
+        # database hostname instead of accepting an unverified connection.
+        if str(db_config["host"]).lower().endswith(".aivencloud.com"):
+            if not ssl_ca_path:
+                raise ValueError(
+                    "DB_SSL_CA is required for secure Aiven MySQL connections."
+                )
+
+        if ssl_ca_path:
+            connection_args.update({
+                "ssl_ca": ssl_ca_path,
+                "ssl_verify_cert": True,
+                "ssl_verify_identity": True,
+            })
+
+        connection = mysql.connector.connect(**connection_args)
 
         if connection.is_connected():
             return connection
