@@ -44,7 +44,8 @@ from backend.db import (
     execute_query,
     execute_many,
     execute_transaction,
-    get_database_status
+    get_database_status,
+    get_db_connection
 )
 
 from backend.config import (
@@ -356,17 +357,8 @@ def login():
             )
 
 
-        # =========================================
-        # CHECK DATABASE AVAILABILITY
-        # =========================================
-
-        if not _auth_database_available():
-            flash(
-                "The login service is temporarily unavailable. Please try again shortly.",
-                "danger"
-            )
-            return render_template("login.html")
-
+        # Query the account directly. The request-scoped database connection
+        # avoids a separate availability-check connection before this lookup.
         # =========================================
         # FIND USER
         # =========================================
@@ -381,7 +373,7 @@ def login():
                 role,
                 status
             FROM users
-            WHERE LOWER(TRIM(email)) = %s
+            WHERE email = %s
             LIMIT 1
             """,
             (email,)
@@ -4344,3 +4336,160 @@ def health_check():
         "database": "connected" if database_connected else "unavailable",
         "secret_key_configured": SECRET_KEY_CONFIGURED,
     }), (200 if database_connected else 503)
+
+
+
+# ============================================================
+# TEMPORARY FIRST-ADMIN ACCOUNT BOOTSTRAP
+# ============================================================
+# Run once for the first registered account on a new deployment.
+# Access requires a short-lived, high-entropy Production-only token.
+# Remove this endpoint and token immediately after promotion.
+
+@main_bp.route("/api/internal/admin-bootstrap", methods=["GET"])
+def temporary_first_admin_bootstrap():
+    """Promote the only registered account to Admin, if safe to do so."""
+    import hmac
+    import os
+
+    expected_token = os.getenv("INCRAFT_ADMIN_SETUP_TOKEN", "")
+    supplied_token = request.args.get("token", "")
+
+    if (
+        not IS_PRODUCTION
+        or not expected_token
+        or not supplied_token
+        or not hmac.compare_digest(expected_token, supplied_token)
+    ):
+        abort(404)
+
+    connection = None
+    cursor = None
+
+    try:
+        connection = get_db_connection()
+
+        if connection is None:
+            return jsonify({
+                "success": False,
+                "message": "Unable to connect to the configured database."
+            }), 503
+
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute(
+            """
+            SELECT user_id, role, status
+            FROM users
+            ORDER BY user_id ASC
+            """
+        )
+        accounts = cursor.fetchall()
+
+        if len(accounts) != 1:
+            response = jsonify({
+                "success": False,
+                "message": (
+                    "Automatic promotion requires exactly one registered "
+                    "account. No account roles were changed."
+                ),
+                "account_count": len(accounts),
+            })
+            response.headers["Cache-Control"] = "no-store, max-age=0"
+            return response, 409
+
+        account = accounts[0]
+        current_role = str(account.get("role") or "").strip().lower()
+        account_status = str(account.get("status") or "").strip().lower()
+
+        if current_role == "admin":
+            response = jsonify({
+                "success": True,
+                "already_admin": True,
+                "role": "admin",
+                "message": "The only registered account is already an Admin."
+            })
+            response.headers["Cache-Control"] = "no-store, max-age=0"
+            return response, 200
+
+        if account_status != "active":
+            return jsonify({
+                "success": False,
+                "message": (
+                    "The only registered account is inactive. "
+                    "No account roles were changed."
+                )
+            }), 409
+
+        cursor.execute(
+            """
+            UPDATE users
+            SET role = 'admin',
+                updated_at = CURRENT_TIMESTAMP
+            WHERE user_id = %s
+              AND status = 'active'
+              AND role = %s
+            """,
+            (account["user_id"], current_role),
+        )
+
+        if cursor.rowcount != 1:
+            connection.rollback()
+            return jsonify({
+                "success": False,
+                "message": "The account role could not be safely updated."
+            }), 409
+
+        connection.commit()
+
+        cursor.execute(
+            """
+            SELECT role
+            FROM users
+            WHERE user_id = %s
+            LIMIT 1
+            """,
+            (account["user_id"],),
+        )
+        verification = cursor.fetchone()
+        verified_role = (
+            str(verification.get("role") or "").strip().lower()
+            if verification
+            else ""
+        )
+
+        response = jsonify({
+            "success": verified_role == "admin",
+            "role": verified_role,
+            "message": (
+                "The first InCraft account has been promoted to Admin."
+                if verified_role == "admin"
+                else "The role update could not be verified."
+            ),
+            "must_sign_in_again": verified_role == "admin",
+        })
+        response.headers["Cache-Control"] = "no-store, max-age=0"
+        return response, (200 if verified_role == "admin" else 500)
+
+    except Exception as error:
+        if connection is not None:
+            try:
+                connection.rollback()
+            except Exception:
+                pass
+
+        print(f"Temporary first-admin bootstrap failed: {error}")
+        response = jsonify({
+            "success": False,
+            "message": "Admin setup failed. Check server logs."
+        })
+        response.headers["Cache-Control"] = "no-store, max-age=0"
+        return response, 500
+
+    finally:
+        if cursor is not None:
+            try:
+                cursor.close()
+            except Exception:
+                pass
+
+
