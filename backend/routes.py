@@ -44,7 +44,8 @@ from backend.db import (
     execute_query,
     execute_many,
     execute_transaction,
-    get_database_status
+    get_database_status,
+    get_db_connection
 )
 
 from backend.config import (
@@ -4344,3 +4345,197 @@ def health_check():
         "database": "connected" if database_connected else "unavailable",
         "secret_key_configured": SECRET_KEY_CONFIGURED,
     }), (200 if database_connected else 503)
+
+
+# ============================================================
+# TEMPORARY ONE-TIME DATABASE SCHEMA BOOTSTRAP
+# ============================================================
+# This endpoint is used only to initialize a newly provisioned
+# hosted database. Access requires a temporary high-entropy token
+# stored as an encrypted Vercel environment variable. Remove this
+# endpoint and its token after the schema has been verified.
+
+@main_bp.route("/api/internal/schema-bootstrap", methods=["GET"])
+def temporary_database_schema_bootstrap():
+    """Apply database/schema.sql to the configured InCraft database."""
+    import hmac
+    import os
+    import re
+    from pathlib import Path
+
+    expected_token = os.getenv("INCRAFT_SCHEMA_SETUP_TOKEN", "")
+    supplied_token = request.args.get("token", "")
+
+    if (
+        not IS_PRODUCTION
+        or not expected_token
+        or not supplied_token
+        or not hmac.compare_digest(expected_token, supplied_token)
+    ):
+        abort(404)
+
+    if not DATABASE_CONFIGURED or not SECRET_KEY_CONFIGURED:
+        return jsonify({
+            "success": False,
+            "message": "Production database configuration is incomplete."
+        }), 503
+
+    schema_path = (
+        Path(__file__).resolve().parent.parent
+        / "database"
+        / "schema.sql"
+    )
+
+    if not schema_path.is_file():
+        return jsonify({
+            "success": False,
+            "message": "The database schema file is unavailable."
+        }), 500
+
+    connection = None
+    cursor = None
+
+    try:
+        connection = get_db_connection()
+
+        if connection is None:
+            return jsonify({
+                "success": False,
+                "message": "Unable to connect to the configured database."
+            }), 503
+
+        cursor = connection.cursor()
+        cursor.execute("SELECT DATABASE()")
+        database_row = cursor.fetchone()
+        database_name = database_row[0] if database_row else None
+
+        if database_name != "incraft":
+            return jsonify({
+                "success": False,
+                "message": "Refusing to initialize an unexpected database."
+            }), 409
+
+        schema_text = schema_path.read_text(encoding="utf-8-sig")
+        executed_statements = 0
+        skipped_existing_indexes = 0
+
+        for raw_statement in schema_text.split(";"):
+            statement_lines = [
+                line
+                for line in raw_statement.splitlines()
+                if not line.lstrip().startswith("--")
+                and not line.lstrip().startswith("/*")
+                and not line.lstrip().startswith("*/")
+            ]
+            statement = "\n".join(statement_lines).strip()
+
+            if not statement:
+                continue
+
+            # The Aiven database was created separately. Keep schema
+            # initialization scoped to the already selected "incraft" DB.
+            if re.match(r"^CREATE\s+DATABASE\b", statement, re.IGNORECASE):
+                continue
+
+            if re.match(r"^USE\s+incraft\s*$", statement, re.IGNORECASE):
+                continue
+
+            # Make index creation safe to retry if a previous DDL operation
+            # completed before a later statement failed.
+            index_match = re.match(
+                r"^CREATE\s+INDEX\s+([A-Za-z0-9_]+)\s+"
+                r"ON\s+([A-Za-z0-9_]+)",
+                statement,
+                re.IGNORECASE,
+            )
+
+            if index_match:
+                index_name, table_name = index_match.groups()
+                cursor.execute(
+                    """
+                    SELECT 1
+                    FROM information_schema.statistics
+                    WHERE table_schema = DATABASE()
+                      AND table_name = %s
+                      AND index_name = %s
+                    LIMIT 1
+                    """,
+                    (table_name, index_name),
+                )
+
+                if cursor.fetchone():
+                    skipped_existing_indexes += 1
+                    continue
+
+            cursor.execute(statement)
+            executed_statements += 1
+
+        # Verify required tables and views, not just statement execution.
+        cursor.execute(
+            """
+            SELECT TABLE_NAME, TABLE_TYPE
+            FROM information_schema.tables
+            WHERE table_schema = DATABASE()
+            """
+        )
+
+        objects = cursor.fetchall()
+        actual_tables = sorted(
+            row[0] for row in objects if row[1] == "BASE TABLE"
+        )
+        actual_views = sorted(
+            row[0] for row in objects if row[1] == "VIEW"
+        )
+
+        expected_tables = {
+            "users",
+            "products",
+            "sales",
+            "sale_items",
+            "activity_logs",
+        }
+        expected_views = {
+            "inventory_summary",
+            "sales_summary",
+            "product_sales_performance",
+            "category_performance",
+            "low_stock_products",
+        }
+
+        missing_tables = sorted(expected_tables - set(actual_tables))
+        missing_views = sorted(expected_views - set(actual_views))
+
+        response = jsonify({
+            "success": not missing_tables and not missing_views,
+            "database": database_name,
+            "executed_statements": executed_statements,
+            "skipped_existing_indexes": skipped_existing_indexes,
+            "tables": actual_tables,
+            "views": actual_views,
+            "missing_tables": missing_tables,
+            "missing_views": missing_views,
+        })
+        response.headers["Cache-Control"] = "no-store, max-age=0"
+        return response, (200 if not missing_tables and not missing_views else 500)
+
+    except Exception as error:
+        print(f"Temporary database schema bootstrap failed: {error}")
+        response = jsonify({
+            "success": False,
+            "message": "Schema initialization failed. Check server logs."
+        })
+        response.headers["Cache-Control"] = "no-store, max-age=0"
+        return response, 500
+
+    finally:
+        if cursor is not None:
+            try:
+                cursor.close()
+            except Exception:
+                pass
+
+        if connection is not None:
+            try:
+                connection.close()
+            except Exception:
+                pass
