@@ -1106,7 +1106,8 @@
       if (res && res.ok && res.data && res.data.success) {
         toast('Product added successfully!', 'success');
         closeModal();
-        loadInventoryData();
+        if (state.currentPage === 'dashboard') refreshDashboardData();
+        else loadInventoryData();
       } else {
         toast(res?.data?.message || 'Error adding product.', 'error');
       }
@@ -1181,7 +1182,8 @@
       if (res && res.ok && res.data && res.data.success) {
         toast('Product updated successfully!', 'success');
         closeModal();
-        loadInventoryData();
+        if (state.currentPage === 'dashboard') refreshDashboardData();
+        else loadInventoryData();
       } else {
         toast(res?.data?.message || 'Error updating product.', 'error');
       }
@@ -1207,7 +1209,8 @@
       if (res && res.ok) {
         toast('Product deleted.', 'info');
         closeModal();
-        loadInventoryData();
+        if (state.currentPage === 'dashboard') refreshDashboardData();
+        else loadInventoryData();
       } else {
         toast('Failed to delete product.', 'error');
       }
@@ -1248,10 +1251,11 @@
         body: fd
       });
 
-      if (res && res.ok) {
-        toast(res.data?.message || 'Inventory imported successfully!', 'success');
+      if (res && res.ok && res.data && res.data.success) {
+        toast(res.data.message || 'Inventory imported successfully!', 'success');
         closeModal();
-        loadInventoryData();
+        if (state.currentPage === 'dashboard') refreshDashboardData();
+        else loadInventoryData();
       } else {
         toast(res?.data?.message || 'Error importing inventory file.', 'error');
       }
@@ -1458,7 +1462,7 @@
         toast(`Sale of ${qty} units completed successfully!`, 'success');
         closeModal();
         if (state.currentPage === 'sales') loadSalesData();
-        else if (state.currentPage === 'dashboard') loadDashboardSummary();
+        else if (state.currentPage === 'dashboard') refreshDashboardData();
       } else {
         toast(res?.data?.message || 'Error completing sale transaction.', 'error');
       }
