@@ -18,6 +18,17 @@ document.addEventListener("DOMContentLoaded", function () {
     const stockFilter =
         document.getElementById("stockFilter");
 
+    // Dashboard shortcuts pass a stock filter in the URL. Apply it on arrival.
+    const requestedStockFilter =
+        new URLSearchParams(window.location.search).get("filter");
+
+    if (
+        stockFilter &&
+        ["in-stock", "low-stock", "out-of-stock"].includes(requestedStockFilter)
+    ) {
+        stockFilter.value = requestedStockFilter;
+    }
+
     const sortFilter =
         document.getElementById("sortFilter");
 
@@ -112,6 +123,9 @@ document.addEventListener("DOMContentLoaded", function () {
             const quantity =
                 Number(row.dataset.stock || 0);
 
+            const minimumStock =
+                Number(row.dataset.minimumStock || 10);
+
 
             /* Search */
 
@@ -134,13 +148,13 @@ document.addEventListener("DOMContentLoaded", function () {
             if (stock === "in-stock") {
 
                 matchesStock =
-                    quantity > 10;
+                    quantity > minimumStock;
 
             } else if (stock === "low-stock") {
 
                 matchesStock =
                     quantity > 0 &&
-                    quantity <= 10;
+                    quantity <= minimumStock;
 
             } else if (stock === "out-of-stock") {
 
