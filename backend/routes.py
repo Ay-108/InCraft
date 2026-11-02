@@ -3513,6 +3513,24 @@ def dashboard_insights():
                 }
             }
 
+        # Staff may use operational insights, but inventory valuation remains
+        # administrator-only. Do not leak stock-value figures through insight
+        # metrics or nested product recommendations.
+        if not is_admin:
+            for insight in insights:
+                insight_data = insight.get("data", {})
+                if isinstance(insight_data, dict):
+                    insight_data.pop("inventory_value", None)
+                    insight_data.pop("excess_stock_value", None)
+                    for product_item in insight_data.get("products", []):
+                        if isinstance(product_item, dict):
+                            product_item.pop("stock_value", None)
+                if insight.get("type") == "optimization":
+                    insight["metric"] = (
+                        f"{len(excess_products)} product(s) flagged for stock review"
+                        if excess_products else "No major stock imbalance"
+                    )
+
         return jsonify({
             "success": True,
             "insights": insights,
