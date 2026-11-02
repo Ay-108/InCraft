@@ -649,25 +649,18 @@ Inventory | InCraft
 
             </button>
 
+            {% if is_admin %}
             <!-- Delete Selected -->
-
             <button
-
                 type="button"
-
                 class="inventory-action-btn danger"
-
                 id="deleteSelectedBtn"
-
                 disabled
-
             >
-
                 ×
-
                 Delete Selected
-
             </button>
+            {% endif %}
 
         </div>
 
@@ -741,19 +734,15 @@ Inventory | InCraft
 
                     <tr>
 
+                        {% if is_admin %}
                         <th class="checkbox-column">
-
                             <input
-
                                 type="checkbox"
-
                                 id="selectAllProducts"
-
                                 aria-label="Select all products"
-
                             >
-
                         </th>
+                        {% endif %}
 
                         <th>
 
@@ -809,11 +798,9 @@ Inventory | InCraft
 
                         </th>
 
-                        <th>
-
-                            Actions
-
-                        </th>
+                        {% if is_admin %}
+                        <th>Actions</th>
+                        {% endif %}
 
                     </tr>
 
@@ -865,25 +852,18 @@ Inventory | InCraft
 
                             >
 
-                                <!-- Checkbox -->
-
+                                {% if is_admin %}
+                                <!-- Admin-only bulk selection -->
                                 <td class="checkbox-column">
-
                                     <input
-
                                         type="checkbox"
-
                                         class="product-checkbox"
-
                                         name="selected_products"
-
                                         value="{{ product.product_id }}"
-
                                         aria-label="Select {{ product.name }}"
-
                                     >
-
                                 </td>
+                                {% endif %}
 
                                 <!-- Product -->
 
@@ -1063,10 +1043,9 @@ Inventory | InCraft
 
                                 </td>
 
-                                <!-- Actions -->
-
+                                {% if is_admin %}
+                                <!-- Admin-only product actions -->
                                 <td>
-
                                     <div class="inventory-actions">
 
                                         <a
@@ -1106,11 +1085,9 @@ Inventory | InCraft
                                         </button>
 
                                     </div>
-
                                 </td>
-
+                                {% endif %}
                             </tr>
-
                         {% endfor %}
 
                     {% else %}
@@ -1121,7 +1098,7 @@ Inventory | InCraft
 
                             <td
 
-                                colspan="11"
+                                colspan="{{ 11 if is_admin else 9 }}"
 
                                 class="empty-table-cell"
 
@@ -1291,16 +1268,10 @@ Inventory | InCraft
 
     </section>
 
-    <!-- =========================================
-
-         DELETE CONFIRMATION MODAL
-
-         ========================================= -->
-
+    {% if is_admin %}
+    <!-- Admin-only delete confirmation modal -->
     <div
-
         class="modal-overlay"
-
         id="deleteModal"
 
         hidden
@@ -1416,8 +1387,8 @@ Inventory | InCraft
             </div>
 
         </div>
-
     </div>
+    {% endif %}
 
 </main>
 
