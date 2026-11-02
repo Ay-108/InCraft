@@ -1324,7 +1324,7 @@ def add_product():
 
         product_id = execute_query(
             """
-            INSERT IGNORE INTO products
+            INSERT INTO products
             (
                 product_code,
                 name,
@@ -2203,7 +2203,7 @@ def import_inventory():
         # Existing product-code conflicts fail the batch rather than partially importing it.
         imported_count = execute_many(
             """
-            INSERT INTO products
+            INSERT IGNORE INTO products
             (
                 product_code,
                 name,
