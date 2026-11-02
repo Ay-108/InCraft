@@ -894,6 +894,36 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
 
+    // Explicit chart states prevent empty datasets from looking like broken charts.
+    function setChartNote(elementId, message) {
+        const note = document.getElementById(elementId);
+        if (note) note.textContent = message;
+    }
+
+    if (typeof Chart === "undefined") {
+        setChartNote("revenueChartNote", "Chart.js could not be loaded. Check your network connection and refresh.");
+        setChartNote("categoryChartNote", "Chart.js could not be loaded. Check your network connection and refresh.");
+        setChartNote("topProductsChartNote", "Chart.js could not be loaded. Check your network connection and refresh.");
+        setChartNote("inventoryHealthChartNote", "Chart.js could not be loaded. Check your network connection and refresh.");
+    } else {
+        if (!revenueData.some(function (value) { return value > 0; })) {
+            setChartNote("revenueChartNote", "No sales revenue is recorded in the selected period. The trend will populate when sales are recorded.");
+        }
+
+        if (!categoryData.some(function (value) { return value > 0; })) {
+            setChartNote("categoryChartNote", "No category sales are recorded in the selected period.");
+        }
+
+        if (!topProductData.some(function (value) { return value > 0; })) {
+            setChartNote("topProductsChartNote", "No product sales are recorded in the selected period.");
+        }
+
+        if (totalStockProducts === 0) {
+            setChartNote("inventoryHealthChartNote", "No active inventory products are available to chart.");
+        }
+    }
+
+
     /* =========================================
        11. ANALYTICS READY STATE
        ========================================= */
