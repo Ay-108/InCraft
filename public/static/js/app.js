@@ -605,6 +605,7 @@
         <button class="dash-quick-link" data-dash-page="inventory">View inventory <span>→</span></button>
         <button class="dash-quick-link" data-dash-page="sales">View sales <span>→</span></button>
         <button class="dash-quick-link" data-dash-page="analytics">Analytics & reports <span>→</span></button>
+        <button class="dash-quick-link" id="dashReportBtn" type="button">Generate report <span>↓</span></button>
         <a class="dash-quick-link" href="/inventory/export" target="_blank" rel="noopener">Export inventory <span>↓</span></a>
       </div>
       <section class="dash-kpi-grid" id="dashStats" aria-label="Business key performance indicators">
@@ -645,6 +646,7 @@
     $('#dashAddProductBtn')?.addEventListener('click', () => openAddProductModal());
     $('#dashImportBtn')?.addEventListener('click', () => openImportModal());
     $('#dashPrintBtn').onclick = () => window.print();
+    $('#dashReportBtn').onclick = () => downloadDashboardReport();
     $('#dashRefreshBtn').onclick = () => refreshDashboardData(true);
     $$('[data-dash-page]').forEach(button => button.addEventListener('click', () => navigateTo(button.dataset.dashPage)));
     $$('[data-kpi]').forEach(button => button.addEventListener('click', () => navigateFromKpi(button.dataset.kpi)));
@@ -675,6 +677,69 @@
     const label = $('#dashLastRefresh');
     if (label) label.textContent = state.dashboardLastRefresh.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     if (showMessage) toast('Dashboard data refreshed.', 'success');
+  }
+
+  function csvCell(value) {
+    return `"${String(value ?? '').replace(/"/g, '""')}"`;
+  }
+
+  async function downloadDashboardReport() {
+    toast('Preparing the latest 90-day business report…');
+    const [summaryRes, trendRes] = await Promise.all([
+      api('/api/dashboard/summary'),
+      api('/api/dashboard/sales?days=90')
+    ]);
+    if (!summaryRes?.ok || !summaryRes.data?.success || !trendRes?.ok || !trendRes.data?.success) {
+      toast('The report could not be generated because live data is unavailable.', 'error');
+      return;
+    }
+
+    const metrics = summaryRes.data.metrics || {};
+    const trend = trendRes.data;
+    const rows = [
+      ['InCraft Business Report'],
+      ['Generated at', new Date().toLocaleString()],
+      ['Sales trend period', 'Last 90 days'],
+      [],
+      ['Key Metric', 'Value'],
+      ['Active products', metrics.total_products ?? 0],
+      ['Total stock units', metrics.total_stock ?? 0],
+      ['Inventory value', metrics.inventory_value === null ? 'Restricted' : metrics.inventory_value],
+      ['Total revenue', metrics.total_revenue ?? 0],
+      ['Total orders', metrics.total_orders ?? 0],
+      ['Average order value', metrics.average_order_value ?? 0],
+      ["Today's sales", metrics.todays_sales ?? 0],
+      ['Low-stock products', metrics.low_stock ?? 0],
+      ['Out-of-stock products', metrics.out_of_stock ?? 0],
+      [],
+      ['Daily Sales Trend', 'Revenue', 'Orders', 'Units Sold'],
+      ...(trend.labels || []).map((day, index) => [
+        day,
+        trend.revenue?.[index] ?? trend.values?.[index] ?? 0,
+        trend.orders?.[index] ?? 0,
+        trend.units_sold?.[index] ?? 0
+      ]),
+      [],
+      ['Top-selling Products (Last 30 Days)', 'Product Code', 'Units Sold', 'Revenue'],
+      ...(summaryRes.data.top_products || []).map(product => [
+        product.name || '',
+        product.product_code || '',
+        product.units_sold ?? 0,
+        product.revenue ?? 0
+      ])
+    ];
+
+    const csv = rows.map(row => row.map(csvCell).join(',')).join('\r\n');
+    const blob = new Blob(['\uFEFF', csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `incraft-business-report-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    toast('Business report generated.', 'success');
   }
 
   async function loadDashboardSummary() {
@@ -836,7 +901,7 @@
       options: {
         responsive: true, maintainAspectRatio: false, interaction: { intersect: false, mode: 'index' },
         plugins: { legend: { display: false }, tooltip: { callbacks: { label: context => isRevenue ? `Revenue: ${fmtMoney(context.parsed.y)}` : `${metricLabels[metric]}: ${Number(context.parsed.y).toLocaleString()}` } } },
-        scales: { x: { grid: { display: false }, ticks: { color: '#8B9098', maxTicksLimit: days === 7 ? 7 : 10 } }, y: { beginAtZero: true, grid: { color: 'rgba(130,136,145,0.16)' }, ticks: { color: '#8B9098', callback: value => isRevenue ? `₹${Number(value).toLocaleString()}` : Number(value).toLocaleString() } } }
+        scales: { x: { grid: { display: false }, ticks: { color: '#8B9098', maxTicksLimit: days === 7 ? 7 : 10 } }, y: { beginAtZero: true, grid: { color: 'rgba(130,136,145,0.16)' }, ticks: { color: '#8B9098', callback: value => isRevenue ? `${state.currency}${Number(value).toLocaleString()}` : Number(value).toLocaleString() } } }
       }
     });
   }
