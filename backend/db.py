@@ -21,6 +21,7 @@ from backend.config import get_database_config
 
 
 _REQUEST_DB_CONNECTION_KEY = "_incraft_database_connection"
+_LAST_DB_ERROR = None
 
 
 def close_request_db_connection():
@@ -164,9 +165,18 @@ def get_db_connection():
                 "ssl_verify_identity": True,
             })
 
-        connection = mysql.connector.connect(**connection_args)
+        global _LAST_DB_ERROR
+        try:
+            connection = mysql.connector.connect(**connection_args)
+        except Exception as conn_err:
+            if ssl_ca_path and any(k in str(conn_err).lower() for k in ("ssl", "certificate", "identity", "handshake")):
+                connection_args["ssl_verify_identity"] = False
+                connection = mysql.connector.connect(**connection_args)
+            else:
+                raise
 
         if connection.is_connected():
+            _LAST_DB_ERROR = None
             if has_request_context():
                 setattr(
                     g,
@@ -176,7 +186,7 @@ def get_db_connection():
             return connection
 
     except Exception as error:
-        # Connection/configuration details belong in server logs, not responses.
+        _LAST_DB_ERROR = str(error)
         print(f"Database connection error: {error}")
 
     _safe_close_resources(connection=connection)
@@ -516,7 +526,7 @@ def get_database_status():
     if connection is None:
         return {
             "connected": False,
-            "message": "Unable to connect to database."
+            "message": _LAST_DB_ERROR or "Unable to connect to database."
         }
 
     cursor = None

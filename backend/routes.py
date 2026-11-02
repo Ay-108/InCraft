@@ -4242,5 +4242,6 @@ def health_check():
         "application": "InCraft",
         "status": "running" if database_connected else "database_unavailable",
         "database": "connected" if database_connected else "unavailable",
+        "db_error": None if database_connected else str(database_status.get("message", "")),
         "secret_key_configured": SECRET_KEY_CONFIGURED,
     }), (200 if database_connected else 503)
