@@ -1777,14 +1777,7 @@ def import_inventory():
             }), (200 if success else 400)
 
         flash(message, category)
-        return _import_result(
-        message,
-        "success",
-        True,
-        imported_count,
-        skipped_existing,
-        invalid_rows
-    )
+        return redirect(url_for("main.inventory"))
 
     uploaded_file = request.files.get("file")
 
