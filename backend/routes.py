@@ -1754,20 +1754,42 @@ def import_inventory():
         minimum_stock (defaults to 10), supplier (defaults to blank)
     """
 
+    wants_json = (
+        request.is_json
+        or "application/json" in request.headers.get("Accept", "")
+    )
+
+    def _import_result(
+        message,
+        category="warning",
+        success=False,
+        imported_count=0,
+        skipped_existing=0,
+        invalid_rows=0
+    ):
+        if wants_json:
+            return jsonify({
+                "success": success,
+                "message": message,
+                "imported_count": imported_count,
+                "skipped_existing": skipped_existing,
+                "invalid_rows": invalid_rows
+            }), (200 if success else 400)
+
+        flash(message, category)
+        return redirect(url_for("main.inventory"))
+
     uploaded_file = request.files.get("file")
 
     if uploaded_file is None or not uploaded_file.filename:
-        flash("Please select a file to import.", "danger")
-        return redirect(url_for("main.inventory"))
+        return _import_result("Please select a file to import.", "danger")
 
     if not allowed_file(uploaded_file.filename):
-        flash("Unsupported file format.", "danger")
-        return redirect(url_for("main.inventory"))
+        return _import_result("Unsupported file format.", "danger")
 
     extension = uploaded_file.filename.rsplit(".", 1)[-1].lower()
     if extension not in {"csv", "xlsx"}:
-        flash("Please upload a CSV or Excel (.xlsx) inventory file.", "warning")
-        return redirect(url_for("main.inventory"))
+        return _import_result("Please upload a CSV or Excel (.xlsx) inventory file.", "warning")
 
     max_import_bytes = 5 * 1024 * 1024
     workbook = None
@@ -1780,20 +1802,17 @@ def import_inventory():
         raw_content = uploaded_file.stream.read(max_import_bytes + 1)
 
         if len(raw_content) > max_import_bytes:
-            flash("Import file is too large. Maximum size is 5 MB.", "danger")
-            return redirect(url_for("main.inventory"))
+            return _import_result("Import file is too large. Maximum size is 5 MB.", "danger")
 
         if not raw_content:
-            flash("The selected file is empty.", "warning")
-            return redirect(url_for("main.inventory"))
+            return _import_result("The selected file is empty.", "warning")
 
         if extension == "csv":
             content = raw_content.decode("utf-8-sig")
             reader = csv.DictReader(io.StringIO(content))
 
             if not reader.fieldnames:
-                flash("The CSV file must contain a header row.", "warning")
-                return redirect(url_for("main.inventory"))
+                return _import_result("The CSV file must contain a header row.", "warning")
 
             headers = [
                 str(header or "").strip().lower()
@@ -1818,15 +1837,13 @@ def import_inventory():
             worksheet = workbook.active
 
             if worksheet is None:
-                flash("The Excel file has no active worksheet.", "warning")
-                return redirect(url_for("main.inventory"))
+                return _import_result("The Excel file has no active worksheet.", "warning")
 
             sheet_rows = worksheet.iter_rows(values_only=True)
             header_row = next(sheet_rows, None)
 
             if not header_row:
-                flash("The Excel file is empty or has no header row.", "warning")
-                return redirect(url_for("main.inventory"))
+                return _import_result("The Excel file is empty or has no header row.", "warning")
 
             headers = [
                 str(value or "").strip().lower()
@@ -1841,13 +1858,11 @@ def import_inventory():
         missing_headers = sorted(required_headers - set(headers))
 
         if missing_headers:
-            flash(
+            return _import_result(
                 "Import file is missing required column(s): "
-                + ", ".join(missing_headers)
-                + ".",
+                + ", ".join(missing_headers) + ".",
                 "danger"
             )
-            return redirect(url_for("main.inventory"))
 
         rows = []
         seen_product_codes = set()
@@ -1945,12 +1960,11 @@ def import_inventory():
             ))
 
         if not rows:
-            flash(
+            return _import_result(
                 "No valid inventory records were found. Check the file headers "
                 "and make sure quantities are whole numbers and prices are greater than zero.",
                 "warning"
             )
-            return redirect(url_for("main.inventory"))
 
         # The database helper executes the batch as one operation.
         # Existing product-code conflicts fail the batch rather than partially importing it.
@@ -1975,12 +1989,11 @@ def import_inventory():
         )
 
         if imported_count is None:
-            flash(
+            return _import_result(
                 "Inventory import failed. No records were imported. "
                 "Check whether any product codes already exist.",
                 "danger"
             )
-            return redirect(url_for("main.inventory"))
 
         try:
             execute_query(
@@ -2027,14 +2040,24 @@ def import_inventory():
         if imported_count > 0:
             session["incraft_data_changed"] = "inventory"
 
-        flash(message, "success")
+        return _import_result(
+            message,
+            "success",
+            True,
+            imported_count,
+            skipped_existing,
+            invalid_rows
+        )
 
     except UnicodeDecodeError:
-        flash("Import failed: CSV file must use UTF-8 encoding.", "danger")
+        return _import_result(
+            "Import failed: CSV file must use UTF-8 encoding.",
+            "danger"
+        )
     except Exception as error:
         # Keep internal database/file details out of the user-facing message.
         print(f"Inventory import failed: {error}")
-        flash(
+        return _import_result(
             "Inventory import failed. Check the file format, required columns, "
             "product codes, and database connection, then try again.",
             "danger"
@@ -2605,11 +2628,11 @@ def export_sales():
 @active_user_required
 def dashboard_summary():
     """
-    Return live dashboard KPIs and stock distribution from the current database.
+    Return live dashboard KPIs and recent operational records.
 
-    Inventory health is shared across active users. Revenue is scoped to the
-    signed-in user unless the requester is an Admin, matching the dashboard
-    and Sales page visibility rules.
+    Inventory health is shared across active users. Sales and activity data
+    are scoped to the signed-in user unless the requester is an Admin.
+    Sensitive inventory valuation remains Admin-only.
     """
     try:
         current_role = get_current_user_role()
@@ -2629,7 +2652,8 @@ def dashboard_summary():
                 COUNT(*) AS total_products,
                 COALESCE(SUM(quantity), 0) AS total_stock,
                 COALESCE(SUM(CASE
-                    WHEN quantity <= minimum_stock THEN 1 ELSE 0
+                    WHEN quantity > 0 AND quantity <= minimum_stock
+                    THEN 1 ELSE 0
                 END), 0) AS low_stock,
                 COALESCE(SUM(CASE
                     WHEN quantity > minimum_stock THEN 1 ELSE 0
@@ -2649,7 +2673,8 @@ def dashboard_summary():
 
         sales_query = """
             SELECT
-                COALESCE(SUM(total_amount), 0) AS total_sales,
+                COUNT(*) AS total_sales_orders,
+                COALESCE(SUM(total_amount), 0) AS total_revenue,
                 COALESCE(SUM(CASE
                     WHEN DATE(sale_date) = CURDATE()
                     THEN total_amount ELSE 0
@@ -2662,29 +2687,144 @@ def dashboard_summary():
             sales_params = (current_user_id,)
 
         sales_row = fetch_one(sales_query, sales_params) or {}
+
+        if is_admin:
+            recent_sales_rows = fetch_all(
+                """
+                SELECT
+                    sale_id,
+                    invoice_number,
+                    customer_name,
+                    total_amount,
+                    payment_method,
+                    sale_date
+                FROM sales
+                ORDER BY sale_date DESC
+                LIMIT 5
+                """
+            ) or []
+        else:
+            recent_sales_rows = fetch_all(
+                """
+                SELECT
+                    sale_id,
+                    invoice_number,
+                    customer_name,
+                    total_amount,
+                    payment_method,
+                    sale_date
+                FROM sales
+                WHERE user_id = %s
+                ORDER BY sale_date DESC
+                LIMIT 5
+                """,
+                (current_user_id,)
+            ) or []
+
+        low_stock_rows = fetch_all(
+            """
+            SELECT
+                product_id,
+                product_code,
+                name,
+                quantity,
+                minimum_stock,
+                supplier
+            FROM products
+            WHERE status = 'active'
+              AND quantity <= minimum_stock
+            ORDER BY quantity ASC, name ASC
+            LIMIT 6
+            """
+        ) or []
+
+        recent_product_rows = fetch_all(
+            """
+            SELECT
+                product_id,
+                product_code,
+                name,
+                category,
+                quantity,
+                created_at
+            FROM products
+            WHERE status = 'active'
+            ORDER BY created_at DESC
+            LIMIT 5
+            """
+        ) or []
+
+        activity_query = """
+            SELECT
+                a.activity_id,
+                a.action,
+                a.entity_type,
+                a.entity_id,
+                a.description,
+                a.created_at,
+                u.username
+            FROM activity_logs a
+            LEFT JOIN users u
+                ON u.user_id = a.user_id
+        """
+        activity_params = ()
+        if not is_admin:
+            activity_query += " WHERE a.user_id = %s"
+            activity_params = (current_user_id,)
+        activity_query += " ORDER BY a.created_at DESC LIMIT 6"
+        recent_activity_rows = fetch_all(
+            activity_query,
+            activity_params
+        ) or []
+
+        def serialize_rows(rows, date_fields):
+            serialized = []
+            for row in rows or []:
+                item = dict(cast(Any, row))
+                for field in date_fields:
+                    value = item.get(field)
+                    if hasattr(value, "isoformat"):
+                        item[field] = value.isoformat()
+                    elif value is not None:
+                        item[field] = str(value)
+                serialized.append(item)
+            return serialized
+
         inventory_data = cast(Any, inventory_row)
         sales_data = cast(Any, sales_row)
 
+        metrics = {
+            "total_products": int(inventory_data.get("total_products") or 0),
+            "total_stock": int(inventory_data.get("total_stock") or 0),
+            "low_stock": int(inventory_data.get("low_stock") or 0),
+            "out_of_stock": int(inventory_data.get("stock_out_count") or 0),
+            "total_sales_orders": int(sales_data.get("total_sales_orders") or 0),
+            "total_revenue": float(sales_data.get("total_revenue") or 0),
+            # Legacy key retained while the SPA is being migrated.
+            "total_sales": float(sales_data.get("total_revenue") or 0),
+            "todays_sales": float(sales_data.get("todays_sales") or 0),
+            "inventory_value": (
+                float(inventory_data.get("inventory_value") or 0)
+                if is_admin else None
+            ),
+        }
+
         payload = {
             "success": True,
-            "metrics": {
-                "total_products": int(inventory_data.get("total_products") or 0),
-                "total_stock": int(inventory_data.get("total_stock") or 0),
-                "low_stock": int(inventory_data.get("low_stock") or 0),
-                "total_sales": float(sales_data.get("total_sales") or 0),
-                "todays_sales": float(sales_data.get("todays_sales") or 0),
-                "inventory_value": (
-                    float(inventory_data.get("inventory_value") or 0)
-                    if is_admin else None
-                )
-            },
+            "is_admin": is_admin,
+            "metrics": metrics,
             "stock_distribution": {
                 "stock_in_count": int(inventory_data.get("stock_in_count") or 0),
                 "stock_low_count": int(inventory_data.get("stock_low_count") or 0),
-                "stock_out_count": int(inventory_data.get("stock_out_count") or 0)
+                "stock_out_count": int(inventory_data.get("stock_out_count") or 0),
             },
-            "generated_at": datetime.now().isoformat()
+            "low_stock_products": serialize_rows(low_stock_rows, ()),
+            "recent_sales": serialize_rows(recent_sales_rows, ("sale_date",)),
+            "recent_products": serialize_rows(recent_product_rows, ("created_at",)),
+            "recent_activity": serialize_rows(recent_activity_rows, ("created_at",)),
+            "generated_at": datetime.now().isoformat(),
         }
+
         response = jsonify(payload)
         response.headers["Cache-Control"] = "no-store, max-age=0"
         return response
@@ -4052,6 +4192,7 @@ def ml_demand_forecast():
         return jsonify({
             "success": True,
             "forecast_horizon_days": [7, 30],
+            "generated_at": datetime.now().isoformat(),
             "count": len(forecasts),
             "forecasts": forecasts,
         })
@@ -4073,6 +4214,7 @@ def ml_stockout_risk():
             "success": True,
             "default_lead_time_days": lead_time,
             "lead_time_source": "INCRAFT_DEFAULT_LEAD_TIME_DAYS environment variable; defaults to 7 days",
+            "generated_at": datetime.now().isoformat(),
             "count": len(results),
             "risks": results,
         })
@@ -4095,6 +4237,7 @@ def ml_reorder_recommendations():
             "default_lead_time_days": lead_time,
             "lead_time_source": "INCRAFT_DEFAULT_LEAD_TIME_DAYS environment variable; defaults to 7 days",
             "safety_stock_basis": "products.minimum_stock is used as a safety-stock proxy because no separate safety-stock field exists",
+            "generated_at": datetime.now().isoformat(),
             "count": len(recommendations),
             "recommendations": recommendations,
         })
@@ -4251,6 +4394,11 @@ def health_check():
         "application": "InCraft",
         "status": "running" if database_connected else "database_unavailable",
         "database": "connected" if database_connected else "unavailable",
-        "db_error": None if database_connected else str(database_status.get("message", "")),
+        # Keep connector exceptions and connection details in server logs only.
+        "message": (
+            "Database connectivity verified."
+            if database_connected
+            else "Database connectivity could not be verified."
+        ),
         "secret_key_configured": SECRET_KEY_CONFIGURED,
     }), (200 if database_connected else 503)

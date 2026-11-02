@@ -94,6 +94,10 @@ CREATE TABLE IF NOT EXISTS sales (
 
     invoice_number VARCHAR(50) NOT NULL UNIQUE,
 
+    -- UUID supplied by the client to make sale retries idempotent.
+    -- NULL remains valid for legacy/imported sales without a request key.
+    idempotency_key CHAR(36) NULL,
+
     customer_name VARCHAR(150) NULL,
 
     total_amount DECIMAL(12, 2) NOT NULL DEFAULT 0.00,
@@ -112,6 +116,9 @@ CREATE TABLE IF NOT EXISTS sales (
 
     CONSTRAINT chk_sale_total
         CHECK (total_amount >= 0),
+
+    CONSTRAINT uq_sales_idempotency_key
+        UNIQUE (idempotency_key),
 
     CONSTRAINT fk_sales_user
         FOREIGN KEY (user_id)

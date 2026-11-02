@@ -9,6 +9,7 @@ TEST_FILES = [
     "test_sale_concurrency",
     "test_admin_security",
     "test_csrf",
+    "test_health_check_security",
 ]
 
 if __name__ == "__main__":
