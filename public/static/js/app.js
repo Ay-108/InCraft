@@ -1583,63 +1583,83 @@
     const box = $('#mlInsightsContainer');
     if (!box) return;
 
-    const [forecastRes, riskRes, reorderRes] = await Promise.all([
+    const [forecastResponse, riskResponse, reorderResponse] = await Promise.all([
       api('/api/ml/forecast'),
       api('/api/ml/stockout-risk'),
       api('/api/ml/reorder-recommendations')
     ]);
+    const responses = [forecastResponse, riskResponse, reorderResponse];
+    const failed = responses.some((response) => !response || !response.ok || !response.data || !response.data.success);
+    const pendingElement = $('#dashPendingReorders');
+
+    if (failed) {
+      if (pendingElement) pendingElement.textContent = 'Unavailable';
+      box.innerHTML = '<div class="dashboard-empty">One or more ML assessments could not be loaded. No placeholder predictions are being displayed.</div>';
+      return;
+    }
+
+    const forecasts = Array.isArray(forecastResponse.data.forecasts) ? forecastResponse.data.forecasts : [];
+    const risks = Array.isArray(riskResponse.data.risks) ? riskResponse.data.risks : [];
+    const recommendations = Array.isArray(reorderResponse.data.recommendations) ? reorderResponse.data.recommendations : [];
+    state.mlForecasts = forecasts;
+    state.mlRisks = risks;
+    state.mlReorders = recommendations;
+
+    const actionableReorders = recommendations.filter((item) => item.reorder_now === true);
+    if (pendingElement) pendingElement.textContent = actionableReorders.length.toLocaleString();
 
     const cards = [];
-
-    if (riskRes?.ok && riskRes.data?.high_risk_products?.length > 0) {
-      const hr = riskRes.data.high_risk_products[0];
+    const priorityRisk = risks.find((item) => String(item.risk_level).toLowerCase() === 'high')
+      || risks.find((item) => String(item.risk_level).toLowerCase() === 'medium');
+    if (priorityRisk) {
+      const days = priorityRisk.estimated_days_of_stock;
+      const coverage = days === null || days === undefined
+        ? 'Days of stock cannot be estimated from the available demand history.'
+        : 'Estimated stock coverage: ' + Number(days).toLocaleString() + ' days.';
       cards.push(`
         <div class="insight">
-          <b style="color:var(--red);">⚠ HIGH STOCKOUT RISK</b>
-          <strong>${hr.name}</strong>
-          <span>Estimated stock depletion in <strong>${hr.days_remaining || 3} days</strong> based on 30-day velocity.</span>
+          <b style="color:var(--red);">STOCKOUT RISK · ${escapeHtml(String(priorityRisk.risk_level || '').toUpperCase())}</b>
+          <strong>${escapeHtml(priorityRisk.name || 'Product')}</strong>
+          <span>${coverage} ${escapeHtml(priorityRisk.reason || '')} Risk score: ${Number(priorityRisk.risk_score || 0)}/100.</span>
         </div>
       `);
+    } else if (risks.length) {
+      cards.push('<div class="insight"><b>STOCKOUT RISK</b><strong>No elevated stockout risk returned</strong><span>Current product coverage estimates are within the low-risk category.</span></div>');
     }
 
-    if (forecastRes?.ok && forecastRes.data?.predictions?.length > 0) {
-      const f = forecastRes.data.predictions[0];
+    if (forecasts.length) {
+      const forecast = [...forecasts].sort((a, b) => Number(b.forecast_units_30d || 0) - Number(a.forecast_units_30d || 0))[0];
+      const method = String(forecast.method || 'not specified').replaceAll('_', ' ');
       cards.push(`
         <div class="insight">
-          <b>◈ DEMAND FORECAST</b>
-          <strong>${f.name}</strong>
-          <span>Projected demand: <strong>${Math.round(f.predicted_sales || 20)} units</strong> next month (${f.trend || 'increasing'} trend).</span>
+          <b>DEMAND FORECAST</b>
+          <strong>${escapeHtml(forecast.name || 'Product')}</strong>
+          <span>Estimated demand: ${Number(forecast.forecast_units_7d || 0)} units over 7 days and ${Number(forecast.forecast_units_30d || 0)} units over 30 days. Method: ${escapeHtml(method)}. History: ${Number(forecast.history_days || 0)} days; non-zero sales days: ${Number(forecast.nonzero_sales_days || 0)}; heuristic data level: ${escapeHtml(forecast.confidence || 'unknown')}.
         </div>
       `);
+    } else {
+      cards.push('<div class="insight"><b>DEMAND FORECAST</b><strong>Insufficient sales observations</strong><span>No product has usable historical observations for a demand estimate yet. Record sales to build history.</span></div>');
     }
 
-    if (reorderRes?.ok && reorderRes.data?.recommendations?.length > 0) {
-      const r = reorderRes.data.recommendations[0];
+    if (actionableReorders.length) {
+      const recommendation = actionableReorders[0];
       cards.push(`
         <div class="insight">
-          <b style="color:var(--green);">✦ RECOMMENDED REORDER</b>
-          <strong>${r.name}</strong>
-          <span>Suggested batch: <strong>${r.recommended_quantity || 30} units</strong> from supplier ${r.supplier || 'Primary'}.</span>
+          <b style="color:var(--green);">REORDER ACTION</b>
+          <strong>${escapeHtml(recommendation.name || 'Product')}</strong>
+          <span>Suggested order: ${Number(recommendation.recommended_order_quantity || 0)} units. Urgency: ${escapeHtml(recommendation.urgency || 'monitor')}. Lead time used: ${Number(recommendation.lead_time_days || 0)} days. ${actionableReorders.length} product(s) currently meet the calculated reorder condition.</span>
         </div>
       `);
+    } else {
+      cards.push('<div class="insight"><b>REORDER STATUS</b><strong>No immediate reorder condition</strong><span>No product currently meets the calculated reorder point using the available demand estimate and lead-time setting.</span></div>');
     }
 
-    if (cards.length === 0) {
-      cards.push(`
-        <div class="insight">
-          <b>✦ ML MODELS ACTIVE</b>
-          <strong>Inventory Normalized</strong>
-          <span>No imminent stockout hazards detected. Machine learning predictive models are active.</span>
-        </div>
-      `);
+    const generatedAt = [forecastResponse.data.generated_at, riskResponse.data.generated_at, reorderResponse.data.generated_at].filter(Boolean).sort().pop();
+    if (generatedAt) {
+      cards.push('<div class="dashboard-ml-meta">ML assessments generated: ' + escapeHtml(fmtDate(generatedAt)) + '. Reorder suggestions are estimates and do not create purchase orders or change stock.</div>');
     }
-
     box.innerHTML = cards.join('');
   }
-
-  // ============================================================
-  // 5. ACTIVITY HISTORY MODULE
-  // ============================================================
 
   async function renderActivity(container) {
     container.innerHTML = `
