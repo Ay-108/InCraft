@@ -4169,6 +4169,7 @@ def ml_demand_forecast():
         return jsonify({
             "success": True,
             "forecast_horizon_days": [7, 30],
+            "generated_at": datetime.now().isoformat(),
             "count": len(forecasts),
             "forecasts": forecasts,
         })
@@ -4190,6 +4191,7 @@ def ml_stockout_risk():
             "success": True,
             "default_lead_time_days": lead_time,
             "lead_time_source": "INCRAFT_DEFAULT_LEAD_TIME_DAYS environment variable; defaults to 7 days",
+            "generated_at": datetime.now().isoformat(),
             "count": len(results),
             "risks": results,
         })
@@ -4212,6 +4214,7 @@ def ml_reorder_recommendations():
             "default_lead_time_days": lead_time,
             "lead_time_source": "INCRAFT_DEFAULT_LEAD_TIME_DAYS environment variable; defaults to 7 days",
             "safety_stock_basis": "products.minimum_stock is used as a safety-stock proxy because no separate safety-stock field exists",
+            "generated_at": datetime.now().isoformat(),
             "count": len(recommendations),
             "recommendations": recommendations,
         })
