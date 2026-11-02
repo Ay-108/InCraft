@@ -284,15 +284,15 @@ Analytics | InCraft
 
             <select id="analyticsDate">
 
-                <option value="6">
+                <option value="6" {% if selected_months == 6 %}selected{% endif %}>
                     Last 6 Months
                 </option>
 
-                <option value="12">
+                <option value="12" {% if selected_months == 12 %}selected{% endif %}>
                     Last 12 Months
                 </option>
 
-                <option value="3">
+                <option value="3" {% if selected_months == 3 %}selected{% endif %}>
                     Last 3 Months
                 </option>
 
@@ -978,9 +978,13 @@ Analytics | InCraft
         data-revenue-labels='{{ monthly_sales|default([])|map(attribute="month")|list|tojson }}'
         data-revenue-values='{{ monthly_sales|default([])|map(attribute="revenue")|list|tojson }}'
         data-category-labels='{{ category_data|default([])|map(attribute="category")|list|tojson }}'
-        data-category-values='{{ category_data|default([])|map(attribute="stock_value")|list|tojson }}'
+        data-category-values='{{ category_data|default([])|map(attribute="revenue")|list|tojson }}'
         data-top-product-labels='{{ top_products|default([])|map(attribute="name")|list|tojson }}'
         data-top-product-values='{{ top_products|default([])|map(attribute="quantity_sold")|list|tojson }}'
+        data-stock-in="{{ stock_distribution.stock_in_count|default(0, true) }}"
+        data-stock-low="{{ stock_distribution.stock_low_count|default(0, true) }}"
+        data-stock-out="{{ stock_distribution.stock_out_count|default(0, true) }}"
+        data-stock-total="{{ stock_distribution.total_products|default(0, true) }}"
     ></div>
 
 </main>
