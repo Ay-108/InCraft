@@ -4251,6 +4251,11 @@ def health_check():
         "application": "InCraft",
         "status": "running" if database_connected else "database_unavailable",
         "database": "connected" if database_connected else "unavailable",
-        "db_error": None if database_connected else str(database_status.get("message", "")),
+        # Keep connector exceptions and connection details in server logs only.
+        "message": (
+            "Database connectivity verified."
+            if database_connected
+            else "Database connectivity could not be verified."
+        ),
         "secret_key_configured": SECRET_KEY_CONFIGURED,
     }), (200 if database_connected else 503)
