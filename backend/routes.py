@@ -2156,7 +2156,16 @@ def import_inventory():
                 invalid_rows += 1
                 continue
 
-            if quantity < 0 or price <= 0 or minimum_stock < 0:
+            # Match the MySQL column limits before INSERT IGNORE is used:
+            # INT is signed 32-bit and DECIMAL(12, 2) allows 10 integer digits.
+            if (
+                quantity < 0
+                or quantity > 2147483647
+                or price <= 0
+                or price > 9999999999.99
+                or minimum_stock < 0
+                or minimum_stock > 2147483647
+            ):
                 invalid_rows += 1
                 continue
 
