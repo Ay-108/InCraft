@@ -2605,20 +2605,14 @@ def export_sales():
 @active_user_required
 def dashboard_summary():
     """
-    Return live dashboard KPIs and stock distribution from the current database.
-
-    Inventory health is shared across active users. Revenue is scoped to the
-    signed-in user unless the requester is an Admin, matching the dashboard
-    and Sales page visibility rules.
+    Return database-backed dashboard KPIs and actionable recent records.
+    Inventory metrics are shared; sales and activity metrics are role-scoped.
     """
     try:
         current_role = get_current_user_role()
         if current_role is None:
             logout_user()
-            return jsonify({
-                "success": False,
-                "message": "Please sign in again."
-            }), 401
+            return jsonify({"success": False, "message": "Please sign in again."}), 401
 
         is_admin = current_role == "admin"
         current_user_id = get_current_user_id()
@@ -2628,20 +2622,13 @@ def dashboard_summary():
             SELECT
                 COUNT(*) AS total_products,
                 COALESCE(SUM(quantity), 0) AS total_stock,
-                COALESCE(SUM(CASE
-                    WHEN quantity <= minimum_stock THEN 1 ELSE 0
-                END), 0) AS low_stock,
-                COALESCE(SUM(CASE
-                    WHEN quantity > minimum_stock THEN 1 ELSE 0
-                END), 0) AS stock_in_count,
-                COALESCE(SUM(CASE
-                    WHEN quantity > 0 AND quantity <= minimum_stock
-                    THEN 1 ELSE 0
-                END), 0) AS stock_low_count,
-                COALESCE(SUM(CASE
-                    WHEN quantity <= 0 THEN 1 ELSE 0
-                END), 0) AS stock_out_count,
-                COALESCE(SUM(quantity * price), 0) AS inventory_value
+                COALESCE(SUM(quantity * price), 0) AS inventory_value,
+                COALESCE(SUM(CASE WHEN quantity <= minimum_stock THEN 1 ELSE 0 END), 0) AS low_stock,
+                COALESCE(SUM(CASE WHEN quantity <= 0 THEN 1 ELSE 0 END), 0) AS out_of_stock,
+                COALESCE(SUM(CASE WHEN quantity > minimum_stock THEN 1 ELSE 0 END), 0) AS healthy_stock,
+                COALESCE(SUM(CASE WHEN quantity > 0 AND quantity <= minimum_stock THEN 1 ELSE 0 END), 0) AS stock_low_count,
+                COALESCE(SUM(CASE WHEN quantity <= 0 THEN 1 ELSE 0 END), 0) AS stock_out_count,
+                COALESCE(SUM(CASE WHEN quantity > minimum_stock THEN 1 ELSE 0 END), 0) AS stock_in_count
             FROM products
             WHERE status = 'active'
             """
@@ -2650,28 +2637,105 @@ def dashboard_summary():
         sales_query = """
             SELECT
                 COALESCE(SUM(total_amount), 0) AS total_sales,
-                COALESCE(SUM(CASE
-                    WHEN DATE(sale_date) = CURDATE()
-                    THEN total_amount ELSE 0
-                END), 0) AS todays_sales
+                COALESCE(SUM(CASE WHEN DATE(sale_date) = CURDATE() THEN total_amount ELSE 0 END), 0) AS todays_sales,
+                COUNT(*) AS total_orders
             FROM sales
         """
         sales_params = ()
         if not is_admin:
             sales_query += " WHERE user_id = %s"
             sales_params = (current_user_id,)
-
         sales_row = fetch_one(sales_query, sales_params) or {}
-        inventory_data = cast(Any, inventory_row)
-        sales_data = cast(Any, sales_row)
 
-        payload = {
+        sales_data = dict(cast(Any, sales_row))
+        inventory_data = dict(cast(Any, inventory_row))
+        total_orders = int(sales_data.get("total_orders") or 0)
+        total_revenue = float(sales_data.get("total_sales") or 0)
+
+        recent_sales_query = """
+            SELECT
+                s.sale_id,
+                s.invoice_number,
+                s.customer_name,
+                s.total_amount,
+                s.payment_method,
+                s.sale_date,
+                COUNT(si.sale_item_id) AS items_count,
+                COALESCE(SUM(si.quantity), 0) AS units_sold
+            FROM sales AS s
+            LEFT JOIN sale_items AS si ON si.sale_id = s.sale_id
+        """
+        recent_sales_params = ()
+        if not is_admin:
+            recent_sales_query += " WHERE s.user_id = %s"
+            recent_sales_params = (current_user_id,)
+        recent_sales_query += """
+            GROUP BY s.sale_id, s.invoice_number, s.customer_name,
+                     s.total_amount, s.payment_method, s.sale_date
+            ORDER BY s.sale_date DESC
+            LIMIT 5
+        """
+        recent_sales = fetch_all(recent_sales_query, recent_sales_params) or []
+
+        top_products_query = """
+            SELECT
+                p.product_id,
+                p.product_code,
+                p.name,
+                p.category,
+                COALESCE(SUM(si.quantity), 0) AS units_sold,
+                COALESCE(SUM(si.quantity * si.unit_price), 0) AS revenue
+            FROM sale_items AS si
+            INNER JOIN sales AS s ON s.sale_id = si.sale_id
+            INNER JOIN products AS p ON p.product_id = si.product_id
+            WHERE s.sale_date >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+        """
+        top_products_params = ()
+        if not is_admin:
+            top_products_query += " AND s.user_id = %s"
+            top_products_params = (current_user_id,)
+        top_products_query += """
+            GROUP BY p.product_id, p.product_code, p.name, p.category
+            ORDER BY units_sold DESC, revenue DESC
+            LIMIT 5
+        """
+        top_products = fetch_all(top_products_query, top_products_params) or []
+
+        alert_products = fetch_all(
+            """
+            SELECT product_id, product_code, name, quantity,
+                   minimum_stock, category
+            FROM products
+            WHERE status = 'active' AND quantity <= minimum_stock
+            ORDER BY quantity ASC, name ASC
+            LIMIT 8
+            """
+        ) or []
+
+        activity_query = """
+            SELECT activity_id, action, entity_type, entity_id,
+                   description, created_at
+            FROM activity_logs
+        """
+        activity_params = ()
+        if not is_admin:
+            activity_query += " WHERE user_id = %s"
+            activity_params = (current_user_id,)
+        activity_query += " ORDER BY created_at DESC LIMIT 5"
+        recent_activities = fetch_all(activity_query, activity_params) or []
+
+        response_payload = {
             "success": True,
             "metrics": {
                 "total_products": int(inventory_data.get("total_products") or 0),
                 "total_stock": int(inventory_data.get("total_stock") or 0),
                 "low_stock": int(inventory_data.get("low_stock") or 0),
-                "total_sales": float(sales_data.get("total_sales") or 0),
+                "out_of_stock": int(inventory_data.get("out_of_stock") or 0),
+                "healthy_stock": int(inventory_data.get("healthy_stock") or 0),
+                "pending_reorders": int(inventory_data.get("low_stock") or 0),
+                "total_orders": total_orders,
+                "average_order_value": round(total_revenue / total_orders, 2) if total_orders else 0,
+                "total_revenue": round(total_revenue, 2),
                 "todays_sales": float(sales_data.get("todays_sales") or 0),
                 "inventory_value": (
                     float(inventory_data.get("inventory_value") or 0)
@@ -2683,9 +2747,14 @@ def dashboard_summary():
                 "stock_low_count": int(inventory_data.get("stock_low_count") or 0),
                 "stock_out_count": int(inventory_data.get("stock_out_count") or 0)
             },
-            "generated_at": datetime.now().isoformat()
+            "inventory_alerts": [dict(cast(Any, row)) for row in alert_products],
+            "recent_sales": [dict(cast(Any, row)) for row in recent_sales],
+            "top_products": [dict(cast(Any, row)) for row in top_products],
+            "recent_activities": [dict(cast(Any, row)) for row in recent_activities],
+            "generated_at": datetime.now().isoformat(),
+            "is_admin": is_admin
         }
-        response = jsonify(payload)
+        response = jsonify(response_payload)
         response.headers["Cache-Control"] = "no-store, max-age=0"
         return response
 
@@ -2697,93 +2766,127 @@ def dashboard_summary():
         }), 500
 
 
+
 @main_bp.route("/api/dashboard/sales")
 @active_user_required
 def dashboard_sales():
     """
-    Return daily sales totals for the dashboard chart.
-    The days query parameter is limited to 7, 30, or 90.
+    Return daily revenue, completed order counts, and units sold.
+    The legacy values/total keys remain available for existing clients.
     """
     try:
         days = safe_int(request.args.get("days", 7), 7)
         if days not in (7, 30, 90):
             days = 7
 
-        # Include today and the preceding (days - 1) calendar days.
-        start_date = (datetime.now().date() - timedelta(days=days - 1))
+        start_date = datetime.now().date() - timedelta(days=days - 1)
         current_role = get_current_user_role()
         if current_role is None:
             logout_user()
-            return jsonify({
-                "success": False,
-                "message": "Please sign in again."
-            }), 401
+            return jsonify({"success": False, "message": "Please sign in again."}), 401
 
-        if current_role == "admin":
-            sales_rows = fetch_all(
-                """
-                SELECT
-                    DATE(sale_date) AS sales_day,
-                    COALESCE(SUM(total_amount), 0) AS total
-                FROM sales
-                WHERE sale_date >= %s
-                  AND sale_date < DATE_ADD(%s, INTERVAL 1 DAY)
-                GROUP BY DATE(sale_date)
-                ORDER BY sales_day ASC
-                """,
-                (start_date, datetime.now().date())
-            ) or []
-        else:
-            sales_rows = fetch_all(
-                """
-                SELECT
-                    DATE(sale_date) AS sales_day,
-                    COALESCE(SUM(total_amount), 0) AS total
-                FROM sales
-                WHERE sale_date >= %s
-                  AND sale_date < DATE_ADD(%s, INTERVAL 1 DAY)
-                  AND user_id = %s
-                GROUP BY DATE(sale_date)
-                ORDER BY sales_day ASC
-                """,
-                (start_date, datetime.now().date(), get_current_user_id())
-            ) or []
+        daily_sales_query = """
+            SELECT
+                DATE(sale_date) AS sales_day,
+                COALESCE(SUM(total_amount), 0) AS revenue,
+                COUNT(*) AS orders
+            FROM sales
+            WHERE sale_date >= %s
+              AND sale_date < DATE_ADD(%s, INTERVAL 1 DAY)
+        """
+        daily_sales_params = [start_date, datetime.now().date()]
+        if current_role != "admin":
+            daily_sales_query += " AND user_id = %s"
+            daily_sales_params.append(get_current_user_id())
+        daily_sales_query += " GROUP BY DATE(sale_date) ORDER BY sales_day ASC"
+        sales_rows = fetch_all(daily_sales_query, tuple(daily_sales_params)) or []
 
-        totals_by_day = {}
+        daily_units_query = """
+            SELECT
+                DATE(s.sale_date) AS sales_day,
+                COALESCE(SUM(si.quantity), 0) AS units_sold
+            FROM sales AS s
+            INNER JOIN sale_items AS si ON si.sale_id = s.sale_id
+            WHERE s.sale_date >= %s
+              AND s.sale_date < DATE_ADD(%s, INTERVAL 1 DAY)
+        """
+        daily_units_params = [start_date, datetime.now().date()]
+        if current_role != "admin":
+            daily_units_query += " AND s.user_id = %s"
+            daily_units_params.append(get_current_user_id())
+        daily_units_query += " GROUP BY DATE(s.sale_date) ORDER BY sales_day ASC"
+        units_rows = fetch_all(daily_units_query, tuple(daily_units_params)) or []
+
+        daily_totals = {}
         for row in sales_rows:
-            row_data = cast(Any, row)
+            row_data = dict(cast(Any, row))
             sales_day = row_data.get("sales_day")
-            if hasattr(sales_day, "strftime"):
-                key = sales_day.strftime("%Y-%m-%d")
-            else:
-                key = str(sales_day or "")[:10]
+            key = sales_day.strftime("%Y-%m-%d") if hasattr(sales_day, "strftime") else str(sales_day or "")[:10]
             if key:
-                totals_by_day[key] = float(row_data.get("total") or 0)
+                daily_totals[key] = {
+                    "revenue": float(row_data.get("revenue") or 0),
+                    "orders": int(row_data.get("orders") or 0),
+                    "units_sold": 0
+                }
+
+        for row in units_rows:
+            row_data = dict(cast(Any, row))
+            sales_day = row_data.get("sales_day")
+            key = sales_day.strftime("%Y-%m-%d") if hasattr(sales_day, "strftime") else str(sales_day or "")[:10]
+            if key:
+                daily_totals.setdefault(key, {"revenue": 0.0, "orders": 0, "units_sold": 0})
+                daily_totals[key]["units_sold"] = int(row_data.get("units_sold") or 0)
 
         labels = []
-        values = []
+        revenue = []
+        orders = []
+        units_sold = []
         total_revenue = 0.0
+        total_orders = 0
+        total_units = 0
+
         for offset in range(days):
             day = start_date + timedelta(days=offset)
             key = day.strftime("%Y-%m-%d")
-            labels.append(day.strftime("%d %b"))
-            value = round(totals_by_day.get(key, 0.0), 2)
-            values.append(value)
-            total_revenue += value
+            daily = daily_totals.get(key, {})
+            revenue_value = round(float(daily.get("revenue") or 0), 2)
+            orders_value = int(daily.get("orders") or 0)
+            units_value = int(daily.get("units_sold") or 0)
 
+            labels.append(day.strftime("%d %b"))
+            revenue.append(revenue_value)
+            orders.append(orders_value)
+            units_sold.append(units_value)
+
+            total_revenue += revenue_value
+            total_orders += orders_value
+            total_units += units_value
+
+        totals = {
+            "revenue": round(total_revenue, 2),
+            "orders": total_orders,
+            "units_sold": total_units
+        }
         return jsonify({
             "success": True,
             "days": days,
             "labels": labels,
-            "values": values,
-            "total": round(total_revenue, 2)
+            "revenue": revenue,
+            "orders": orders,
+            "units_sold": units_sold,
+            "totals": totals,
+            # Backward-compatible keys used by the original dashboard build.
+            "values": revenue,
+            "total": totals["revenue"],
+            "generated_at": datetime.now().isoformat()
         })
-    except Exception:
-        # Keep internal database details out of the API response.
+    except Exception as error:
+        print(f"Dashboard sales trend API failed: {error}")
         return jsonify({
             "success": False,
             "message": "Unable to load sales trend data."
         }), 500
+
 
 
 # ============================================================
@@ -2793,7 +2896,7 @@ def dashboard_sales():
 @main_bp.route(
     "/api/dashboard/insights"
 )
-@admin_required
+@active_user_required
 def dashboard_insights():
     """
     Generate data-driven Smart Decision Support insights.
@@ -2827,59 +2930,55 @@ def dashboard_insights():
             """
         )
 
-        product_sales = fetch_all(
-            """
+        current_role = get_current_user_role()
+        current_user_id = get_current_user_id()
+        is_admin = current_role == "admin"
+
+        # Aggregate sales before joining them to products. This prevents
+        # multiple sale-item rows from inflating product-level totals.
+        product_sales_query = """
             SELECT
                 p.product_id,
+                p.product_code,
                 p.name,
                 p.category,
-                COALESCE(SUM(si.quantity), 0) AS quantity_sold,
-                COALESCE(
-                    SUM(si.quantity * si.unit_price),
-                    0
-                ) AS revenue
-            FROM products p
-            LEFT JOIN sale_items si
-                ON p.product_id = si.product_id
-            LEFT JOIN sales s
-                ON si.sale_id = s.sale_id
-            WHERE
-                p.status = 'active'
-                AND (
-                    s.sale_id IS NULL
-                    OR s.sale_date >= DATE_SUB(
-                        NOW(),
-                        INTERVAL 90 DAY
-                    )
-                )
-            GROUP BY
-                p.product_id,
-                p.name,
-                p.category
+                COALESCE(recent.quantity_sold, 0) AS quantity_sold,
+                COALESCE(recent.revenue, 0) AS revenue
+            FROM products AS p
+            LEFT JOIN (
+                SELECT
+                    si.product_id,
+                    SUM(si.quantity) AS quantity_sold,
+                    SUM(si.quantity * si.unit_price) AS revenue
+                FROM sale_items AS si
+                INNER JOIN sales AS s ON s.sale_id = si.sale_id
+                WHERE s.sale_date >= DATE_SUB(NOW(), INTERVAL 90 DAY)
+        """
+        product_sales_params = ()
+        if not is_admin:
+            product_sales_query += " AND s.user_id = %s"
+            product_sales_params = (current_user_id,)
+        product_sales_query += """
+                GROUP BY si.product_id
+            ) AS recent ON recent.product_id = p.product_id
+            WHERE p.status = 'active'
             ORDER BY quantity_sold DESC
-            """
-        )
+        """
+        product_sales = fetch_all(product_sales_query, product_sales_params) or []
 
-        monthly_sales = fetch_all(
-            """
+        monthly_sales_query = """
             SELECT
-                DATE_FORMAT(
-                    sale_date,
-                    '%Y-%m'
-                ) AS month,
-                COALESCE(
-                    SUM(total_amount),
-                    0
-                ) AS revenue
+                DATE_FORMAT(sale_date, '%Y-%m') AS month,
+                COALESCE(SUM(total_amount), 0) AS revenue
             FROM sales
-            WHERE sale_date >= DATE_SUB(
-                NOW(),
-                INTERVAL 6 MONTH
-            )
-            GROUP BY month
-            ORDER BY month ASC
-            """
-        )
+            WHERE sale_date >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
+        """
+        monthly_sales_params = ()
+        if not is_admin:
+            monthly_sales_query += " AND user_id = %s"
+            monthly_sales_params = (current_user_id,)
+        monthly_sales_query += " GROUP BY month ORDER BY month ASC"
+        monthly_sales = fetch_all(monthly_sales_query, monthly_sales_params) or []
 
         sales_lookup = {}
 
@@ -2984,6 +3083,8 @@ def dashboard_insights():
                 )
 
                 restock_products.append({
+                    "product_id": product.get("product_id"),
+                    "product_code": product.get("product_code"),
                     "name": product.get(
                         "name",
                         "Unknown Product"
@@ -3075,6 +3176,8 @@ def dashboard_insights():
 
             if quantity_sold > 0 and stock > 0:
                 sales_candidates.append({
+                    "product_id": product_id,
+                    "product_code": row.get("product_code"),
                     "name": row.get(
                         "name", "Unknown Product"
                     ) if row["name"] else "Unknown Product",
@@ -3143,6 +3246,8 @@ def dashboard_insights():
                 )
 
                 slow_products.append({
+                    "product_id": product.get("product_id"),
+                    "product_code": product.get("product_code"),
                     "name": product.get(
                         "name",
                         "Unknown Product"
@@ -3357,6 +3462,8 @@ def dashboard_insights():
                 and quantity_sold <= 2
             ):
                 excess_products.append({
+                    "product_id": product.get("product_id"),
+                    "product_code": product.get("product_code"),
                     "name": product.get(
                         "name",
                         "Unknown Product"
