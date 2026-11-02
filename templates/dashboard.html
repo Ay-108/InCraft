@@ -986,6 +986,11 @@ document.addEventListener("DOMContentLoaded", async function () {
 
         if (salesPeriod) salesPeriod.addEventListener("change", loadSalesTrend);
         loadSalesTrend();
+        window.setInterval(function () {
+            if (!document.hidden) {
+                loadSalesTrend();
+            }
+        }, 30000);
     } else if (salesCanvas) {
         if (salesNote) salesNote.textContent = "Chart.js did not load. Check the browser Network tab.";
         console.error("Chart.js is unavailable; sales chart was not initialized.");
