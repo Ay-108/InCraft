@@ -168,7 +168,7 @@
                 <span class="user-name">
                     {{ session.get('username', 'Admin') }}
                 </span>
-                <span class="user-role">Administrator</span>
+                <span class="user-role">{{ session.get('role', 'staff')|title }}</span>
             </span>
 
             <i
@@ -192,7 +192,7 @@
 
                 <div class="account-menu-user">
                     <strong>{{ session.get('username', 'Admin') }}</strong>
-                    <span>Administrator</span>
+                    <span>{{ session.get('role', 'staff')|title }}</span>
                 </div>
             </div>
 
