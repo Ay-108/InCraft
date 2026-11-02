@@ -11,6 +11,29 @@ class HealthCheckSecurityTests(unittest.TestCase):
         self.app.config["TESTING"] = True
         self.client = self.app.test_client()
 
+    def test_database_probe_exception_returns_generic_503(self):
+        private_error = "Connection failed for secret-db.internal:3306"
+
+        with patch.object(routes, "IS_PRODUCTION", False), patch.object(
+            routes,
+            "get_database_status",
+            side_effect=RuntimeError(private_error),
+        ):
+            response = self.client.get("/api/health")
+
+        self.assertEqual(response.status_code, 503)
+        payload = response.get_json()
+        self.assertIsNotNone(payload)
+        assert payload is not None
+
+        self.assertEqual(payload.get("status"), "database_unavailable")
+        self.assertEqual(
+            payload.get("message"),
+            "Database connectivity could not be verified.",
+        )
+        self.assertNotIn("secret-db.internal", response.get_data(as_text=True))
+        self.assertNotIn(private_error, response.get_data(as_text=True))
+
     def test_database_error_details_are_not_exposed(self):
         private_error = (
             "Access denied for user 'incraft_prod_user'@"
