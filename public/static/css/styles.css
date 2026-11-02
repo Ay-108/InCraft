@@ -328,3 +328,88 @@ header {
 .dark .profile-btn:hover {
   background: #24272e !important;
 }
+
+
+/* Consistent export actions on Inventory and Sales pages */
+.actions {
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.actions .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.actions .btn-export {
+  min-width: 126px;
+  height: 40px;
+  padding: 0 15px;
+  color: var(--od);
+  background: linear-gradient(180deg, #fffaf6 0%, #fff3e9 100%);
+  border: 1px solid #f3c9aa;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(217, 93, 11, .06);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .1px;
+  transition: background .2s ease, border-color .2s ease, color .2s ease, box-shadow .2s ease, transform .2s ease;
+}
+
+.actions .btn-export:hover {
+  color: #b94d08;
+  background: #ffeadb;
+  border-color: #edae80;
+  box-shadow: 0 4px 11px rgba(217, 93, 11, .12);
+  transform: translateY(-1px);
+}
+
+.actions .btn-export:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.actions .btn-export:focus-visible {
+  outline: 3px solid rgba(244, 117, 33, .22);
+  outline-offset: 2px;
+}
+
+.btn-export-icon {
+  width: 21px;
+  height: 21px;
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 21px;
+  border-radius: 6px;
+  color: #fff;
+  background: var(--o);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.dark .actions .btn-export {
+  color: #ffb27e;
+  background: #30251f;
+  border-color: #62402c;
+  box-shadow: none;
+}
+
+.dark .actions .btn-export:hover {
+  color: #ffd0ad;
+  background: #3a2a21;
+  border-color: #8a5634;
+}
+
+@media (max-width: 768px) {
+  .actions .btn-export {
+    min-width: 116px;
+    height: 38px;
+    padding: 0 12px;
+  }
+}
