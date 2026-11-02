@@ -53,21 +53,14 @@ Inventory | InCraft
         </div>
 
         <div class="page-header-actions">
-
-            <a
-
-                href="{{ url_for('main.add_product') }}"
-
-                class="btn btn-primary"
-
-            >
-
+            <a href="{{ url_for('main.sales') }}" class="btn btn-secondary">Record Sale</a>
+            {% if is_admin %}
+            <a href="{{ url_for('main.analytics') }}" class="btn btn-secondary">Analytics</a>
+            <a href="{{ url_for('main.add_product') }}" class="btn btn-primary">
                 <span class="btn-icon">+</span>
-
                 Add Product
-
             </a>
-
+            {% endif %}
         </div>
 
     </section>
@@ -424,19 +417,19 @@ Inventory | InCraft
 
                         </option>
 
-                        <option value="in-stock">
+                        <option value="in-stock" {% if request.args.get('filter') == 'in-stock' %}selected{% endif %}>
 
                             In Stock
 
                         </option>
 
-                        <option value="low-stock">
+                        <option value="low-stock" {% if request.args.get('filter') == 'low-stock' %}selected{% endif %}>
 
                             Low Stock
 
                         </option>
 
-                        <option value="out-of-stock">
+                        <option value="out-of-stock" {% if request.args.get('filter') == 'out-of-stock' %}selected{% endif %}>
 
                             Out of Stock
 
@@ -859,6 +852,8 @@ Inventory | InCraft
                                 data-category="{{ product.category|default('')|lower }}"
 
                                 data-stock="{{ quantity }}"
+
+                                data-minimum-stock="{{ minimum_stock }}"
 
                                 data-status="{{ stock_status|lower|replace(' ', '-') }}"
 
