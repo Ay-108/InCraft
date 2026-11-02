@@ -584,215 +584,257 @@
   // 1. DASHBOARD MODULE
   // ============================================================
 
+  function refreshDashboardData() {
+    if (state.currentPage !== 'dashboard') return;
+    loadDashboardSummary();
+    loadSalesTrend(Number($('#salesPeriodSelect')?.value || 7));
+    if (state.user?.role === 'admin') {
+      loadSmartInsights();
+      loadMLModels();
+    }
+  }
+
   async function renderDashboard(container) {
     const name = state.user?.name || state.user?.username || 'there';
     const firstName = name.split(' ')[0];
+    const isAdmin = state.user?.role === 'admin';
+    const kpis = [
+      ['Total products', 'dashTotalProd', '▦', 'Active catalog items'],
+      ['Total stock units', 'dashTotalStock', '□', 'Units currently available'],
+      ['Total revenue', 'dashRevenue', '↗', 'Revenue in your permitted scope'],
+      ['Sales orders', 'dashOrders', '▤', 'Recorded transactions'],
+      ['Low stock products', 'dashLowStock', '⚠', 'Above zero, at/below minimum'],
+      ['Out of stock', 'dashOutOfStock', '!', 'Products with zero quantity']
+    ];
+    if (isAdmin) {
+      kpis.splice(2, 0, ['Inventory value', 'dashValue', '◈', 'Current stock × product price']);
+      kpis.push(['Pending reorder recommendations', 'dashPendingReorders', '✦', 'ML recommendations requiring action']);
+    }
 
     container.innerHTML = `
-      <div class="head">
+      <div class="head dashboard-header">
         <div>
           <div class="eyebrow">Your workspace</div>
-          <h1>Good morning, ${firstName}.</h1>
-          <p>Real-time visibility across inventory, sales, and operations.</p>
+          <h1>Good morning, ${escapeHtml(firstName)}.</h1>
+          <p>Live visibility across inventory, sales, and operations.</p>
+          <div class="dashboard-updated">Last refreshed: <span id="dashRefreshTime">Loading live data…</span></div>
         </div>
-        <div class="actions">
-          <button class="btn" id="dashRecordSaleBtn">Record sale</button>
-          <button class="btn primary" id="dashAddProductBtn">+ Add product</button>
+        <div class="actions dashboard-quick-actions">
+          <button class="btn" id="dashRefreshBtn" type="button">↻ Refresh</button>
+          <button class="btn" id="dashRecordSaleBtn" type="button">Record sale</button>
+          ${isAdmin ? `
+            <button class="btn" id="dashImportBtn" type="button">Import data</button>
+            <button class="btn" id="dashExportBtn" type="button">Export inventory</button>
+            <button class="btn" id="dashAnalyticsBtn" type="button">View analytics</button>
+            <button class="btn primary" id="dashAddProductBtn" type="button">+ Add product</button>
+          ` : ''}
         </div>
       </div>
-
-      <div class="stats" id="dashStats">
-        <div class="stat"><div class="stat-top"><span>Total products</span><b class="stat-icon">▦</b></div><strong id="dashTotalProd">—</strong><small>Active in catalog</small></div>
-        <div class="stat"><div class="stat-top"><span>Inventory value</span><b class="stat-icon">◈</b></div><strong id="dashValue">—</strong><small>Total valuation</small></div>
-        <div class="stat"><div class="stat-top"><span>Low stock items</span><b class="stat-icon">⚠</b></div><strong id="dashLowStock">—</strong><small id="dashLowStockSub">Needs attention</small></div>
-        <div class="stat"><div class="stat-top"><span>Today's sales</span><b class="stat-icon">↗</b></div><strong id="dashTodaySales">—</strong><small>Recorded today</small></div>
+      <div class="stats dashboard-kpis" id="dashStats">
+        ${kpis.map(([label, id, icon, detail]) => `
+          <div class="stat dashboard-kpi">
+            <div class="stat-top"><span>${label}</span><b class="stat-icon">${icon}</b></div>
+            <strong id="${id}">—</strong><small>${detail}</small>
+          </div>
+        `).join('')}
       </div>
-
-      <div class="grid">
+      <div class="grid dashboard-chart-grid">
         <div class="panel">
           <div class="panel-head">
-            <div>
-              <div class="panel-title">Revenue overview</div>
-              <div class="panel-sub" id="chartSub">Daily sales performance over the past 7 days</div>
-            </div>
-            <select class="select" id="salesPeriodSelect">
-              <option value="7">Last 7 days</option>
-              <option value="30">Last 30 days</option>
-              <option value="90">Last 90 days</option>
+            <div><div class="panel-title">Sales and revenue trend</div><div class="panel-sub" id="chartSub">Daily sales performance over the past 7 days</div></div>
+            <select class="select" id="salesPeriodSelect" aria-label="Sales trend period">
+              <option value="7">Last 7 days</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option>
             </select>
           </div>
-          <div class="chart" id="salesChartBox">
-            <div style="display:grid;place-items:center;height:100%;color:var(--muted);font-size:12px;">Loading sales trend...</div>
-          </div>
+          <div class="chart" id="salesChartBox"><div class="dashboard-empty">Loading sales trend…</div></div>
+          <div class="dashboard-chart-total">Period revenue: <strong id="dashTrendTotal">—</strong></div>
         </div>
-
         <div class="panel">
-          <div class="panel-head">
-            <div>
-              <div class="panel-title">Inventory health</div>
-              <div class="panel-sub">Stock distribution and readiness</div>
-            </div>
-          </div>
-          <div class="donut-wrap" id="donutBox">
-            <div style="display:grid;place-items:center;height:100%;color:var(--muted);font-size:12px;">Loading stock health...</div>
-          </div>
+          <div class="panel-head"><div><div class="panel-title">Inventory health</div><div class="panel-sub">Current active stock distribution</div></div></div>
+          <div class="donut-wrap" id="donutBox"><div class="dashboard-empty">Loading stock health…</div></div>
         </div>
       </div>
-
-      <div class="wide">
-        <div class="head" style="margin-bottom:14px;">
-          <div>
-            <div class="panel-title" style="font-size:17px;">Smart Decision Support</div>
-            <div class="panel-sub">Automated recommendations based on stock velocity and demand.</div>
-          </div>
-        </div>
-        <div class="insights" id="insightsContainer">
-          <div class="insight"><b>✦</b><strong>Checking stock metrics...</strong><span>Insights will populate from your sales and inventory data.</span></div>
-        </div>
+      <div class="dashboard-detail-grid">
+        <section class="panel dashboard-data-panel">
+          <div class="table-head"><div><div class="panel-title">Inventory alerts</div><div class="panel-sub">Products at or below their configured minimum</div></div><button class="btn btn-sm" id="dashOpenInventoryBtn" type="button">Open inventory →</button></div>
+          <div class="dashboard-list" id="dashInventoryAlerts"><div class="dashboard-empty">Loading inventory alerts…</div></div>
+        </section>
+        <section class="panel dashboard-data-panel">
+          <div class="table-head"><div><div class="panel-title">Recent sales</div><div class="panel-sub">Latest transactions in your permitted scope</div></div><button class="btn btn-sm" id="dashOpenSalesBtn" type="button">Open sales →</button></div>
+          <div class="dashboard-list" id="dashRecentSales"><div class="dashboard-empty">Loading transactions…</div></div>
+        </section>
       </div>
+      <div class="dashboard-detail-grid">
+        <section class="panel dashboard-data-panel">
+          <div class="table-head"><div><div class="panel-title">Recent activity</div><div class="panel-sub">Latest recorded actions</div></div><button class="btn btn-sm" id="dashOpenActivityBtn" type="button">View history →</button></div>
+          <div class="dashboard-list" id="dashRecentActivity"><div class="dashboard-empty">Loading activity…</div></div>
+        </section>
+        <section class="panel dashboard-data-panel">
+          <div class="table-head"><div><div class="panel-title">Recently added products</div><div class="panel-sub">Newest active catalog entries</div></div><button class="btn btn-sm" id="dashOpenProductsBtn" type="button">View products →</button></div>
+          <div class="dashboard-list" id="dashRecentProducts"><div class="dashboard-empty">Loading products…</div></div>
+        </section>
+      </div>
+      ${isAdmin ? `
+        <section class="wide dashboard-insight-section">
+          <div class="dashboard-section-heading"><div><div class="panel-title">Smart decision support</div><div class="panel-sub">Database-driven inventory and sales observations.</div></div></div>
+          <div class="insights" id="insightsContainer"><div class="insight"><b>✦</b><strong>Loading insights…</strong><span>Evaluating recorded inventory and sales activity.</span></div></div>
+        </section>
+        <section class="wide dashboard-insight-section">
+          <div class="dashboard-section-heading"><div><div class="panel-title">ML inventory intelligence</div><div class="panel-sub">Demand estimates, stockout exposure and reorder recommendations based on sales history.</div></div></div>
+          <div class="insights" id="mlInsightsContainer"><div class="insight"><b>✦</b><strong>Loading ML assessments…</strong><span>Checking historical observations and current stock.</span></div></div>
+        </section>
+      ` : ''}
     `;
 
     $('#dashRecordSaleBtn').onclick = () => openRecordSaleModal();
-    $('#dashAddProductBtn').onclick = () => openAddProductModal();
-
-    // Load Live KPI Summary
+    $('#dashRefreshBtn').onclick = () => refreshDashboardData();
+    $('#dashOpenInventoryBtn').onclick = () => navigateTo('inventory');
+    $('#dashOpenSalesBtn').onclick = () => navigateTo('sales');
+    $('#dashOpenActivityBtn').onclick = () => navigateTo('activity');
+    $('#dashOpenProductsBtn').onclick = () => navigateTo('inventory');
+    if (isAdmin) {
+      $('#dashAddProductBtn').onclick = () => openAddProductModal();
+      $('#dashImportBtn').onclick = () => openImportModal();
+      $('#dashExportBtn').onclick = () => window.location.assign('/inventory/export');
+      $('#dashAnalyticsBtn').onclick = () => navigateTo('analytics');
+    }
+    $('#salesPeriodSelect').onchange = (event) => loadSalesTrend(Number(event.target.value));
     loadDashboardSummary();
-
-    // Load Live Sales Trend Chart
     loadSalesTrend(7);
-    $('#salesPeriodSelect').onchange = (e) => {
-      loadSalesTrend(Number(e.target.value));
-    };
+    if (isAdmin) {
+      loadSmartInsights();
+      loadMLModels();
+    }
+  }
 
-    // Load Live Insights
-    loadSmartInsights();
+  function renderDashboardCollections(data) {
+    const lowStockProducts = Array.isArray(data.low_stock_products) ? data.low_stock_products : [];
+    const recentSales = Array.isArray(data.recent_sales) ? data.recent_sales : [];
+    const recentActivity = Array.isArray(data.recent_activity) ? data.recent_activity : [];
+    const recentProducts = Array.isArray(data.recent_products) ? data.recent_products : [];
+
+    const alertsBox = $('#dashInventoryAlerts');
+    if (alertsBox) {
+      alertsBox.innerHTML = lowStockProducts.length ? lowStockProducts.map((product) => {
+        const quantity = Number(product.quantity || 0);
+        const status = quantity <= 0 ? 'Out of stock' : 'Low stock';
+        const statusClass = quantity <= 0 ? 'out' : 'low';
+        return `<div class="dashboard-row"><div class="dashboard-row-main"><strong>${escapeHtml(product.name || 'Unnamed product')}</strong><small>${escapeHtml(product.product_code || 'No SKU')} · Minimum ${Number(product.minimum_stock || 0)}</small></div><span class="status ${statusClass}">${status}: ${quantity}</span></div>`;
+      }).join('') : '<div class="dashboard-empty">No low-stock or out-of-stock products found.</div>';
+    }
+
+    const salesBox = $('#dashRecentSales');
+    if (salesBox) {
+      salesBox.innerHTML = recentSales.length ? recentSales.map((sale) => `<div class="dashboard-row"><div class="dashboard-row-main"><strong>${escapeHtml(sale.invoice_number || ('Sale #' + sale.sale_id))}</strong><small>${escapeHtml(sale.customer_name || 'Walk-in customer')} · ${escapeHtml(sale.payment_method || 'cash')} · ${escapeHtml(fmtDate(sale.sale_date))}</small></div><strong class="dashboard-row-value">${fmtMoney(sale.total_amount)}</strong></div>`).join('') : '<div class="dashboard-empty">No sales transactions recorded yet.</div>';
+    }
+
+    const activityBox = $('#dashRecentActivity');
+    if (activityBox) {
+      activityBox.innerHTML = recentActivity.length ? recentActivity.map((activity) => `<div class="dashboard-row"><div class="dashboard-row-main"><strong>${escapeHtml(activity.description || activity.action || 'System activity')}</strong><small>${escapeHtml(activity.username || 'User')} · ${escapeHtml(fmtDate(activity.created_at))}</small></div><span class="dashboard-row-type">${escapeHtml(String(activity.action || 'EVENT').replaceAll('_', ' '))}</span></div>`).join('') : '<div class="dashboard-empty">No recent activity has been recorded.</div>';
+    }
+
+    const productsBox = $('#dashRecentProducts');
+    if (productsBox) {
+      productsBox.innerHTML = recentProducts.length ? recentProducts.map((product) => `<div class="dashboard-row"><div class="dashboard-row-main"><strong>${escapeHtml(product.name || 'Unnamed product')}</strong><small>${escapeHtml(product.product_code || 'No SKU')} · ${escapeHtml(product.category || 'Uncategorized')}</small></div><span class="dashboard-row-type">${Number(product.quantity || 0).toLocaleString()} units</span></div>`).join('') : '<div class="dashboard-empty">No active products have been added yet.</div>';
+    }
   }
 
   async function loadDashboardSummary() {
     const res = await api('/api/dashboard/summary');
-    if (!res || !res.ok || !res.data) return;
-
-    const m = res.data.metrics || {};
-    const d = res.data.stock_distribution || {};
-    state.summary = m;
-    state.stockDistribution = d;
-
-    const totalProdEl = $('#dashTotalProd');
-    const valueEl = $('#dashValue');
-    const lowStockEl = $('#dashLowStock');
-    const todaySalesEl = $('#dashTodaySales');
-
-    if (totalProdEl) totalProdEl.textContent = m.total_products?.toLocaleString() || '0';
-    if (valueEl) valueEl.textContent = m.inventory_value !== null ? fmtMoney(m.inventory_value) : `${m.total_stock || 0} units`;
-    if (lowStockEl) {
-      lowStockEl.textContent = m.low_stock || '0';
-      if (m.low_stock > 0) lowStockEl.style.color = 'var(--red)';
+    if (!res || !res.ok || !res.data || !res.data.success) {
+      const updated = $('#dashRefreshTime');
+      if (updated) updated.textContent = 'Unavailable — check your connection';
+      ['dashTotalProd', 'dashTotalStock', 'dashValue', 'dashRevenue', 'dashOrders', 'dashLowStock', 'dashOutOfStock', 'dashPendingReorders'].forEach((id) => {
+        const element = document.getElementById(id);
+        if (element) element.textContent = '—';
+      });
+      const message = '<div class="dashboard-empty">Unable to load live records. Use Refresh to try again.</div>';
+      ['dashInventoryAlerts', 'dashRecentSales', 'dashRecentActivity', 'dashRecentProducts'].forEach((id) => {
+        const element = document.getElementById(id);
+        if (element) element.innerHTML = message;
+      });
+      return;
     }
-    if (todaySalesEl) todaySalesEl.textContent = fmtMoney(m.todays_sales);
 
-    // Draw Donut Chart
-    renderDonutChart(d);
+    const metrics = res.data.metrics || {};
+    const distribution = res.data.stock_distribution || {};
+    state.summary = metrics;
+    state.stockDistribution = distribution;
+    const values = {
+      dashTotalProd: Number(metrics.total_products || 0).toLocaleString(),
+      dashTotalStock: Number(metrics.total_stock || 0).toLocaleString(),
+      dashValue: metrics.inventory_value === null ? 'Restricted' : fmtMoney(metrics.inventory_value),
+      dashRevenue: fmtMoney(metrics.total_revenue ?? metrics.total_sales ?? 0),
+      dashOrders: Number(metrics.total_sales_orders || 0).toLocaleString(),
+      dashLowStock: Number(metrics.low_stock || 0).toLocaleString(),
+      dashOutOfStock: Number(metrics.out_of_stock || distribution.stock_out_count || 0).toLocaleString()
+    };
+    Object.entries(values).forEach(([id, value]) => {
+      const element = document.getElementById(id);
+      if (element) element.textContent = value;
+    });
+    const updated = $('#dashRefreshTime');
+    if (updated) updated.textContent = fmtDate(res.data.generated_at);
+    renderDonutChart(distribution);
+    renderDashboardCollections(res.data);
   }
 
   function renderDonutChart(dist) {
     const box = $('#donutBox');
     if (!box) return;
-
-    const inCount = dist.stock_in_count || 0;
-    const lowCount = dist.stock_low_count || 0;
-    const outCount = dist.stock_out_count || 0;
+    const inCount = Number(dist.stock_in_count || 0);
+    const lowCount = Number(dist.stock_low_count || 0);
+    const outCount = Number(dist.stock_out_count || 0);
     const total = inCount + lowCount + outCount;
-
     if (total === 0) {
-      box.innerHTML = `<div style="margin:auto;text-align:center;color:var(--muted);"><span style="font-size:32px;">▦</span><p style="margin-top:8px;">No product stock data available yet.</p></div>`;
+      box.innerHTML = '<div class="dashboard-empty">No active product stock data available yet.</div>';
       return;
     }
-
     const inPct = Math.round((inCount / total) * 100);
     const lowPct = Math.round((lowCount / total) * 100);
-    const outPct = 100 - inPct - lowPct;
-
-    box.innerHTML = `
-      <div class="donut" style="background: conic-gradient(var(--green) 0% ${inPct}%, var(--o) ${inPct}% ${inPct + lowPct}%, var(--red) ${inPct + lowPct}% 100%);">
-        <span>${inPct}%<small>HEALTHY</small></span>
-      </div>
-      <div class="legend">
-        <div><b style="background:var(--green)"></b>In stock <strong>${inCount}</strong></div>
-        <div><b style="background:var(--o)"></b>Low stock <strong>${lowCount}</strong></div>
-        <div><b style="background:var(--red)"></b>Out of stock <strong>${outCount}</strong></div>
-      </div>
-    `;
+    box.innerHTML = `<div class="donut" style="background: conic-gradient(var(--green) 0% ${inPct}%, var(--o) ${inPct}% ${inPct + lowPct}%, var(--red) ${inPct + lowPct}% 100%);"><span>${inPct}%<small>HEALTHY</small></span></div><div class="legend"><div><b style="background:var(--green)"></b>In stock <strong>${inCount}</strong></div><div><b style="background:var(--o)"></b>Low stock <strong>${lowCount}</strong></div><div><b style="background:var(--red)"></b>Out of stock <strong>${outCount}</strong></div></div>`;
   }
 
   async function loadSalesTrend(days = 7) {
     const box = $('#salesChartBox');
     const sub = $('#chartSub');
-    if (sub) sub.textContent = `Daily sales performance over the past ${days} days`;
-
-    const res = await api(`/api/dashboard/sales?days=${days}`);
-    if (!res || !res.ok || !res.data || !res.data.values) {
-      if (box) box.innerHTML = `<div style="display:grid;place-items:center;height:100%;color:var(--muted);">No sales recorded in this period.</div>`;
+    if (sub) sub.textContent = 'Daily sales performance over the past ' + days + ' days';
+    const res = await api('/api/dashboard/sales?days=' + days);
+    if (!res || !res.ok || !res.data || !Array.isArray(res.data.values)) {
+      if (box) box.innerHTML = '<div class="dashboard-empty">Unable to load sales trend. Please refresh to retry.</div>';
       return;
     }
-
     const { labels, values, total } = res.data;
-    if (values.every(v => v === 0)) {
-      box.innerHTML = `
-        <div style="display:grid;place-items:center;height:100%;color:var(--muted);font-size:12px;text-align:center;">
-          <div>
-            <div style="font-size:24px;margin-bottom:6px;">📈</div>
-            <div>No sales transactions recorded in this period.</div>
-            <button class="btn btn-sm" id="chartAddSaleBtn" style="margin-top:10px;">Record first sale →</button>
-          </div>
-        </div>
-      `;
-      $('#chartAddSaleBtn').onclick = () => openRecordSaleModal();
+    const totalElement = $('#dashTrendTotal');
+    if (totalElement) totalElement.textContent = fmtMoney(total);
+    if (!values.length || values.every((value) => Number(value) === 0)) {
+      if (box) box.innerHTML = '<div class="dashboard-empty">No sales transactions recorded in this period.</div>';
       return;
     }
-
-    // Render Clean SVG Chart
-    const maxVal = Math.max(...values, 10);
-    const w = 600, h = 180, padL = 40, padR = 20, padT = 20, padB = 30;
-    const plotW = w - padL - padR;
-    const plotH = h - padT - padB;
-
-    const points = values.map((val, idx) => {
-      const x = padL + (idx / (values.length - 1 || 1)) * plotW;
-      const y = padT + plotH - (val / maxVal) * plotH;
-      return { x, y, val, label: labels[idx] };
+    const maxValue = Math.max(...values.map(Number), 10);
+    const width = 600, height = 180, padLeft = 40, padRight = 20, padTop = 20, padBottom = 30;
+    const plotWidth = width - padLeft - padRight;
+    const plotHeight = height - padTop - padBottom;
+    const points = values.map((value, index) => ({
+      x: padLeft + (index / (values.length - 1 || 1)) * plotWidth,
+      y: padTop + plotHeight - (Number(value) / maxValue) * plotHeight,
+      value: Number(value),
+      label: labels[index]
+    }));
+    let path = '';
+    points.forEach((point, index) => {
+      path += (index === 0 ? 'M ' : ' L ') + point.x + ' ' + point.y;
     });
-
-    const pathD = points.reduce((acc, p, i) => `${acc} ${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`, '');
-    const areaD = `${pathD} L ${points[points.length - 1].x} ${padT + plotH} L ${points[0].x} ${padT + plotH} Z`;
-
+    const area = path + ' L ' + points[points.length - 1].x + ' ' + (padTop + plotHeight) + ' L ' + points[0].x + ' ' + (padTop + plotHeight) + ' Z';
     box.innerHTML = `
-      <svg viewBox="0 0 ${w} ${h}" style="width:100%;height:100%;overflow:visible;">
-        <defs>
-          <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="var(--o)" stop-opacity="0.28"/>
-            <stop offset="100%" stop-color="var(--o)" stop-opacity="0.0"/>
-          </linearGradient>
-        </defs>
-        <!-- Horizontal Gridlines -->
-        <line x1="${padL}" y1="${padT}" x2="${w - padR}" y2="${padT}" class="gridline"/>
-        <line x1="${padL}" y1="${padT + plotH * 0.5}" x2="${w - padR}" y2="${padT + plotH * 0.5}" class="gridline"/>
-        <line x1="${padL}" y1="${padT + plotH}" x2="${w - padR}" y2="${padT + plotH}" class="gridline"/>
-
-        <!-- Area & Line -->
-        <path d="${areaD}" fill="url(#chartGrad)"/>
-        <path d="${pathD}" fill="none" stroke="var(--o)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-
-        <!-- Points -->
-        ${points.map(p => `
-          <circle cx="${p.x}" cy="${p.y}" r="4" fill="var(--card)" stroke="var(--o)" stroke-width="2.5">
-            <title>${p.label}: ${fmtMoney(p.val)}</title>
-          </circle>
-        `).join('')}
-
-        <!-- X Axis Labels -->
-        ${points.filter((_, i) => i === 0 || i === Math.floor(points.length / 2) || i === points.length - 1).map(p => `
-          <text x="${p.x}" y="${h - 8}" text-anchor="middle" font-size="10" fill="var(--muted)">${p.label}</text>
-        `).join('')}
+      <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Sales revenue trend" style="width:100%;height:100%;overflow:visible;">
+        <defs><linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="var(--o)" stop-opacity="0.28"/><stop offset="100%" stop-color="var(--o)" stop-opacity="0"/></linearGradient></defs>
+        <line x1="${padLeft}" y1="${padTop}" x2="${width - padRight}" y2="${padTop}" class="gridline"/>
+        <line x1="${padLeft}" y1="${padTop + plotHeight * 0.5}" x2="${width - padRight}" y2="${padTop + plotHeight * 0.5}" class="gridline"/>
+        <line x1="${padLeft}" y1="${padTop + plotHeight}" x2="${width - padRight}" y2="${padTop + plotHeight}" class="gridline"/>
+        <path d="${area}" fill="url(#chartGrad)"/><path d="${path}" fill="none" stroke="var(--o)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        ${points.map((point) => '<circle cx="' + point.x + '" cy="' + point.y + '" r="4"><title>' + escapeHtml(point.label) + ': ' + fmtMoney(point.value) + '</title></circle>').join('')}
+        ${points.filter((_, index) => index === 0 || index === Math.floor(points.length / 2) || index === points.length - 1).map((point) => '<text x="' + point.x + '" y="' + (height - 8) + '" text-anchor="middle" font-size="10" fill="var(--muted)">' + escapeHtml(point.label) + '</text>').join('')}
       </svg>
     `;
   }
@@ -800,63 +842,22 @@
   async function loadSmartInsights() {
     const container = $('#insightsContainer');
     if (!container) return;
-
     const res = await api('/api/dashboard/insights');
-    if (!res || !res.ok || !res.data) {
-      container.innerHTML = `
-        <div class="insight"><b>◈</b><strong>Ready for Decision Support</strong><span>As products are sold, automated inventory recommendations will appear here.</span></div>
-      `;
+    if (!res || !res.ok || !res.data || !Array.isArray(res.data.insights)) {
+      container.innerHTML = '<div class="dashboard-empty">Smart insights could not be loaded. Refresh to retry.</div>';
       return;
     }
-
-    const { stock_alerts, reorder_recommendations, fast_moving_products, revenue_insights } = res.data;
-    const cards = [];
-
-    if (stock_alerts && stock_alerts.length > 0) {
-      const topAlert = stock_alerts[0];
-      cards.push(`
-        <div class="insight">
-          <b style="color:var(--red);">⚠</b>
-          <strong>Critical: ${topAlert.name}</strong>
-          <span>Current stock: ${topAlert.quantity} (Min: ${topAlert.minimum_stock}). Immediate restock advised.</span>
-        </div>
-      `);
+    const insights = res.data.insights;
+    if (!insights.length) {
+      container.innerHTML = '<div class="dashboard-empty">There are not enough records to generate insights yet.</div>';
+      return;
     }
-
-    if (reorder_recommendations && reorder_recommendations.length > 0) {
-      const rec = reorder_recommendations[0];
-      cards.push(`
-        <div class="insight">
-          <b>✦</b>
-          <strong>Recommended Reorder</strong>
-          <span>Order ${rec.suggested_reorder || 25} units of ${rec.name} to maintain 30-day buffer.</span>
-        </div>
-      `);
-    }
-
-    if (fast_moving_products && fast_moving_products.length > 0) {
-      const topFast = fast_moving_products[0];
-      cards.push(`
-        <div class="insight">
-          <b style="color:var(--green);">↗</b>
-          <strong>Top Velocity: ${topFast.name}</strong>
-          <span>${topFast.quantity_sold || 0} units sold recently, generating healthy revenue.</span>
-        </div>
-      `);
-    }
-
-    if (cards.length === 0) {
-      cards.push(`
-        <div class="insight"><b>✓</b><strong>Optimal Stock Health</strong><span>No critical low stock alerts. All inventory is within target thresholds.</span></div>
-      `);
-    }
-
-    container.innerHTML = cards.join('');
+    container.innerHTML = insights.slice(0, 6).map((insight) => {
+      const priority = String(insight.priority || 'low').toLowerCase();
+      const label = priority === 'high' ? 'High priority' : priority === 'medium' ? 'Monitor' : 'Information';
+      return `<div class="insight"><b>${escapeHtml(insight.title || 'Inventory insight')}</b><strong>${escapeHtml(insight.metric || label)}</strong><span>${escapeHtml(insight.message || 'No additional detail is available.')}</span><small class="dashboard-priority dashboard-priority-${escapeHtml(priority)}">${label}</small></div>`;
+    }).join('');
   }
-
-  // ============================================================
-  // 2. INVENTORY MODULE
-  // ============================================================
 
   async function renderInventory(container) {
     container.innerHTML = `
