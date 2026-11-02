@@ -101,7 +101,7 @@
                     📦
                 </span>
             </div>
-            <div class="stat-value">
+            <div class="stat-value" data-dashboard-metric="total_products">
                 {{ total_products|default(0) }}
             </div>
             <div class="stat-footer positive">
@@ -125,7 +125,7 @@
                     ₹
                 </span>
             </div>
-            <div class="stat-value">
+            <div class="stat-value" data-dashboard-metric="inventory_value">
                 ₹{{ inventory_value|default(0) }}
             </div>
             <div class="stat-footer positive">
@@ -149,7 +149,7 @@
                     !
                 </span>
             </div>
-            <div class="stat-value">
+            <div class="stat-value" data-dashboard-metric="low_stock">
                 {{ low_stock|default(0) }}
             </div>
             <div class="stat-footer warning-text">
@@ -172,7 +172,7 @@
                     ₹
                 </span>
             </div>
-            <div class="stat-value">
+            <div class="stat-value" data-dashboard-metric="todays_sales">
                 ₹{{ todays_sales|default(0) }}
             </div>
             <div class="stat-footer positive">
@@ -836,9 +836,9 @@
 <!-- =========================================
      Chart.js
      ========================================= -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/chart-loader.js') }}"></script>
 <script>
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", async function () {
     /* =========================================
        DASHBOARD INVENTORY IMPORT
        Reuse the existing backend import workflow.
@@ -874,6 +874,11 @@ document.addEventListener("DOMContentLoaded", function () {
             dashboardImportButton.textContent = "Importing...";
             dashboardImportForm.submit();
         });
+    }
+
+    // Chart.js is loaded through the local failover loader above.
+    if (window.InCraftChartReady) {
+        await window.InCraftChartReady;
     }
 
     /* =========================================
@@ -981,10 +986,17 @@ document.addEventListener("DOMContentLoaded", function () {
 
         if (salesPeriod) salesPeriod.addEventListener("change", loadSalesTrend);
         loadSalesTrend();
+        window.setInterval(function () {
+            if (!document.hidden) {
+                loadSalesTrend();
+            }
+        }, 30000);
     } else if (salesCanvas) {
         if (salesNote) salesNote.textContent = "Chart.js did not load. Check the browser Network tab.";
         console.error("Chart.js is unavailable; sales chart was not initialized.");
     }
+
+    let stockChart = null;
 
     const stockCanvas =
         document.getElementById("stockChart");
@@ -1019,7 +1031,7 @@ document.addEventListener("DOMContentLoaded", function () {
                   " active products · Calculated from current stock and reorder levels.";
         }
 
-        new Chart(
+        stockChart = new Chart(
             stockCanvas,
             {
                 type: "doughnut",
@@ -1074,6 +1086,84 @@ document.addEventListener("DOMContentLoaded", function () {
     } else if (stockCanvas && stockChartNote) {
         stockChartNote.textContent = "Chart.js could not be loaded. Check your network connection and refresh.";
     }
+    /* =========================================
+       LIVE DASHBOARD SUMMARY
+       Refreshes KPI cards and stock distribution from MySQL.
+       ========================================= */
+    async function refreshDashboardSummary() {
+        try {
+            const response = await fetch("/api/dashboard/summary", {
+                headers: { "Accept": "application/json" },
+                cache: "no-store",
+                credentials: "same-origin"
+            });
+            const payload = await response.json();
+
+            if (!response.ok || !payload || payload.success !== true) {
+                throw new Error(payload && payload.message
+                    ? payload.message
+                    : "Dashboard summary is unavailable.");
+            }
+
+            const metrics = payload.metrics || {};
+            Object.keys(metrics).forEach(function (key) {
+                const element = document.querySelector(
+                    '[data-dashboard-metric="' + key + '"]'
+                );
+                if (!element || metrics[key] === null || metrics[key] === undefined) {
+                    return;
+                }
+
+                const value = Number(metrics[key]) || 0;
+                if (key === "inventory_value" || key === "todays_sales") {
+                    element.textContent = "₹" + value.toLocaleString("en-IN", {
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 2
+                    });
+                } else {
+                    element.textContent = value.toLocaleString("en-IN");
+                }
+            });
+
+            const stock = payload.stock_distribution || {};
+            const stockIn = Number(stock.stock_in_count || 0);
+            const stockLow = Number(stock.stock_low_count || 0);
+            const stockOut = Number(stock.stock_out_count || 0);
+            const totalActive = stockIn + stockLow + stockOut;
+
+            if (stockData) {
+                stockData.dataset.stockIn = String(stockIn);
+                stockData.dataset.stockLow = String(stockLow);
+                stockData.dataset.stockOut = String(stockOut);
+            }
+
+            if (stockChart) {
+                stockChart.data.datasets[0].data = [stockIn, stockLow, stockOut];
+                stockChart.update();
+            }
+
+            if (stockChartNote) {
+                stockChartNote.textContent = totalActive === 0
+                    ? "No active inventory products are available to chart yet."
+                    : totalActive.toLocaleString("en-IN") +
+                      " active products · Updated from live inventory data.";
+            }
+        } catch (error) {
+            console.error("Unable to refresh dashboard summary:", error);
+        }
+    }
+
+    refreshDashboardSummary();
+    window.setInterval(function () {
+        if (!document.hidden) {
+            refreshDashboardSummary();
+        }
+    }, 30000);
+
+    window.addEventListener("incraft:data-changed", function () {
+        refreshDashboardSummary();
+    });
+
          /* =========================================
        SMART DECISION SUPPORT
              ========================================= */

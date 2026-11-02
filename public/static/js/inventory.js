@@ -736,6 +736,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
                     closeDeleteProductModal();
 
+                    // Notify Dashboard, Sales and Analytics in other open tabs.
+                    if (window.InCraftDataSync) {
+                        window.InCraftDataSync.notifyChange("inventory");
+                    }
 
                     /*
                      * Reload Inventory so the

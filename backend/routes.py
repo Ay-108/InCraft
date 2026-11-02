@@ -1397,6 +1397,7 @@ def add_product():
             )
         )
 
+        session["incraft_data_changed"] = "inventory"
         flash(
             "Product added successfully.",
             "success"
@@ -1613,6 +1614,7 @@ def edit_product(product_id):
             )
         )
 
+        session["incraft_data_changed"] = "inventory"
         flash(
             "Product updated successfully.",
             "success"
@@ -2284,6 +2286,9 @@ def import_inventory():
             )
         if invalid_rows:
             message += f" Skipped {invalid_rows} invalid or duplicate row(s)."
+        if imported_count > 0:
+            session["incraft_data_changed"] = "inventory"
+
         flash(message, "success")
 
     except UnicodeDecodeError:
@@ -2773,6 +2778,8 @@ def create_sale():
             )
         }), 500
 
+    session["incraft_data_changed"] = "sales_inventory"
+
     return jsonify({
         "success": True,
         "message": "Sale recorded successfully.",
@@ -2854,6 +2861,102 @@ def export_sales():
 # ============================================================
 # DASHBOARD SALES TREND API
 # ============================================================
+
+@main_bp.route("/api/dashboard/summary")
+@active_user_required
+def dashboard_summary():
+    """
+    Return live dashboard KPIs and stock distribution from the current database.
+
+    Inventory health is shared across active users. Revenue is scoped to the
+    signed-in user unless the requester is an Admin, matching the dashboard
+    and Sales page visibility rules.
+    """
+    try:
+        current_role = get_current_user_role()
+        if current_role is None:
+            logout_user()
+            return jsonify({
+                "success": False,
+                "message": "Please sign in again."
+            }), 401
+
+        is_admin = current_role == "admin"
+        current_user_id = get_current_user_id()
+
+        inventory_row = fetch_one(
+            """
+            SELECT
+                COUNT(*) AS total_products,
+                COALESCE(SUM(quantity), 0) AS total_stock,
+                COALESCE(SUM(CASE
+                    WHEN quantity <= minimum_stock THEN 1 ELSE 0
+                END), 0) AS low_stock,
+                COALESCE(SUM(CASE
+                    WHEN quantity > minimum_stock THEN 1 ELSE 0
+                END), 0) AS stock_in_count,
+                COALESCE(SUM(CASE
+                    WHEN quantity > 0 AND quantity <= minimum_stock
+                    THEN 1 ELSE 0
+                END), 0) AS stock_low_count,
+                COALESCE(SUM(CASE
+                    WHEN quantity <= 0 THEN 1 ELSE 0
+                END), 0) AS stock_out_count,
+                COALESCE(SUM(quantity * price), 0) AS inventory_value
+            FROM products
+            WHERE status = 'active'
+            """
+        ) or {}
+
+        sales_query = """
+            SELECT
+                COALESCE(SUM(total_amount), 0) AS total_sales,
+                COALESCE(SUM(CASE
+                    WHEN DATE(sale_date) = CURDATE()
+                    THEN total_amount ELSE 0
+                END), 0) AS todays_sales
+            FROM sales
+        """
+        sales_params = ()
+        if not is_admin:
+            sales_query += " WHERE user_id = %s"
+            sales_params = (current_user_id,)
+
+        sales_row = fetch_one(sales_query, sales_params) or {}
+        inventory_data = cast(Any, inventory_row)
+        sales_data = cast(Any, sales_row)
+
+        payload = {
+            "success": True,
+            "metrics": {
+                "total_products": int(inventory_data.get("total_products") or 0),
+                "total_stock": int(inventory_data.get("total_stock") or 0),
+                "low_stock": int(inventory_data.get("low_stock") or 0),
+                "total_sales": float(sales_data.get("total_sales") or 0),
+                "todays_sales": float(sales_data.get("todays_sales") or 0),
+                "inventory_value": (
+                    float(inventory_data.get("inventory_value") or 0)
+                    if is_admin else None
+                )
+            },
+            "stock_distribution": {
+                "stock_in_count": int(inventory_data.get("stock_in_count") or 0),
+                "stock_low_count": int(inventory_data.get("stock_low_count") or 0),
+                "stock_out_count": int(inventory_data.get("stock_out_count") or 0)
+            },
+            "generated_at": datetime.now().isoformat()
+        }
+        response = jsonify(payload)
+        response.headers["Cache-Control"] = "no-store, max-age=0"
+        return response
+
+    except Exception as error:
+        print(f"Dashboard summary API failed: {error}")
+        return jsonify({
+            "success": False,
+            "message": "Unable to load live dashboard data."
+        }), 500
+
 
 @main_bp.route("/api/dashboard/sales")
 @active_user_required
