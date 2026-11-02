@@ -6,6 +6,8 @@
     href="{{ url_for('static', filename='css/dashboard.css') }}"
 >
 <style>
+.dashboard-module-links { display:flex; flex-wrap:wrap; gap:10px; margin:0 0 22px; }
+.dashboard-module-links .btn { text-decoration:none; }
 .ml-inventory-panel {
     margin-top: 24px;
 }
@@ -179,6 +181,13 @@
             </div>
         </div>
     </section>
+    <section class="dashboard-module-links" aria-label="InCraft modules">
+        <a href="{{ url_for('main.inventory') }}" class="btn btn-secondary">Open Inventory →</a>
+        <a href="{{ url_for('main.sales') }}" class="btn btn-secondary">Open Sales →</a>
+        {% if is_admin %}
+        <a href="{{ url_for('main.analytics') }}" class="btn btn-secondary">Open Analytics →</a>
+        {% endif %}
+    </section>
     <!-- =========================================
          CHARTS
          ========================================= -->
@@ -242,6 +251,7 @@
                 data-stock-out="{{ stock_out_count|default(0) }}"
             >
                 <canvas id="stockChart"></canvas>
+                <p id="stockChartDataNote" class="chart-data-note" style="margin:8px 0 0;font-size:0.8rem;color:var(--text-secondary, #64748b);"></p>
             </div>
         </div>
     </section>
