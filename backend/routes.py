@@ -2156,7 +2156,16 @@ def import_inventory():
                 invalid_rows += 1
                 continue
 
-            if quantity < 0 or price <= 0 or minimum_stock < 0:
+            # Match the MySQL column limits before INSERT IGNORE is used:
+            # INT is signed 32-bit and DECIMAL(12, 2) allows 10 integer digits.
+            if (
+                quantity < 0
+                or quantity > 2147483647
+                or price <= 0
+                or price > 9999999999.99
+                or minimum_stock < 0
+                or minimum_stock > 2147483647
+            ):
                 invalid_rows += 1
                 continue
 
@@ -2203,7 +2212,7 @@ def import_inventory():
         # Existing product-code conflicts fail the batch rather than partially importing it.
         imported_count = execute_many(
             """
-            INSERT INTO products
+            INSERT IGNORE INTO products
             (
                 product_code,
                 name,
@@ -2246,7 +2255,10 @@ def import_inventory():
                     get_current_user_id(),
                     "IMPORT",
                     "INVENTORY",
-                    f"Imported {imported_count} inventory records",
+                    (
+                        f"Imported {imported_count} inventory records; "
+                        f"skipped {max(len(rows) - imported_count, 0)} existing product codes"
+                    ),
                     datetime.now()
                 )
             )
@@ -2254,7 +2266,18 @@ def import_inventory():
             # Import success must not be misreported because audit logging failed.
             print(f"Inventory import activity logging failed: {error}")
 
-        message = f"{imported_count} inventory records imported successfully."
+        # INSERT IGNORE makes repeated imports safe: existing product codes are
+        # left unchanged, while new products in the same file are still inserted.
+        # All incoming fields are validated above so duplicate-key conflicts are
+        # the only expected condition that INSERT IGNORE needs to suppress.
+        skipped_existing = max(len(rows) - imported_count, 0)
+
+        message = f"{imported_count} new inventory record(s) imported successfully."
+        if skipped_existing:
+            message += (
+                f" Skipped {skipped_existing} product(s) with existing product codes; "
+                "their saved inventory details were not changed."
+            )
         if invalid_rows:
             message += f" Skipped {invalid_rows} invalid or duplicate row(s)."
         flash(message, "success")
