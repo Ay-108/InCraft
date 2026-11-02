@@ -104,68 +104,25 @@ document.addEventListener("DOMContentLoaded", function () {
      * #analyticsData.
      */
 
-    const lowStockCount =
-        document.querySelectorAll(".low-stock-item").length;
+    // Inventory health comes directly from the same active-products query
+    // used by Dashboard, not from the low-stock rows currently visible on screen.
+    const healthyStock =
+        Number(analyticsDataElement?.dataset.stockIn || 0);
 
+    const lowStock =
+        Number(analyticsDataElement?.dataset.stockLow || 0);
 
-    const inventoryHealthElement =
-        document.querySelector(".inventory-health-content");
+    const outOfStock =
+        Number(analyticsDataElement?.dataset.stockOut || 0);
 
-
-    let healthyStock = 0;
-    let lowStock = lowStockCount;
-    let outOfStock = 0;
-
-
-    /*
-     * Try to calculate inventory health from
-     * visible inventory information when available.
-     */
-
-    const inventoryRows =
-        document.querySelectorAll(
-            "[data-stock]"
-        );
-
-
-    if (inventoryRows.length > 0) {
-
-        healthyStock = 0;
-        lowStock = 0;
-        outOfStock = 0;
-
-
-        inventoryRows.forEach(function (row) {
-
-            const quantity =
-                Number(row.dataset.stock || 0);
-
-
-            if (quantity <= 0) {
-
-                outOfStock++;
-
-            } else if (quantity <= 10) {
-
-                lowStock++;
-
-            } else {
-
-                healthyStock++;
-
-            }
-
-        });
-
-    }
-
+    const totalStockProducts =
+        Number(analyticsDataElement?.dataset.stockTotal || 0);
 
     const inventoryLabels = [
         "Healthy",
         "Low Stock",
         "Out of Stock"
     ];
-
 
     const inventoryData = [
         healthyStock,
@@ -801,63 +758,29 @@ document.addEventListener("DOMContentLoaded", function () {
        ========================================= */
 
     const analyticsDate =
-        document.getElementById(
-            "analyticsDate"
-        );
-
+        document.getElementById("analyticsDate");
 
     const applyAnalyticsFilters =
-        document.getElementById(
-            "applyAnalyticsFilters"
-        );
+        document.getElementById("applyAnalyticsFilters");
 
+    function applyAnalyticsPeriod() {
+        if (!analyticsDate) return;
 
-    if (analyticsDate) {
+        const selectedRange = ["3", "6", "12"].includes(analyticsDate.value)
+            ? analyticsDate.value
+            : "6";
 
-        analyticsDate.addEventListener(
-            "change",
-            function () {
-
-                console.log(
-                    "Selected analytics range:",
-                    analyticsDate.value
-                );
-
-            }
-        );
-
+        const destination = new URL(window.location.href);
+        destination.searchParams.set("months", selectedRange);
+        window.location.assign(destination.toString());
     }
 
+    if (analyticsDate) {
+        analyticsDate.addEventListener("change", applyAnalyticsPeriod);
+    }
 
     if (applyAnalyticsFilters) {
-
-        applyAnalyticsFilters.addEventListener(
-            "click",
-            function () {
-
-                const selectedRange =
-                    analyticsDate
-                        ? analyticsDate.value
-                        : "";
-
-
-                console.log(
-                    "Applying analytics filter:",
-                    selectedRange
-                );
-
-
-                /*
-                 * The current analytics filter is
-                 * frontend-only.
-                 *
-                 * Backend/MySQL filtering is not
-                 * changed in this JavaScript file.
-                 */
-
-            }
-        );
-
+        applyAnalyticsFilters.addEventListener("click", applyAnalyticsPeriod);
     }
 
 
