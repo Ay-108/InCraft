@@ -110,3 +110,221 @@
 .btn-danger:hover {
   background: rgba(200,81,81,0.08);
 }
+
+
+/* ============================================================
+   PREMIUM HEADER & TOPBAR ENHANCEMENTS
+   ============================================================ */
+header {
+  height: 64px !important;
+  background: var(--card) !important;
+  border-bottom: 1px solid var(--line) !important;
+  display: flex !important;
+  align-items: center !important;
+  padding: 0 32px !important;
+  gap: 16px !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 50 !important;
+}
+
+.crumb {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-size: 13px !important;
+  color: var(--muted) !important;
+}
+.crumb-root {
+  font-weight: 500 !important;
+  padding: 3px 8px !important;
+  border-radius: 6px !important;
+  background: rgba(0, 0, 0, 0.04) !important;
+  color: var(--muted) !important;
+  font-size: 12px !important;
+}
+.dark .crumb-root {
+  background: rgba(255, 255, 255, 0.06) !important;
+}
+.crumb-sep {
+  color: #ccc !important;
+  font-size: 11px !important;
+}
+.crumb-active {
+  color: var(--ink) !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+}
+
+.tools {
+  margin-left: auto !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+}
+
+.search-bar {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  width: 250px !important;
+  height: 38px !important;
+  background: var(--bg) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 9px !important;
+  padding: 0 10px !important;
+  color: var(--muted) !important;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s !important;
+  box-sizing: border-box !important;
+}
+.search-bar:focus-within {
+  border-color: var(--o) !important;
+  box-shadow: 0 0 0 3px rgba(244, 117, 33, 0.12) !important;
+  background: var(--card) !important;
+}
+.search-bar input {
+  border: 0 !important;
+  outline: 0 !important;
+  background: none !important;
+  flex: 1 1 0% !important;
+  min-width: 0 !important;
+  font-size: 12.5px !important;
+  color: var(--ink) !important;
+  font-family: inherit !important;
+}
+.search-bar kbd {
+  font-family: inherit !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  color: var(--muted) !important;
+  background: var(--card) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 5px !important;
+  padding: 2px 6px !important;
+  white-space: nowrap !important;
+  line-height: 1.2 !important;
+  flex-shrink: 0 !important;
+}
+
+.icon-btn {
+  width: 38px !important;
+  height: 38px !important;
+  border-radius: 9px !important;
+  border: 1px solid var(--line) !important;
+  background: var(--card) !important;
+  display: grid !important;
+  place-items: center !important;
+  color: var(--muted) !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  position: relative !important;
+  padding: 0 !important;
+}
+.icon-btn:hover {
+  background: var(--bg) !important;
+  color: var(--o) !important;
+  border-color: rgba(244, 117, 33, 0.3) !important;
+  transform: translateY(-1px) !important;
+}
+.notification-dot {
+  position: absolute !important;
+  top: 8px !important;
+  right: 8px !important;
+  width: 6px !important;
+  height: 6px !important;
+  border-radius: 50% !important;
+  background: var(--o) !important;
+  box-shadow: 0 0 0 2px var(--card) !important;
+}
+
+.profile-wrap {
+  position: relative !important;
+}
+.profile-btn {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 4px 10px 4px 5px !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 10px !important;
+  background: var(--card) !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  font-family: inherit !important;
+}
+.profile-btn:hover, .profile-btn[aria-expanded="true"] {
+  border-color: rgba(244, 117, 33, 0.4) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+  background: var(--bg) !important;
+}
+.profile-avatar {
+  width: 30px !important;
+  height: 30px !important;
+  border-radius: 7px !important;
+  background: linear-gradient(135deg, #f47521, #d95d0b) !important;
+  color: #fff !important;
+  display: grid !important;
+  place-items: center !important;
+  font-weight: 700 !important;
+  font-size: 11px !important;
+  letter-spacing: 0.5px !important;
+  flex-shrink: 0 !important;
+}
+.profile-info {
+  display: flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+}
+.profile-name {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: var(--ink) !important;
+  max-width: 130px !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+.profile-badge {
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  padding: 2px 6px !important;
+  border-radius: 4px !important;
+  background: rgba(244, 117, 33, 0.12) !important;
+  color: var(--o) !important;
+  letter-spacing: 0.5px !important;
+}
+.chevron-icon {
+  color: var(--muted) !important;
+  transition: transform 0.2s !important;
+  flex-shrink: 0 !important;
+}
+.profile-btn[aria-expanded="true"] .chevron-icon {
+  transform: rotate(180deg) !important;
+}
+
+.dark .search-bar {
+  background: #15171a !important;
+  border-color: #2e3238 !important;
+}
+.dark .search-bar kbd {
+  background: #202328 !important;
+  border-color: #383c44 !important;
+}
+.dark .icon-btn {
+  background: #1a1c20 !important;
+  border-color: #2e3238 !important;
+}
+.dark .icon-btn:hover {
+  background: #25282e !important;
+}
+.dark .notification-dot {
+  box-shadow: 0 0 0 2px #1a1c20 !important;
+}
+.dark .profile-btn {
+  background: #1a1c20 !important;
+  border-color: #2e3238 !important;
+}
+.dark .profile-btn:hover {
+  background: #24272e !important;
+}
