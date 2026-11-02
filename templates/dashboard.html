@@ -6,6 +6,8 @@
     href="{{ url_for('static', filename='css/dashboard.css') }}"
 >
 <style>
+.dashboard-module-links { display:flex; flex-wrap:wrap; gap:10px; margin:0 0 22px; }
+.dashboard-module-links .btn { text-decoration:none; }
 .ml-inventory-panel {
     margin-top: 24px;
 }
@@ -179,6 +181,13 @@
             </div>
         </div>
     </section>
+    <section class="dashboard-module-links" aria-label="InCraft modules">
+        <a href="{{ url_for('main.inventory') }}" class="btn btn-secondary">Open Inventory →</a>
+        <a href="{{ url_for('main.sales') }}" class="btn btn-secondary">Open Sales →</a>
+        {% if is_admin %}
+        <a href="{{ url_for('main.analytics') }}" class="btn btn-secondary">Open Analytics →</a>
+        {% endif %}
+    </section>
     <!-- =========================================
          CHARTS
          ========================================= -->
@@ -243,6 +252,7 @@
             >
                 <canvas id="stockChart"></canvas>
             </div>
+            <p id="stockChartDataNote" class="chart-data-note" style="margin:8px 0 0;font-size:0.8rem;color:var(--text-secondary, #64748b);"></p>
         </div>
     </section>
     <!-- =========================================
@@ -322,7 +332,7 @@
                     </p>
                 </div>
                 <a
-                    href="{{ url_for('main.inventory') }}"
+                    href="{{ url_for('main.inventory', filter='low-stock') }}"
                     class="view-all"
                 >
                     View Inventory
@@ -980,6 +990,8 @@ document.addEventListener("DOMContentLoaded", function () {
         document.getElementById("stockChart");
     const stockData =
         document.getElementById("stockChartData");
+    const stockChartNote =
+        document.getElementById("stockChartDataNote");
     if (
         stockCanvas &&
         stockData &&
@@ -997,6 +1009,16 @@ document.addEventListener("DOMContentLoaded", function () {
             Number(
                 stockData.dataset.stockOut || 0
             );
+        const totalActiveProducts =
+            stockIn + stockLow + stockOut;
+
+        if (stockChartNote) {
+            stockChartNote.textContent = totalActiveProducts === 0
+                ? "No active inventory products are available to chart yet."
+                : totalActiveProducts.toLocaleString("en-IN") +
+                  " active products · Calculated from current stock and reorder levels.";
+        }
+
         new Chart(
             stockCanvas,
             {
@@ -1049,6 +1071,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             }
         );
+    } else if (stockCanvas && stockChartNote) {
+        stockChartNote.textContent = "Chart.js could not be loaded. Check your network connection and refresh.";
     }
          /* =========================================
        SMART DECISION SUPPORT

@@ -999,7 +999,8 @@ productSelect.setCustomValidity("");
 
                 const paymentMatch =
                     !payment ||
-                    rowPayment === payment;
+                    rowPayment === payment ||
+                    (payment === "bank" && rowPayment === "bank_transfer");
 
 
                 let dateMatch = true;

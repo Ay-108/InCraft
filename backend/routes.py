@@ -1158,10 +1158,14 @@ def inventory():
             )
         )
 
+    current_role = get_current_user_role()
+    is_admin = current_role == "admin"
+
     return render_template(
         "inventory.html",
         products=products,
-        search=search
+        search=search,
+        is_admin=is_admin
     )
 
 
@@ -2381,8 +2385,8 @@ def export_inventory() -> ResponseReturnValue:
 @active_user_required
 def sales():
     """
-    Display sales records and active inventory products for the Record Sale form.
-    Admins can see all sales; Staff can see only sales they recorded.
+    Display role-scoped sales records, live sales KPIs, and active inventory
+    products for the Record Sale form.
     """
 
     current_user_id = get_current_user_id()
@@ -2391,36 +2395,47 @@ def sales():
         logout_user()
         return redirect(url_for("main.login"))
 
-    if current_role == "admin":
+    is_admin = current_role == "admin"
+
+    sales_select = """
+        SELECT
+            sale_id,
+            invoice_number,
+            customer_name,
+            total_amount,
+            payment_method,
+            sale_date
+        FROM sales
+    """
+    summary_select = """
+        SELECT
+            COALESCE(SUM(
+                CASE WHEN DATE(sale_date) = CURDATE()
+                THEN total_amount ELSE 0 END
+            ), 0) AS todays_sales,
+            COUNT(*) AS total_orders,
+            COALESCE(SUM(total_amount), 0) AS total_revenue,
+            COALESCE(SUM(
+                CASE WHEN payment_method = 'other'
+                THEN total_amount ELSE 0 END
+            ), 0) AS other_payment_sales
+        FROM sales
+    """
+
+    if is_admin:
         sales_records = fetch_all(
-            """
-            SELECT
-                sale_id,
-                invoice_number,
-                customer_name,
-                total_amount,
-                payment_method,
-                sale_date
-            FROM sales
-            ORDER BY sale_date DESC
-            """
+            sales_select + " ORDER BY sale_date DESC"
         )
+        sales_summary = fetch_one(summary_select) or {}
     else:
         sales_records = fetch_all(
-            """
-            SELECT
-                sale_id,
-                invoice_number,
-                customer_name,
-                total_amount,
-                payment_method,
-                sale_date
-            FROM sales
-            WHERE user_id = %s
-            ORDER BY sale_date DESC
-            """,
+            sales_select + " WHERE user_id = %s ORDER BY sale_date DESC",
             (current_user_id,)
         )
+        sales_summary = fetch_one(
+            summary_select + " WHERE user_id = %s",
+            (current_user_id,)
+        ) or {}
 
     products = fetch_all(
         """
@@ -2440,16 +2455,19 @@ def sales():
         """
     )
 
+    summary = cast(Any, sales_summary)
+
     return render_template(
         "sales.html",
-        sales=sales_records,
-        products=products
+        sales=sales_records or [],
+        products=products or [],
+        todays_sales=summary.get("todays_sales", 0),
+        total_orders=summary.get("total_orders", 0),
+        total_revenue=summary.get("total_revenue", 0),
+        other_payment_sales=summary.get("other_payment_sales", 0),
+        is_admin=is_admin
     )
 
-
-# ============================================================
-# CREATE SALE
-# ============================================================
 
 @main_bp.route(
     "/sales/create",
@@ -3570,143 +3588,193 @@ def dashboard_insights():
 # ANALYTICS
 # ============================================================
 
-@main_bp.route("/analytics")
-@admin_required
-def analytics():
+def _get_analytics_month_window():
     """
-    Analytics page.
+    Return a validated 3/6/12-month period beginning on the first day of
+    the oldest included calendar month.
     """
+    months = safe_int(request.args.get("months", 6), 6)
+    if months not in (3, 6, 12):
+        months = 6
 
-    total_revenue = fetch_one(
+    current = datetime.now()
+    month_number = current.month - (months - 1)
+    year = current.year
+
+    while month_number <= 0:
+        month_number += 12
+        year -= 1
+
+    period_start = datetime(year, month_number, 1)
+    return months, period_start
+
+
+def _load_analytics_data(months, period_start):
+    """
+    Load period-filtered sales analytics and current active-inventory health.
+    Sales charts use sales + sale_items as their source of truth.
+    """
+    sales_summary = fetch_one(
         """
         SELECT
-            COALESCE(
-                SUM(total_amount),
-                0
-            ) AS total
+            COALESCE(SUM(total_amount), 0) AS total_revenue,
+            COUNT(*) AS total_transactions
         FROM sales
-        """
-    )
+        WHERE sale_date >= %s
+        """,
+        (period_start,)
+    ) or {}
 
-    total_transactions = fetch_one(
-        """
-        SELECT COUNT(*) AS total
-        FROM sales
-        """
-    )
-
-    inventory_value = fetch_one(
+    monthly_rows = fetch_all(
         """
         SELECT
-            COALESCE(
-                SUM(quantity * price),
-                0
-            ) AS total
-        FROM products
-        WHERE status = 'active'
-        """
-    )
+            CONCAT(YEAR(sale_date), '-', LPAD(MONTH(sale_date), 2, '0')) AS month,
+            COUNT(*) AS transactions,
+            COALESCE(SUM(total_amount), 0) AS revenue
+        FROM sales
+        WHERE sale_date >= %s
+        GROUP BY YEAR(sale_date), MONTH(sale_date)
+        ORDER BY month ASC
+        """,
+        (period_start,)
+    ) or []
+
+    monthly_lookup = {
+        str(cast(Any, row).get("month") or ""): row
+        for row in monthly_rows
+    }
+
+    month_keys = []
+    month_number = period_start.month
+    year = period_start.year
+    for _ in range(months):
+        month_keys.append(f"{year:04d}-{month_number:02d}")
+        month_number += 1
+        if month_number > 12:
+            month_number = 1
+            year += 1
+
+    monthly_sales = []
+    for month_key in month_keys:
+        source = cast(Any, monthly_lookup.get(month_key) or {})
+        monthly_sales.append({
+            "month": month_key,
+            "transactions": source.get("transactions", 0),
+            "revenue": source.get("revenue", 0)
+        })
 
     category_data = fetch_all(
         """
         SELECT
-            category,
-            COUNT(*) AS product_count,
-            COALESCE(
-                SUM(quantity),
-                0
-            ) AS total_stock,
-            COALESCE(
-                SUM(quantity * price),
-                0
-            ) AS stock_value
-        FROM products
-        WHERE status = 'active'
-        GROUP BY category
-        ORDER BY stock_value DESC
-        """
-    )
-
-    monthly_sales = fetch_all(
-        """
-        SELECT
-            DATE_FORMAT(
-                sale_date,
-                '%Y-%m'
-            ) AS month,
-            COUNT(*) AS transactions,
-            COALESCE(
-                SUM(total_amount),
-                0
-            ) AS revenue
-        FROM sales
-        GROUP BY month
-        ORDER BY month ASC
-        LIMIT 12
-        """
-    )
+            p.category,
+            COALESCE(SUM(si.quantity * si.unit_price), 0) AS revenue,
+            COALESCE(SUM(si.quantity), 0) AS quantity_sold
+        FROM sales s
+        INNER JOIN sale_items si
+            ON si.sale_id = s.sale_id
+        INNER JOIN products p
+            ON p.product_id = si.product_id
+        WHERE s.sale_date >= %s
+        GROUP BY p.category
+        ORDER BY revenue DESC
+        """,
+        (period_start,)
+    ) or []
 
     top_products = fetch_all(
         """
         SELECT
+            p.product_id,
             p.name,
-            SUM(si.quantity) AS quantity_sold,
-            SUM(
-                si.quantity * si.unit_price
-            ) AS revenue
-        FROM sale_items si
+            COALESCE(SUM(si.quantity), 0) AS quantity_sold,
+            COALESCE(SUM(si.quantity * si.unit_price), 0) AS revenue
+        FROM sales s
+        INNER JOIN sale_items si
+            ON si.sale_id = s.sale_id
         INNER JOIN products p
             ON p.product_id = si.product_id
-        GROUP BY
-            p.product_id,
-            p.name
-        ORDER BY quantity_sold DESC
+        WHERE s.sale_date >= %s
+        GROUP BY p.product_id, p.name
+        ORDER BY quantity_sold DESC, revenue DESC
         LIMIT 10
+        """,
+        (period_start,)
+    ) or []
+
+    stock_distribution = fetch_one(
         """
-    )
+        SELECT
+            COALESCE(SUM(CASE
+                WHEN quantity > minimum_stock THEN 1 ELSE 0
+            END), 0) AS stock_in_count,
+            COALESCE(SUM(CASE
+                WHEN quantity > 0 AND quantity <= minimum_stock THEN 1 ELSE 0
+            END), 0) AS stock_low_count,
+            COALESCE(SUM(CASE
+                WHEN quantity <= 0 THEN 1 ELSE 0
+            END), 0) AS stock_out_count,
+            COUNT(*) AS total_products
+        FROM products
+        WHERE status = 'active'
+        """
+    ) or {}
+
+    return {
+        "sales_summary": sales_summary,
+        "monthly_sales": monthly_sales,
+        "category_data": category_data,
+        "top_products": top_products,
+        "stock_distribution": stock_distribution
+    }
+
+
+@main_bp.route("/analytics")
+@admin_required
+def analytics():
+    """
+    Display period-filtered sales performance together with current inventory health.
+    Analytics remains Admin-only, preserving the existing access policy.
+    """
+    months, period_start = _get_analytics_month_window()
+    datasets = _load_analytics_data(months, period_start)
+
+    sales_summary = cast(Any, datasets["sales_summary"])
+    inventory_value = fetch_one(
+        """
+        SELECT COALESCE(SUM(quantity * price), 0) AS total
+        FROM products
+        WHERE status = 'active'
+        """
+    ) or {}
 
     low_stock_products = fetch_all(
         """
         SELECT
             product_id,
-            product_code,
+            product_code AS sku,
             name,
             quantity,
             minimum_stock
         FROM products
         WHERE status = 'active'
-        AND quantity <= minimum_stock
-        ORDER BY quantity ASC
+          AND quantity <= minimum_stock
+        ORDER BY quantity ASC, name ASC
         """
-    )
+    ) or []
 
     return render_template(
         "analytics.html",
-        total_revenue=(
-            cast(Any, total_revenue)["total"]
-            if total_revenue
-            else 0
-        ),
-        total_transactions=(
-            cast(Any, total_transactions)["total"]
-            if total_transactions
-            else 0
-        ),
-        inventory_value=(
-            cast(Any, inventory_value)["total"]
-            if inventory_value
-            else 0
-        ),
-        category_data=category_data,
-        monthly_sales=monthly_sales,
-        top_products=top_products,
+        selected_months=months,
+        total_revenue=sales_summary.get("total_revenue", 0),
+        total_transactions=sales_summary.get("total_transactions", 0),
+        inventory_value=cast(Any, inventory_value).get("total", 0),
+        category_data=datasets["category_data"],
+        monthly_sales=datasets["monthly_sales"],
+        top_products=datasets["top_products"],
+        stock_distribution=datasets["stock_distribution"],
         low_stock_products=low_stock_products
     )
 
-
-# ============================================================
-# ANALYTICS API
-# ============================================================
 
 @main_bp.route(
     "/api/analytics"
@@ -3714,52 +3782,22 @@ def analytics():
 @admin_required
 def analytics_api():
     """
-    Return analytics data for JavaScript charts.
+    Return the same period-filtered data contract used by the Analytics page.
     """
-
-    monthly_sales = fetch_all(
-        """
-        SELECT
-            DATE_FORMAT(
-                sale_date,
-                '%Y-%m'
-            ) AS month,
-            COALESCE(
-                SUM(total_amount),
-                0
-            ) AS revenue
-        FROM sales
-        GROUP BY month
-        ORDER BY month ASC
-        LIMIT 12
-        """
-    )
-
-    category_data = fetch_all(
-        """
-        SELECT
-            category,
-            COALESCE(
-                SUM(quantity * price),
-                0
-            ) AS value
-        FROM products
-        WHERE status = 'active'
-        GROUP BY category
-        ORDER BY value DESC
-        """
-    )
+    months, period_start = _get_analytics_month_window()
+    datasets = _load_analytics_data(months, period_start)
 
     return jsonify({
         "success": True,
-        "monthly_sales": monthly_sales,
-        "category_data": category_data
+        "period_months": months,
+        "sales_summary": datasets["sales_summary"],
+        "monthly_sales": datasets["monthly_sales"],
+        "category_data": datasets["category_data"],
+        "top_products": datasets["top_products"],
+        "stock_distribution": datasets["stock_distribution"],
+        "generated_at": datetime.now().isoformat()
     })
 
-
-# ============================================================
-# ACTIVITY / HISTORY
-# ============================================================
 
 @main_bp.route("/activity")
 @active_user_required
