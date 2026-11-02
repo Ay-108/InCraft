@@ -564,7 +564,8 @@
     $('aside')?.classList.remove('open');
 
     const targetPath = pageName === 'dashboard' ? '/dashboard' : `/${pageName}`;
-    const targetUrl = targetPath + (options.query !== undefined ? options.query : '');
+    const defaultQuery = window.location.pathname === targetPath ? window.location.search : '';
+    const targetUrl = targetPath + (options.query !== undefined ? options.query : defaultQuery);
     if (!options.skipHistory && window.location.pathname + window.location.search !== targetUrl) {
       if (options.replace) window.history.replaceState({ page: pageName }, '', targetUrl);
       else window.history.pushState({ page: pageName }, '', targetUrl);
@@ -1122,7 +1123,8 @@
       if (res && res.ok && res.data && res.data.success) {
         toast('Product added successfully!', 'success');
         closeModal();
-        loadInventoryData();
+        if (state.currentPage === 'dashboard') refreshDashboardData(false);
+        else loadInventoryData();
       } else {
         toast(res?.data?.message || 'Error adding product.', 'error');
       }
@@ -1197,7 +1199,8 @@
       if (res && res.ok && res.data && res.data.success) {
         toast('Product updated successfully!', 'success');
         closeModal();
-        loadInventoryData();
+        if (state.currentPage === 'dashboard') refreshDashboardData(false);
+        else loadInventoryData();
       } else {
         toast(res?.data?.message || 'Error updating product.', 'error');
       }
@@ -1223,7 +1226,8 @@
       if (res && res.ok) {
         toast('Product deleted.', 'info');
         closeModal();
-        loadInventoryData();
+        if (state.currentPage === 'dashboard') refreshDashboardData(false);
+        else loadInventoryData();
       } else {
         toast('Failed to delete product.', 'error');
       }
@@ -1267,7 +1271,8 @@
       if (res && res.ok) {
         toast('Inventory imported successfully!', 'success');
         closeModal();
-        loadInventoryData();
+        if (state.currentPage === 'dashboard') refreshDashboardData(false);
+        else loadInventoryData();
       } else {
         toast(res?.data?.message || 'Error importing CSV.', 'error');
       }
@@ -1474,7 +1479,7 @@
         toast(`Sale of ${qty} units completed successfully!`, 'success');
         closeModal();
         if (state.currentPage === 'sales') loadSalesData();
-        else if (state.currentPage === 'dashboard') loadDashboardSummary();
+        else if (state.currentPage === 'dashboard') refreshDashboardData(false);
       } else {
         toast(res?.data?.message || 'Error completing sale transaction.', 'error');
       }
