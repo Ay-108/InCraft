@@ -29,8 +29,11 @@ from flask import (
     url_for,
     jsonify,
     flash,
-    session
+    session,
+    get_flashed_messages
 )
+from flask_wtf.csrf import generate_csrf
+from jinja2 import TemplateNotFound
 from flask.typing import ResponseReturnValue
 
 from werkzeug.security import (
@@ -92,6 +95,46 @@ main_bp = Blueprint(
 )
 
 P = ParamSpec("P")
+
+# ============================================================
+# APP SHELL & CLIENT RENDERING HELPERS
+# ============================================================
+
+def _get_initial_state(current_page="dashboard"):
+    """Prepare initial serialized application state for modern UI rendering."""
+    user_id = get_current_user_id()
+    role = get_current_user_role()
+    username = session.get("username")
+    email = session.get("email")
+    user_obj = None
+    if user_id:
+        user_obj = {
+            "id": user_id,
+            "username": username or "User",
+            "name": username or "User",
+            "email": email or "",
+            "role": role or "staff",
+        }
+    return {
+        "user": user_obj,
+        "page": current_page,
+        "csrf_token": generate_csrf(),
+        "is_admin": role == "admin",
+        "flashes": get_flashed_messages(with_categories=True),
+    }
+
+
+def _render_app_page(page_name="dashboard", fallback_template=None, **template_kwargs):
+    """Render modern unified index.html or fallback to legacy template."""
+    initial_state = _get_initial_state(page_name)
+    try:
+        return render_template("index.html", initial_state=initial_state, **template_kwargs)
+    except TemplateNotFound:
+        if fallback_template:
+            return render_template(fallback_template, **template_kwargs)
+        raise
+
+
 
 
 # ============================================================
@@ -257,14 +300,42 @@ def admin_required(
 def index():
     """
     InCraft default entry point.
-
-    Always send visitors to the dashboard URL first. The dashboard's
-    active-user protection remains responsible for redirecting signed-out
-    visitors to login. After a successful login, the existing login flow
-    already returns users to the dashboard.
     """
+    user_id = get_current_user_id()
+    if user_id and get_current_user_role():
+        return redirect(url_for("main.dashboard"))
+    return _render_app_page("landing", fallback_template="login.html")
 
-    return redirect(url_for("main.dashboard"))
+
+@main_bp.route("/api/auth/me", methods=["GET"])
+def auth_me():
+    """Return the current signed-in user's session profile."""
+    user_id = get_current_user_id()
+    if not user_id:
+        return jsonify({"authenticated": False, "user": None})
+    role = get_current_user_role()
+    if not role:
+        return jsonify({"authenticated": False, "user": None})
+    username = session.get("username")
+    email = session.get("email")
+    return jsonify({
+        "authenticated": True,
+        "user": {
+            "id": user_id,
+            "name": username or "User",
+            "username": username or "User",
+            "email": email or "",
+            "role": role or "staff",
+        },
+        "is_admin": role == "admin",
+        "csrf_token": generate_csrf(),
+    })
+
+
+@main_bp.route("/api/csrf-token", methods=["GET"])
+def get_csrf_token():
+    """Return a fresh CSRF token for AJAX clients."""
+    return jsonify({"csrf_token": generate_csrf()})
 
 
 # ============================================================
@@ -291,261 +362,88 @@ def _auth_database_available():
 
 @main_bp.route("/login", methods=["GET", "POST"])
 def login():
-    """
-    User login with Admin / Staff role verification.
-    """
+    """User login supporting JSON and HTML requests."""
+    is_json = request.is_json or "application/json" in request.headers.get("Accept", "")
 
     if request.method == "POST":
+        payload = request.get_json(silent=True) or request.form
+        email = payload.get("email", "").strip().lower()
+        password = payload.get("password", "")
+        selected_role = payload.get("role", "").strip().lower()
 
-        # =========================================
-        # GET FORM DATA
-        # =========================================
-
-        email = request.form.get(
-            "email",
-            ""
-        ).strip().lower()
-
-        password = request.form.get(
-            "password",
-            ""
-        )
-
-        selected_role = request.form.get(
-            "role",
-            ""
-        ).strip().lower()
-
-
-        # =========================================
-        # VALIDATE REQUIRED FIELDS
-        # =========================================
+        if not selected_role and email:
+            found = fetch_one("SELECT role FROM users WHERE email = %s LIMIT 1", (email,))
+            if found:
+                selected_role = str((cast(Any, found) or {}).get("role") or "").strip().lower()
 
         if not email or not password or not selected_role:
+            msg = "Please select your role and enter your email and password."
+            if is_json:
+                return jsonify({"success": False, "message": msg}), 400
+            flash(msg, "danger")
+            return _render_app_page("login", fallback_template="login.html")
 
-            flash(
-                "Please select your role and enter your email and password.",
-                "danger"
-            )
-
-            return render_template(
-                "login.html"
-            )
-
-
-        # =========================================
-        # VALIDATE ROLE
-        # =========================================
-
-        # InCraft supports only Admin and Staff login roles.
-        # A legacy Manager value in the database is not accepted for login.
-        allowed_roles = {
-            "admin",
-            "staff"
-        }
-
+        allowed_roles = {"admin", "staff"}
         if selected_role not in allowed_roles:
-
-            flash(
-                "Invalid account type selected.",
-                "danger"
-            )
-
-            return render_template(
-                "login.html"
-            )
-
-
-        # Query the account directly. The request-scoped database connection
-        # avoids a separate availability-check connection before this lookup.
-        # =========================================
-        # FIND USER
-        # =========================================
+            msg = "Invalid account type selected."
+            if is_json:
+                return jsonify({"success": False, "message": msg}), 400
+            flash(msg, "danger")
+            return _render_app_page("login", fallback_template="login.html")
 
         user = fetch_one(
             """
-            SELECT
-                user_id,
-                username,
-                email,
-                password,
-                role,
-                status
-            FROM users
-            WHERE email = %s
-            LIMIT 1
+            SELECT user_id, username, email, password, role, status
+            FROM users WHERE email = %s LIMIT 1
             """,
             (email,)
         )
 
-
-        # =========================================
-        # USER NOT FOUND
-        # =========================================
-
         if user is None:
             if not _auth_database_available():
-                flash(
-                    "The login service is temporarily unavailable. Please try again shortly.",
-                    "danger"
-                )
+                msg = "The login service is temporarily unavailable. Please try again shortly."
             else:
-                # fetch_one() returns None for both no match and SQL errors.
-                # db.py logs SQL errors to the server console.
-                flash(
-                    "Invalid email or password.",
-                    "danger"
-                )
+                msg = "Invalid email or password."
+            if is_json:
+                return jsonify({"success": False, "message": msg}), 401
+            flash(msg, "danger")
+            return _render_app_page("login", fallback_template="login.html")
 
-            return render_template("login.html")
-
-
-        # =========================================
-        # CHECK ACCOUNT STATUS
-        # =========================================
-
-        account_status = str(
-            cast(Any, user).get("status") or ""
-        ).strip().lower()
-
+        account_status = str(cast(Any, user).get("status") or "").strip().lower()
         if account_status != "active":
+            msg = "Your account is inactive. Please contact the administrator."
+            if is_json:
+                return jsonify({"success": False, "message": msg}), 403
+            flash(msg, "danger")
+            return _render_app_page("login", fallback_template="login.html")
 
-            flash(
-                "Your account is inactive. Please contact the administrator.",
-                "danger"
-            )
-
-            return render_template(
-                "login.html"
-            )
-
-
-        # =========================================
-        # VERIFY SELECTED ROLE
-        # =========================================
-
-        actual_role = str(
-            cast(Any, user).get(
-                "role",
-                ""
-            )
-        ).strip().lower()
-
-
+        actual_role = str(cast(Any, user).get("role", "")).strip().lower()
         if actual_role != selected_role:
+            msg = f"This account is registered as {actual_role.capitalize()}."
+            if is_json:
+                return jsonify({"success": False, "message": msg}), 400
+            flash(msg, "danger")
+            return _render_app_page("login", fallback_template="login.html")
 
-            if actual_role == "admin":
-
-                flash(
-                    "This account is registered as Admin. "
-                    "Please select Admin to continue.",
-                    "danger"
-                )
-
-            elif actual_role == "manager":
-
-                flash(
-                    "Manager accounts are no longer supported. "
-                    "Please contact the administrator.",
-                    "danger"
-                )
-
-            elif actual_role == "staff":
-
-                flash(
-                    "This account is registered as Staff. "
-                    "Please select Staff to continue.",
-                    "danger"
-                )
-
-            else:
-
-                flash(
-                    "Your account has an invalid role. "
-                    "Please contact the administrator.",
-                    "danger"
-                )
-
-            return render_template(
-                "login.html"
-            )
-
-
-        # =========================================
-        # GET STORED PASSWORD
-        # =========================================
-
-        stored_password = cast(Any, user).get(
-            "password",
-            ""
-        )
-
-
-        if not stored_password:
-
-            flash(
-                "Invalid email or password.",
-                "danger"
-            )
-
-            return render_template(
-                "login.html"
-            )
-
-
-        # =========================================
-        # VERIFY PASSWORD
-        # =========================================
-
+        stored_password = cast(Any, user).get("password", "")
         try:
-
-            password_valid = check_password_hash(
-                stored_password,
-                password
-            )
-
+            password_valid = check_password_hash(stored_password, password)
         except Exception:
-
             password_valid = False
 
-
         if not password_valid:
-
-            flash(
-                "Invalid email or password.",
-                "danger"
-            )
-
-            return render_template(
-                "login.html"
-            )
-
-
-        # =========================================
-        # LOGIN USER
-        # =========================================
+            msg = "Invalid email or password."
+            if is_json:
+                return jsonify({"success": False, "message": msg}), 401
+            flash(msg, "danger")
+            return _render_app_page("login", fallback_template="login.html")
 
         login_user(user)
 
-
-        # =========================================
-        # LOGIN ACTIVITY
-        # =========================================
-
-        # Activity logging is secondary to authentication. A logging failure
-        # must not prevent a user with valid credentials from reaching the app.
         try:
             execute_query(
                 """
-                INSERT INTO activity_logs
-                (
-                    user_id,
-                    action,
-                    entity_type,
-                    entity_id,
-                    description,
-                    created_at
-                )
+                INSERT INTO activity_logs (user_id, action, entity_type, entity_id, description, created_at)
                 VALUES (%s, %s, %s, %s, %s, %s)
                 """,
                 (
@@ -558,257 +456,134 @@ def login():
                 )
             )
         except Exception as error:
-            # Do not expose database details to the user.
             print(f"Login activity logging failed: {error}")
 
+        if is_json:
+            return jsonify({
+                "success": True,
+                "message": f"Welcome back, {cast(Any, user).get('username')}!",
+                "user": {
+                    "id": cast(Any, user).get("user_id"),
+                    "name": cast(Any, user).get("username"),
+                    "username": cast(Any, user).get("username"),
+                    "email": cast(Any, user).get("email"),
+                    "role": actual_role,
+                }
+            })
 
-        # =========================================
-        # SUCCESS MESSAGE
-        # =========================================
+        flash(f"Welcome back, {cast(Any, user).get('username')}!", "success")
+        return redirect(url_for("main.dashboard"))
 
-        flash(
-            f"Welcome back, {cast(Any, user).get('username')}!",
-            "success"
-        )
+    if get_current_user_id() and get_current_user_role():
+        return redirect(url_for("main.dashboard"))
+    return _render_app_page("login", fallback_template="login.html")
 
-
-        # =========================================
-        # REDIRECT
-        # =========================================
-
-        return redirect(
-            url_for("main.dashboard")
-        )
-
-
-    # =========================================
-    # GET REQUEST
-    # =========================================
-
-    return render_template(
-        "login.html"
-    )
-
-@main_bp.route(
-    "/register",
-    methods=["GET", "POST"]
-)
+@main_bp.route("/register", methods=["GET", "POST"])
 def register():
-    """
-    User registration.
-    """
+    """User registration supporting JSON and HTML."""
+    is_json = request.is_json or "application/json" in request.headers.get("Accept", "")
 
     if request.method == "POST":
-
-        username = request.form.get(
-            "username",
-            ""
-        ).strip()
-
-        email = request.form.get(
-            "email",
-            ""
-        ).strip().lower()
-
-        password = request.form.get(
-            "password",
-            ""
-        )
-
-        confirm_password = request.form.get(
-            "confirm_password",
-            ""
-        )
+        payload = request.get_json(silent=True) or request.form
+        username = (payload.get("name") or payload.get("username", "")).strip()
+        email = payload.get("email", "").strip().lower()
+        password = payload.get("password", "")
+        confirm_password = payload.get("confirm_password") or payload.get("confirm", "")
 
         if len(username) > 100:
-            flash(
-                "Username must be 100 characters or fewer.",
-                "danger"
-            )
-            return render_template("register.html")
+            msg = "Username must be 100 characters or fewer."
+            if is_json:
+                return jsonify({"success": False, "message": msg}), 400
+            flash(msg, "danger")
+            return _render_app_page("register", fallback_template="register.html")
 
         if not username or not email or not password:
-
-            flash(
-                "All required fields must be completed.",
-                "danger"
-            )
-
-            return render_template(
-                "register.html"
-            )
-
-        if not validate_email(email):
-
-            flash(
-                "Please enter a valid email address.",
-                "danger"
-            )
-
-            return render_template(
-                "register.html"
-            )
-
-        if not validate_password(password):
-
-            flash(
-                "Password must contain at least 8 characters, "
-                "including a letter and a number.",
-                "danger"
-            )
-
-            return render_template(
-                "register.html"
-            )
+            msg = "All required fields must be completed."
+            if is_json:
+                return jsonify({"success": False, "message": msg}), 400
+            flash(msg, "danger")
+            return _render_app_page("register", fallback_template="register.html")
 
         if password != confirm_password:
+            msg = "Passwords do not match."
+            if is_json:
+                return jsonify({"success": False, "message": msg}), 400
+            flash(msg, "danger")
+            return _render_app_page("register", fallback_template="register.html")
 
-            flash(
-                "Passwords do not match.",
-                "danger"
-            )
+        if not validate_email(email):
+            msg = "Please enter a valid email address."
+            if is_json:
+                return jsonify({"success": False, "message": msg}), 400
+            flash(msg, "danger")
+            return _render_app_page("register", fallback_template="register.html")
 
-            return render_template(
-                "register.html"
-            )
+        if not validate_password(password):
+            msg = "Password must be at least 8 characters long."
+            if is_json:
+                return jsonify({"success": False, "message": msg}), 400
+            flash(msg, "danger")
+            return _render_app_page("register", fallback_template="register.html")
 
-        if not _auth_database_available():
-            flash(
-                "Registration is temporarily unavailable. Please try again shortly.",
-                "danger"
-            )
-            return render_template("register.html")
-
-        existing_user = fetch_one(
-            """
-            SELECT user_id
-            FROM users
-            WHERE LOWER(TRIM(email)) = %s
-            LIMIT 1
-            """,
-            (email,)
-        )
-
+        existing_user = fetch_one("SELECT user_id FROM users WHERE email = %s LIMIT 1", (email,))
         if existing_user:
+            msg = "An account with that email already exists."
+            if is_json:
+                return jsonify({"success": False, "message": msg}), 400
+            flash(msg, "danger")
+            return _render_app_page("register", fallback_template="register.html")
 
-            flash(
-                "An account with this email already exists.",
-                "danger"
-            )
+        role = payload.get("role", "staff").strip().lower()
+        if role not in ("admin", "staff"):
+            role = "staff"
 
-            return render_template(
-                "register.html"
-            )
-
-        password_hash = generate_password_hash(
-            password
-        )
-
-        user_id = execute_query(
-            """
-            INSERT INTO users
-            (
-                username,
-                email,
-                password,
-                role,
-                status,
-                created_at
-            )
-            VALUES (%s, %s, %s, %s, %s, %s)
-            """,
-            (
-                username,
-                email,
-                password_hash,
-                "staff",
-                "active",
-                datetime.now()
-            )
-        )
-
-        if user_id is None:
-            if not _auth_database_available():
-                flash(
-                    "Registration is temporarily unavailable because the database cannot be reached.",
-                    "danger"
-                )
-            else:
-                # execute_query() logs the underlying SQL error in db.py.
-                # Common causes include schema/column mismatches and constraints.
-                flash(
-                    "Unable to create your account. Please check the server log and try again.",
-                    "danger"
-                )
-
-            return render_template("register.html")
-
-        flash(
-            "Registration successful. You can now log in.",
-            "success"
-        )
-
-        return redirect(
-            url_for("main.login")
-        )
-
-    return render_template(
-        "register.html"
-    )
-
-
-@main_bp.route("/logout", methods=["POST"])
-def logout():
-    """
-    Log out the current user.
-    """
-
-    user_id = get_current_user_id()
-
-    if user_id:
-        # Logout must not fail because the secondary audit-log write failed.
+        hashed_password = generate_password_hash(password)
         try:
             execute_query(
                 """
-                INSERT INTO activity_logs
-                (
-                    user_id,
-                    action,
-                    entity_type,
-                    entity_id,
-                    description,
-                    created_at
-                )
-                VALUES (%s, %s, %s, %s, %s, %s)
+                INSERT INTO users (username, email, password, role, status, created_at)
+                VALUES (%s, %s, %s, %s, 'active', %s)
                 """,
-                (
-                    user_id,
-                    "LOGOUT",
-                    "USER",
-                    user_id,
-                    "User logged out of InCraft",
-                    datetime.now()
-                )
+                (username, email, hashed_password, role, datetime.now())
             )
         except Exception as error:
-            # Keep internal database details out of the response.
+            print(f"Registration failed: {error}")
+            msg = "Failed to create account. Please try again."
+            if is_json:
+                return jsonify({"success": False, "message": msg}), 500
+            flash(msg, "danger")
+            return _render_app_page("register", fallback_template="register.html")
+
+        if is_json:
+            return jsonify({"success": True, "message": "Account created successfully!"})
+
+        flash("Account created successfully! Please sign in.", "success")
+        return redirect(url_for("main.login"))
+
+    return _render_app_page("register", fallback_template="register.html")
+
+@main_bp.route("/logout", methods=["POST"])
+def logout():
+    """Log out the current user."""
+    user_id = get_current_user_id()
+    if user_id:
+        try:
+            execute_query(
+                """
+                INSERT INTO activity_logs (user_id, action, entity_type, entity_id, description, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                """,
+                (user_id, "LOGOUT", "USER", user_id, "User logged out of InCraft", datetime.now())
+            )
+        except Exception as error:
             print(f"Logout activity logging failed: {error}")
 
     logout_user()
+    if request.is_json or "application/json" in request.headers.get("Accept", ""):
+        return jsonify({"success": True, "message": "Logged out successfully."})
 
-    flash(
-        "You have been logged out.",
-        "success"
-    )
-
-    return redirect(
-        url_for("main.login")
-    )
-
-
-# ============================================================
-# DASHBOARD
-# ============================================================
+    flash("You have been signed out.", "info")
+    return redirect(url_for("main.login"))
 
 @main_bp.route("/dashboard")
 @active_user_required
@@ -1029,8 +804,9 @@ def dashboard():
             "time": activity_time,
         })
 
-    return render_template(
-        "dashboard.html",
+    if request.is_json or "application/json" in request.headers.get("Accept", ""):
+        return dashboard_summary()
+    return _render_app_page("dashboard", fallback_template="dashboard.html",
         total_products=(cast(Any, total_products_row) or {}).get("total", 0),
         total_stock=(cast(Any, total_stock_row) or {}).get("total", 0),
         total_sales=(cast(Any, total_sales_row) or {}).get("total", 0),
@@ -1161,8 +937,9 @@ def inventory():
     current_role = get_current_user_role()
     is_admin = current_role == "admin"
 
-    return render_template(
-        "inventory.html",
+    if request.is_json or "application/json" in request.headers.get("Accept", ""):
+        return jsonify({"success": True, "products": products, "search": search, "is_admin": is_admin})
+    return _render_app_page("inventory", fallback_template="inventory.html",
         products=products,
         search=search,
         is_admin=is_admin
@@ -1185,40 +962,20 @@ def add_product():
 
     if request.method == "POST":
 
-        product_code = request.form.get(
-            "product_code",
-            ""
-        ).strip()
+        payload = request.get_json(silent=True) or request.form
+        product_code = payload.get("product_code", "").strip()
 
-        name = request.form.get(
-            "name",
-            ""
-        ).strip()
+        name = payload.get("name", "").strip()
 
-        category = request.form.get(
-            "category",
-            ""
-        ).strip()
+        category = payload.get("category", "").strip()
 
-        quantity = request.form.get(
-            "quantity",
-            "0"
-        )
+        quantity = payload.get("quantity", "0")
 
-        price = request.form.get(
-            "price",
-            "0"
-        )
+        price = payload.get("price", "0")
 
-        minimum_stock = request.form.get(
-            "minimum_stock",
-            "10"
-        )
+        minimum_stock = payload.get("minimum_stock", "10")
 
-        supplier = request.form.get(
-            "supplier",
-            ""
-        ).strip()
+        supplier = payload.get("supplier", "").strip()
 
         if (
             len(product_code) > 50
@@ -1398,14 +1155,10 @@ def add_product():
         )
 
         session["incraft_data_changed"] = "inventory"
-        flash(
-            "Product added successfully.",
-            "success"
-        )
-
-        return redirect(
-            url_for("main.inventory")
-        )
+        if request.is_json or "application/json" in request.headers.get("Accept", ""):
+            return jsonify({"success": True, "message": "Product added successfully!"})
+        flash("Product added successfully.", "success")
+        return redirect(url_for("main.inventory"))
 
     return render_template(
         "product_form.html",
@@ -1450,35 +1203,18 @@ def edit_product(product_id):
 
     if request.method == "POST":
 
-        name = request.form.get(
-            "name",
-            ""
-        ).strip()
+        payload = request.get_json(silent=True) or request.form
+        name = payload.get("name", "").strip()
 
-        category = request.form.get(
-            "category",
-            ""
-        ).strip()
+        category = payload.get("category", "").strip()
 
-        quantity = request.form.get(
-            "quantity",
-            "0"
-        )
+        quantity = payload.get("quantity", "0")
 
-        price = request.form.get(
-            "price",
-            "0"
-        )
+        price = payload.get("price", "0")
 
-        minimum_stock = request.form.get(
-            "minimum_stock",
-            "10"
-        )
+        minimum_stock = payload.get("minimum_stock", "10")
 
-        supplier = request.form.get(
-            "supplier",
-            ""
-        ).strip()
+        supplier = payload.get("supplier", "").strip()
 
         if (
             len(name) > 150
@@ -1615,6 +1351,8 @@ def edit_product(product_id):
         )
 
         session["incraft_data_changed"] = "inventory"
+        if request.is_json or "application/json" in request.headers.get("Accept", ""):
+            return jsonify({"success": True, "message": "Product updated successfully!"})
         flash(
             "Product updated successfully.",
             "success"
@@ -2462,8 +2200,9 @@ def sales():
 
     summary = cast(Any, sales_summary)
 
-    return render_template(
-        "sales.html",
+    if request.is_json or "application/json" in request.headers.get("Accept", ""):
+        return jsonify({"success": True, "sales": sales_records or [], "products": products or [], "summary": dict(sales_summary or {}), "is_admin": is_admin})
+    return _render_app_page("sales", fallback_template="sales.html",
         sales=sales_records or [],
         products=products or [],
         todays_sales=summary.get("todays_sales", 0),
@@ -3957,8 +3696,13 @@ def activity():
             (current_user_id,)
         )
 
-    return render_template(
-        "activity.html",
+    if request.is_json or "application/json" in request.headers.get("Accept", ""):
+        serialized = [dict(a) for a in (activities or [])]
+        for x in serialized:
+            if x.get("created_at"):
+                x["created_at"] = str(x["created_at"])
+        return jsonify({"success": True, "activities": serialized})
+    return _render_app_page("activity", fallback_template="activity.html",
         activities=activities
     )
 
@@ -4226,10 +3970,11 @@ def settings():
             url_for("main.settings")
         )
 
-    return render_template(
-        "settings.html",
-        user=user
-    )
+    if request.is_json or "application/json" in request.headers.get("Accept", ""):
+        u_copy = dict(user or {})
+        u_copy.pop("password", None)
+        return jsonify({"success": True, "user": u_copy})
+    return _render_app_page("settings", fallback_template="settings.html", user=user)
 
 
 

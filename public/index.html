@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>InCraft — Intelligent Inventory</title>
+  <meta name="csrf-token" content="">
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/styles.css?v=10">
+</head>
+<body>
+<div class="shell">
+  <aside id="sidebar">
+    <div class="brand">
+      <b>I</b>
+      <div>
+        <strong>InCraft</strong>
+        <small>INTELLIGENT INVENTORY</small>
+      </div>
+    </div>
+    <small class="label">WORKSPACE</small>
+    <nav>
+      <button class="active" data-page="dashboard">⌂ <span>Dashboard</span></button>
+      <button data-page="inventory">▦ <span>Inventory</span></button>
+      <button data-page="sales">↗ <span>Sales</span></button>
+      <button data-page="analytics">◒ <span>Analytics</span></button>
+      <button data-page="activity">◷ <span>Activity history</span></button>
+    </nav>
+    <small class="label account">ACCOUNT</small>
+    <nav>
+      <button data-page="settings">⚙ <span>Settings</span></button>
+    </nav>
+    <div class="bottom">
+      <div class="smart" id="smartInsightBtn" style="cursor:pointer;">
+        ✦ 
+        <div>
+          <b>Smart insights</b>
+          <small>Make your next move count.</small>
+        </div>
+        →
+      </div>
+      <div class="user">
+        <b id="userAvatar">AR</b>
+        <div>
+          <strong id="userName">User</strong>
+          <small id="userRole">Administrator</small>
+        </div>
+        <button id="logout" style="border:0;background:none;color:#999;cursor:pointer;font-size:16px;" title="Log out">↪</button>
+      </div>
+    </div>
+  </aside>
+  <main>
+    <header>
+      <button class="hamb" id="hamb" aria-label="Toggle menu">☰</button>
+      <div class="crumb">Workspace <i>/</i> <b id="crumb">Dashboard</b></div>
+      <div class="tools">
+        <label>
+          ⌕ <input id="search" placeholder="Search anything..."><kbd>⌘ K</kbd>
+        </label>
+        <button id="theme" title="Toggle dark mode" aria-label="Toggle dark mode">☼</button>
+        <button id="bell" title="Notifications" aria-label="Notifications">🔔<sup></sup></button>
+        <div class="profile-wrap">
+          <button class="profile" id="profileToggle" aria-expanded="false">
+            <span id="profileName">User</span> <span>⌄</span>
+          </button>
+          <div class="profile-menu" id="profileMenu">
+            <div class="profile-menu-head">
+              <strong id="menuUserName">User</strong>
+              <small id="menuUserEmail">user@example.com</small>
+            </div>
+            <button id="profileSettings">⚙ <span>Settings</span></button>
+            <button id="profileLogout">↪ <span>Log out</span></button>
+          </div>
+        </div>
+      </div>
+    </header>
+    <section id="content"></section>
+  </main>
+</div>
+<div id="toast" class="toast"></div>
+<div id="backdrop"><div id="modal"></div></div>
+
+<script id="incraft-initial" type="application/json">{}</script>
+<script src="/static/js/app.js?v=10"></script>
+</body>
+</html>
