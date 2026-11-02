@@ -1754,20 +1754,49 @@ def import_inventory():
         minimum_stock (defaults to 10), supplier (defaults to blank)
     """
 
+    wants_json = (
+        request.is_json
+        or "application/json" in request.headers.get("Accept", "")
+    )
+
+    def _import_result(
+        message,
+        category="warning",
+        success=False,
+        imported_count=0,
+        skipped_existing=0,
+        invalid_rows=0
+    ):
+        if wants_json:
+            return jsonify({
+                "success": success,
+                "message": message,
+                "imported_count": imported_count,
+                "skipped_existing": skipped_existing,
+                "invalid_rows": invalid_rows
+            }), (200 if success else 400)
+
+        flash(message, category)
+        return _import_result(
+        message,
+        "success",
+        True,
+        imported_count,
+        skipped_existing,
+        invalid_rows
+    )
+
     uploaded_file = request.files.get("file")
 
     if uploaded_file is None or not uploaded_file.filename:
-        flash("Please select a file to import.", "danger")
-        return redirect(url_for("main.inventory"))
+        return _import_result("Please select a file to import.", "danger")
 
     if not allowed_file(uploaded_file.filename):
-        flash("Unsupported file format.", "danger")
-        return redirect(url_for("main.inventory"))
+        return _import_result("Unsupported file format.", "danger")
 
     extension = uploaded_file.filename.rsplit(".", 1)[-1].lower()
     if extension not in {"csv", "xlsx"}:
-        flash("Please upload a CSV or Excel (.xlsx) inventory file.", "warning")
-        return redirect(url_for("main.inventory"))
+        return _import_result("Please upload a CSV or Excel (.xlsx) inventory file.", "warning")
 
     max_import_bytes = 5 * 1024 * 1024
     workbook = None
@@ -1780,20 +1809,17 @@ def import_inventory():
         raw_content = uploaded_file.stream.read(max_import_bytes + 1)
 
         if len(raw_content) > max_import_bytes:
-            flash("Import file is too large. Maximum size is 5 MB.", "danger")
-            return redirect(url_for("main.inventory"))
+            return _import_result("Import file is too large. Maximum size is 5 MB.", "danger")
 
         if not raw_content:
-            flash("The selected file is empty.", "warning")
-            return redirect(url_for("main.inventory"))
+            return _import_result("The selected file is empty.", "warning")
 
         if extension == "csv":
             content = raw_content.decode("utf-8-sig")
             reader = csv.DictReader(io.StringIO(content))
 
             if not reader.fieldnames:
-                flash("The CSV file must contain a header row.", "warning")
-                return redirect(url_for("main.inventory"))
+                return _import_result("The CSV file must contain a header row.", "warning")
 
             headers = [
                 str(header or "").strip().lower()
@@ -1818,15 +1844,13 @@ def import_inventory():
             worksheet = workbook.active
 
             if worksheet is None:
-                flash("The Excel file has no active worksheet.", "warning")
-                return redirect(url_for("main.inventory"))
+                return _import_result("The Excel file has no active worksheet.", "warning")
 
             sheet_rows = worksheet.iter_rows(values_only=True)
             header_row = next(sheet_rows, None)
 
             if not header_row:
-                flash("The Excel file is empty or has no header row.", "warning")
-                return redirect(url_for("main.inventory"))
+                return _import_result("The Excel file is empty or has no header row.", "warning")
 
             headers = [
                 str(value or "").strip().lower()
@@ -1841,13 +1865,11 @@ def import_inventory():
         missing_headers = sorted(required_headers - set(headers))
 
         if missing_headers:
-            flash(
+            return _import_result(
                 "Import file is missing required column(s): "
-                + ", ".join(missing_headers)
-                + ".",
+                + ", ".join(missing_headers) + ".",
                 "danger"
             )
-            return redirect(url_for("main.inventory"))
 
         rows = []
         seen_product_codes = set()
@@ -1945,12 +1967,11 @@ def import_inventory():
             ))
 
         if not rows:
-            flash(
+            return _import_result(
                 "No valid inventory records were found. Check the file headers "
                 "and make sure quantities are whole numbers and prices are greater than zero.",
                 "warning"
             )
-            return redirect(url_for("main.inventory"))
 
         # The database helper executes the batch as one operation.
         # Existing product-code conflicts fail the batch rather than partially importing it.
@@ -1975,12 +1996,11 @@ def import_inventory():
         )
 
         if imported_count is None:
-            flash(
+            return _import_result(
                 "Inventory import failed. No records were imported. "
                 "Check whether any product codes already exist.",
                 "danger"
             )
-            return redirect(url_for("main.inventory"))
 
         try:
             execute_query(
@@ -2027,14 +2047,24 @@ def import_inventory():
         if imported_count > 0:
             session["incraft_data_changed"] = "inventory"
 
-        flash(message, "success")
+        return _import_result(
+            message,
+            "success",
+            True,
+            imported_count,
+            skipped_existing,
+            invalid_rows
+        )
 
     except UnicodeDecodeError:
-        flash("Import failed: CSV file must use UTF-8 encoding.", "danger")
+        return _import_result(
+            "Import failed: CSV file must use UTF-8 encoding.",
+            "danger"
+        )
     except Exception as error:
         # Keep internal database/file details out of the user-facing message.
         print(f"Inventory import failed: {error}")
-        flash(
+        return _import_result(
             "Inventory import failed. Check the file format, required columns, "
             "product codes, and database connection, then try again.",
             "danger"
