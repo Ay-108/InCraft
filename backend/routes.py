@@ -3628,12 +3628,12 @@ def _load_analytics_data(months, period_start):
     monthly_rows = fetch_all(
         """
         SELECT
-            DATE_FORMAT(sale_date, '%%Y-%%m') AS month,
+            CONCAT(YEAR(sale_date), '-', LPAD(MONTH(sale_date), 2, '0')) AS month,
             COUNT(*) AS transactions,
             COALESCE(SUM(total_amount), 0) AS revenue
         FROM sales
         WHERE sale_date >= %s
-        GROUP BY DATE_FORMAT(sale_date, '%%Y-%%m')
+        GROUP BY YEAR(sale_date), MONTH(sale_date)
         ORDER BY month ASC
         """,
         (period_start,)
