@@ -384,7 +384,7 @@
             <button class="${initialPage === 'dashboard' ? 'active' : ''}" data-page="dashboard">⌂ <span>Dashboard</span></button>
             <button class="${initialPage === 'inventory' ? 'active' : ''}" data-page="inventory">▦ <span>Inventory</span></button>
             <button class="${initialPage === 'sales' ? 'active' : ''}" data-page="sales">↗ <span>Sales</span></button>
-            <button class="${initialPage === 'analytics' ? 'active' : ''}" data-page="analytics">◒ <span>Analytics</span></button>
+${state.user?.role === 'admin' ? `<button class="${initialPage === 'analytics' ? 'active' : ''}" data-page="analytics">◒ <span>Analytics</span></button>` : ''}
             <button class="${initialPage === 'activity' ? 'active' : ''}" data-page="activity">◷ <span>Activity history</span></button>
           </nav>
           <small class="label account">ACCOUNT</small>
@@ -555,6 +555,11 @@
   }
 
   function navigateTo(pageName, options = {}) {
+    if (pageName === 'analytics' && state.user?.role !== 'admin') {
+      pageName = 'sales';
+      options = { ...options, query: '', skipHistory: false, replace: true };
+      toast('Analytics access is restricted to administrators.', 'error');
+    }
     state.currentPage = pageName;
     $$('[data-page]').forEach(btn => btn.classList.toggle('active', btn.dataset.page === pageName));
     const crumb = $('#crumb');
@@ -604,7 +609,7 @@
       <div class="dash-quick-links" aria-label="Dashboard shortcuts">
         <button class="dash-quick-link" data-dash-page="inventory">View inventory <span>→</span></button>
         <button class="dash-quick-link" data-dash-page="sales">View sales <span>→</span></button>
-        <button class="dash-quick-link" data-dash-page="analytics">Analytics & reports <span>→</span></button>
+${isAdmin ? '<button class="dash-quick-link" data-dash-page="analytics">Analytics & reports <span>→</span></button>' : '<button class="dash-quick-link" data-dash-page="sales">Sales analysis <span>→</span></button>'}
         <button class="dash-quick-link" id="dashReportBtn" type="button">Generate report <span>↓</span></button>
         <a class="dash-quick-link" href="/inventory/export" target="_blank" rel="noopener">Export inventory <span>↓</span></a>
       </div>
@@ -635,10 +640,10 @@
         <article class="panel dash-list-panel"><div class="panel-head"><div><div class="panel-title">Recent sales</div><div class="panel-sub">Latest completed transactions</div></div><button class="btn btn-sm" data-dash-page="sales">View all →</button></div><div id="dashRecentSales"><div class="dash-loading">Loading transactions…</div></div></article>
       </section>
       <section class="dash-secondary-grid">
-        <article class="panel dash-list-panel"><div class="panel-head"><div><div class="panel-title">Top-selling products</div><div class="panel-sub">Units sold over the last 30 days</div></div><button class="btn btn-sm" data-dash-page="analytics">Analytics →</button></div><div id="dashTopProducts"><div class="dash-loading">Loading product performance…</div></div></article>
+        <article class="panel dash-list-panel"><div class="panel-head"><div><div class="panel-title">Top-selling products</div><div class="panel-sub">Units sold over the last 30 days</div></div>${isAdmin ? '<button class="btn btn-sm" data-dash-page="analytics">Analytics →</button>' : '<button class="btn btn-sm" data-dash-page="sales">Sales →</button>'}</div><div id="dashTopProducts"><div class="dash-loading">Loading product performance…</div></div></article>
         <article class="panel dash-list-panel"><div class="panel-head"><div><div class="panel-title">Recent activity</div><div class="panel-sub">Latest recorded workspace events</div></div><button class="btn btn-sm" data-dash-page="activity">View history →</button></div><div id="dashRecentActivity"><div class="dash-loading">Loading activity…</div></div></article>
       </section>
-      <section class="panel dash-insights-panel"><div class="panel-head"><div><div class="panel-title">Smart Decision Support</div><div class="panel-sub">Recommendations based on current inventory and recorded sales</div></div><button class="btn btn-sm" data-dash-page="analytics">View analytics →</button></div><div class="insights" id="insightsContainer"><div class="dash-loading">Checking business signals…</div></div></section>
+      <section class="panel dash-insights-panel"><div class="panel-head"><div><div class="panel-title">Smart Decision Support</div><div class="panel-sub">Recommendations based on current inventory and recorded sales</div></div>${isAdmin ? '<button class="btn btn-sm" data-dash-page="analytics">View analytics →</button>' : '<button class="btn btn-sm" data-dash-page="sales">View sales →</button>'}</div><div class="insights" id="insightsContainer"><div class="dash-loading">Checking business signals…</div></div></section>
       <div class="dash-footer"><span>Last data refresh: <strong id="dashLastRefresh">Not refreshed yet</strong></span><span>Dashboard values are sourced from your InCraft database.</span></div>
     `;
 
@@ -658,7 +663,7 @@
   function navigateFromKpi(kpi) {
     const routes = {
       products: ['inventory', ''], stock: ['inventory', ''], 'inventory-value': ['inventory', ''],
-      revenue: ['analytics', ''], orders: ['sales', ''], aov: ['sales', ''], today: ['sales', ''],
+      revenue: [state.user?.role === 'admin' ? 'analytics' : 'sales', ''], orders: ['sales', ''], aov: ['sales', ''], today: ['sales', ''],
       low: ['inventory', '?filter=low-stock'], out: ['inventory', '?filter=out-of-stock'],
       reorder: ['inventory', '?filter=low-stock']
     };
@@ -738,7 +743,7 @@
     document.body.appendChild(link);
     link.click();
     link.remove();
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
     toast('Business report generated.', 'success');
   }
 
@@ -926,7 +931,7 @@
     container.querySelectorAll('[data-insight-destination]').forEach(button => button.addEventListener('click', () => {
       if (button.dataset.insightDestination === 'product' && Number(button.dataset.productId) > 0) openProductDetails(button.dataset.productId);
       else if (button.dataset.insightDestination === 'inventory') navigateTo('inventory', { query: '?filter=low-stock' });
-      else navigateTo('analytics');
+      else navigateTo(state.user?.role === 'admin' ? 'analytics' : 'sales');
     }));
   }
 
@@ -1956,14 +1961,17 @@
       return;
     }
 
-    // Determine target page from URL
+    // Determine target page from URL, respecting the existing Analytics role restriction.
     let targetPage = 'dashboard';
     if (pathname.includes('inventory')) targetPage = 'inventory';
     else if (pathname.includes('sales')) targetPage = 'sales';
-    else if (pathname.includes('analytics')) targetPage = 'analytics';
+    else if (pathname.includes('analytics')) targetPage = state.user?.role === 'admin' ? 'analytics' : 'sales';
     else if (pathname.includes('activity')) targetPage = 'activity';
     else if (pathname.includes('settings')) targetPage = 'settings';
 
+    if (pathname.includes('analytics') && targetPage === 'sales') {
+      window.history.replaceState({ page: 'sales' }, '', '/sales');
+    }
     showAppShell(targetPage);
   }
 
