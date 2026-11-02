@@ -106,7 +106,7 @@ Analytics | InCraft
 
             <div class="kpi-meta">
                 <span class="kpi-meta-icon positive">↑</span>
-                <span>Overall sales revenue</span>
+                <span>Revenue in the selected period</span>
             </div>
 
         </article>
@@ -355,6 +355,7 @@ Analytics | InCraft
 
             <div class="chart-wrapper revenue-chart-wrapper">
                 <canvas id="revenueChart"></canvas>
+                <p id="revenueChartNote" class="chart-data-note" role="status"></p>
             </div>
 
         </article>
@@ -390,6 +391,7 @@ Analytics | InCraft
 
             <div class="chart-wrapper category-chart-wrapper">
                 <canvas id="categorySalesChart"></canvas>
+                <p id="categoryChartNote" class="chart-data-note" role="status"></p>
             </div>
 
         </article>
@@ -429,6 +431,7 @@ Analytics | InCraft
 
             <div class="chart-wrapper">
                 <canvas id="topProductsChart"></canvas>
+                <p id="topProductsChartNote" class="chart-data-note" role="status"></p>
             </div>
 
         </article>
@@ -463,11 +466,12 @@ Analytics | InCraft
                 <div class="inventory-chart">
 
                     <canvas id="inventoryHealthChart"></canvas>
+                    <p id="inventoryHealthChartNote" class="chart-data-note" role="status"></p>
 
                     <div class="inventory-chart-center">
 
                         <strong>
-                            {{ low_stock_products|default([])|length }}
+                            {{ stock_distribution.stock_low_count|default(0, true) }}
                         </strong>
 
                         <span>
@@ -994,7 +998,7 @@ Analytics | InCraft
 
 {% block extra_js %}
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
 
 <script src="{{ url_for('static', filename='js/analytics.js') }}"></script>
 
