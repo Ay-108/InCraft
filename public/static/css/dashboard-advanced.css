@@ -9,7 +9,7 @@
 .dash-quick-link {
   display:inline-flex; align-items:center; gap:16px; min-height:34px; padding:0 12px;
   border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--ink);
-  font:600 11px inherit; text-decoration:none; cursor:pointer; transition:border-color .2s,color .2s,transform .2s;
+  font-size:11px;font-weight:600;font-family:inherit; text-decoration:none; cursor:pointer; transition:border-color .2s,color .2s,transform .2s;
 }
 .dash-quick-link span { color:var(--o); font-size:14px; }
 .dash-quick-link:hover { color:var(--o); border-color:var(--o); transform:translateY(-1px); }
