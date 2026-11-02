@@ -1805,22 +1805,54 @@
     });
 
     $('#saveSettingsBtn').onclick = async () => {
+      const btn = $('#saveSettingsBtn');
       const newName = $('#settingName')?.value.trim();
       const curr = $('#currencySelect')?.value || '$';
 
+      // Validate
+      if (!newName) {
+        toast('Full name cannot be empty.', 'error');
+        $('#settingName')?.focus();
+        return;
+      }
+
+      // Save currency preference locally
       state.currency = curr;
       localStorage.setItem('incraft_currency', curr);
 
-      if (newName) {
-        state.user.name = newName;
-        state.user.username = newName;
-        await api('/settings', {
-          method: 'POST',
-          body: { username: newName }
-        });
-      }
+      // Disable button & show loading state
+      btn.disabled = true;
+      btn.textContent = 'Saving\u2026';
 
-      toast('Settings saved successfully!', 'success');
+      try {
+        const res = await api('/settings', {
+          method: 'POST',
+          body: {
+            username: newName,
+            email: state.user?.email || ''
+          }
+        });
+
+        if (res && res.ok) {
+          // Update in-memory state
+          state.user.name = newName;
+          state.user.username = newName;
+          // Refresh header avatar & display name
+          const avatarEl = $('#headerAvatar');
+          const nameEl = $('#profileName');
+          if (avatarEl) avatarEl.textContent = newName.slice(0, 2).toUpperCase();
+          if (nameEl) nameEl.textContent = newName;
+          toast('Settings saved successfully!', 'success');
+        } else {
+          const msg = res?.data?.message || 'Could not save settings. Please try again.';
+          toast(msg, 'error');
+        }
+      } catch (e) {
+        toast('An error occurred. Please try again.', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Save changes';
+      }
     };
   }
 

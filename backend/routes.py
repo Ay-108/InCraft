@@ -3747,38 +3747,37 @@ def settings():
 
     if request.method == "POST":
 
-        username = request.form.get(
-            "username",
-            ""
+        # Support both JSON body (SPA) and HTML form
+        _payload = request.get_json(silent=True) or {}
+
+        username = (
+            _payload.get("username") or request.form.get("username", "")
         ).strip()
 
-        email = request.form.get(
-            "email",
-            ""
+        # Fall back to the user's existing email when not provided
+        email = (
+            _payload.get("email") or request.form.get("email", "")
+            or (user or {}).get("email", "")
         ).strip().lower()
 
-        current_password = request.form.get(
-            "current_password",
-            ""
+        current_password = (
+            _payload.get("current_password") or request.form.get("current_password", "")
         )
 
-        new_password = request.form.get(
-            "new_password",
-            ""
+        new_password = (
+            _payload.get("new_password") or request.form.get("new_password", "")
         )
 
-        confirm_password = request.form.get(
-            "confirm_password",
-            ""
+        confirm_password = (
+            _payload.get("confirm_password") or request.form.get("confirm_password", "")
         )
 
         if not username or not email:
 
-            flash(
-                "Username and email are required.",
-                "danger"
-            )
-
+            msg = "Username is required."
+            if request.is_json or "application/json" in request.headers.get("Accept", ""):
+                return jsonify({"success": False, "message": msg}), 400
+            flash(msg, "danger")
             return render_template(
                 "settings.html",
                 user=user
@@ -3966,6 +3965,16 @@ def settings():
             "success"
         )
 
+        # Return JSON for SPA; redirect for traditional form posts
+        if request.is_json or "application/json" in request.headers.get("Accept", ""):
+            # Re-fetch updated user
+            updated_user = fetch_one(
+                "SELECT user_id, username, email, role FROM users WHERE user_id = %s LIMIT 1",
+                (user_id,)
+            )
+            u_copy = dict(updated_user or {})
+            u_copy.pop("password", None)
+            return jsonify({"success": True, "message": "Settings updated successfully.", "user": u_copy})
         return redirect(
             url_for("main.settings")
         )
