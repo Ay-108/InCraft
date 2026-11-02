@@ -152,8 +152,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
             } else if (stock === "low-stock") {
 
+                // Dashboard's Low Stock total includes zero-stock items
+                // because both require replenishment against minimum_stock.
                 matchesStock =
-                    quantity > 0 &&
                     quantity <= minimumStock;
 
             } else if (stock === "out-of-stock") {
