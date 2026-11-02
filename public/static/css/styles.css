@@ -350,7 +350,8 @@ header {
   min-width: 126px;
   height: 40px;
   padding: 0 15px;
-  color: var(--od);
+  color: var(--od) !important;
+  text-decoration: none !important;
   background: linear-gradient(180deg, #fffaf6 0%, #fff3e9 100%);
   border: 1px solid #f3c9aa;
   border-radius: 8px;
