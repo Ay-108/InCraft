@@ -171,3 +171,70 @@ These are positive controls, not a complete security certification. SQL query au
 - Repository: https://github.com/Ay-108/InCraft
 - Baseline commit: https://github.com/Ay-108/InCraft/commit/7d746cede88fd84a633abcbc2601eca0c61eab0c
 - Audit branch: https://github.com/Ay-108/InCraft/tree/feature/incraft-complete-improvement-audit
+
+
+---
+
+## 11. Phase 1 — Dashboard integration (partial implementation)
+
+The active SPA implementation in `public/static/js/app.js` was extended rather than introducing a second dashboard.
+
+### Dashboard UI and data
+- Replaced the four-card dashboard summary with role-aware KPI cards. Admins see active product count, stock units, inventory value, scoped revenue, order count, low-stock products, out-of-stock products and current reorder recommendations. Non-admin users do not receive inventory valuation or ML reorder metrics.
+- Added a refresh timestamp, 7/30/90-day sales selector, sales total, inventory health distribution, low/out-of-stock list, recent sales, recent activity and recently added products.
+- Added navigation links from the dashboard panels to their existing modules.
+- Added administrator quick actions for product creation, inventory import/export and analytics.
+- Added administrator-only Smart Decision Support and ML inventory intelligence panels.
+- Added loading, empty, unavailable and insufficient-history messages rather than fabricated metrics or prediction fallbacks.
+
+### Backend/API integration
+- Expanded `/api/dashboard/summary` to return live, database-backed KPIs and recent operational records. Sales and activity are filtered to the current user for non-admin roles; inventory valuation remains admin-only.
+- Preserved the existing sales trend endpoint and its validated 7/30/90-day query contract.
+- Corrected the SPA consumer for `/api/dashboard/insights`: it now reads the returned `insights` array rather than looking for unrelated `stock_alerts`, `reorder_recommendations`, and `fast_moving_products` keys.
+- Corrected the ML panel to consume the current API payloads: `forecasts`, `risks`, and `recommendations`, including `forecast_units_7d`, `forecast_units_30d`, `risk_level`, `estimated_days_of_stock`, and `recommended_order_quantity`.
+- Added assessment-generation timestamps to the ML responses. UI labels clarify that forecasts and reorder outputs are estimates and that the confidence category is heuristic.
+- Dashboard metrics/panels refresh after successful sale, product add/edit/archive and inventory import operations performed while the dashboard is active.
+
+### Import workflow compatibility
+- The existing inventory importer already accepted CSV and XLSX on the server, but the active SPA dialog exposed CSV only. The dialog now accepts both file types.
+- `/inventory/import` preserves flash/redirect behavior for standard HTML form submissions while returning structured JSON success/error information when called with `Accept: application/json`.
+- The importer still does not implement the full preview, column-mapping, duplicate-resolution and confirmation workflow described in the master roadmap. The current importer validates required headers and rows and leaves existing product codes unchanged; do not treat the full import roadmap as complete.
+
+### UI consistency and authorization
+- Updated the active SPA stylesheet's global tokens to the requested light neutral/orange palette and added responsive dashboard panel layouts.
+- The active SPA now hides Analytics navigation and Smart Insights navigation from non-admin users and redirects a non-admin analytics navigation attempt back to Dashboard. Server-side admin route/API authorization remains the actual security boundary.
+- Dashboard API access is protected by the existing active-user decorator; ML and Analytics remain admin-only at the backend.
+
+## 12. Confirmed defects addressed on this branch
+
+1. **Sale idempotency schema mismatch:** the sale route required an idempotency key but the clean-install schema did not define it. Added a nullable UUID-sized column and unique index to the schema plus an idempotent upgrade migration for existing databases.
+2. **Health endpoint information exposure:** the public health route previously included raw database connector details in its response. It now returns a generic connectivity message; internal exceptions remain in server logs.
+3. **Dashboard insight payload mismatch:** the active SPA expected keys that the backend did not return. The UI now reads the actual `insights` array.
+4. **ML response payload mismatch and placeholder predictions:** the UI expected different keys and substituted fabricated default numbers when fields were absent. It now uses the backend's actual forecast/risk/reorder fields and reports unavailable/insufficient data explicitly.
+5. **Inventory import UI mismatch:** the active dialog now accepts XLSX as well as CSV, and the importer provides a JSON response to the fetch-based dashboard workflow while preserving the normal HTML form behavior.
+6. **Non-admin analytics navigation:** the SPA no longer offers an Analytics link to non-admin roles; backend authorization remains enforced.
+
+## 13. Files changed in this implementation block
+
+- `backend/routes.py` — dashboard summary payload, ML response timestamps, inventory import JSON/HTML response adapter and health response hardening.
+- `public/static/js/app.js` — dashboard layout/data consumers, real ML and insight payload mapping, XLSX selection, write-through refresh, admin navigation guard and HTML escaping helper.
+- `public/static/css/styles.css` — light/orange design tokens and responsive dashboard layout.
+- `database/schema.sql` — sales idempotency column and unique constraint.
+- `database/migrations/2026_11_03_add_sales_idempotency_key.sql` — idempotent upgrade for existing MySQL databases.
+- `test_health_check_security.py` — health endpoint information-disclosure regression tests.
+- `run_security_tests.py` — added the new security test module to the existing test runner.
+- `docs/PHASE_0_REPOSITORY_AUDIT.md` — inspection findings and progress record.
+
+## 14. Verification status and limitations
+
+**Static checks completed:**
+- Parsed the active `public/static/js/app.js` source with JavaScript's function-constructor parser; syntax check passed.
+- Verified the dashboard API includes recent-sales, recent-activity, low-stock and recent-product collections.
+- Verified the dashboard summary query scopes non-admin sales/activity to the current user and returns no inventory valuation for non-admin users.
+- Verified the import response helper returns an HTML redirect for ordinary form requests and JSON for the fetch-based SPA request; confirmed no recursive call remains.
+- Verified XLSX is accepted by the active dialog and that the client reads actual ML endpoint response keys.
+- Verified the schema contains the sales idempotency column and unique index, and that the health response no longer includes the raw `db_error` field.
+
+**Not executed:** Python unit/security/transaction tests, MySQL migration execution, sale concurrency tests, authenticated browser testing, live Vercel/Render deployment tests, and end-to-end multi-role integration tests. This GitHub-only work session did not provide a connected test database, runtime credentials, or browser session. The newly added health test is committed but has not been executed.
+
+**Current scope:** Phase 0 audit is documented; Phase 1 dashboard work is partially implemented; the import endpoint/client compatibility and two confirmed backend defects were also corrected. Phases 2–12 of the master plan are not complete. Sales cart/returns, stock movement ledger, full import preview/mapping, full analytics/export parity, activity pagination, persisted settings/notifications/session tracking, and comprehensive regression testing remain outstanding. No deployment or merge to `main` was performed.
