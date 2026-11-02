@@ -384,7 +384,7 @@
             <button class="${initialPage === 'dashboard' ? 'active' : ''}" data-page="dashboard">⌂ <span>Dashboard</span></button>
             <button class="${initialPage === 'inventory' ? 'active' : ''}" data-page="inventory">▦ <span>Inventory</span></button>
             <button class="${initialPage === 'sales' ? 'active' : ''}" data-page="sales">↗ <span>Sales</span></button>
-            <button class="${initialPage === 'analytics' ? 'active' : ''}" data-page="analytics">◒ <span>Analytics</span></button>
+${state.user?.role === 'admin' ? `<button class="${initialPage === 'analytics' ? 'active' : ''}" data-page="analytics">◒ <span>Analytics</span></button>` : ''}
             <button class="${initialPage === 'activity' ? 'active' : ''}" data-page="activity">◷ <span>Activity history</span></button>
           </nav>
           <small class="label account">ACCOUNT</small>
@@ -555,6 +555,11 @@
   }
 
   function navigateTo(pageName, options = {}) {
+    if (pageName === 'analytics' && state.user?.role !== 'admin') {
+      pageName = 'sales';
+      options = { ...options, query: '', skipHistory: false, replace: true };
+      toast('Analytics access is restricted to administrators.', 'error');
+    }
     state.currentPage = pageName;
     $$('[data-page]').forEach(btn => btn.classList.toggle('active', btn.dataset.page === pageName));
     const crumb = $('#crumb');
@@ -564,7 +569,8 @@
     $('aside')?.classList.remove('open');
 
     const targetPath = pageName === 'dashboard' ? '/dashboard' : `/${pageName}`;
-    const targetUrl = targetPath + (options.query !== undefined ? options.query : '');
+    const defaultQuery = window.location.pathname === targetPath ? window.location.search : '';
+    const targetUrl = targetPath + (options.query !== undefined ? options.query : defaultQuery);
     if (!options.skipHistory && window.location.pathname + window.location.search !== targetUrl) {
       if (options.replace) window.history.replaceState({ page: pageName }, '', targetUrl);
       else window.history.pushState({ page: pageName }, '', targetUrl);
@@ -603,7 +609,8 @@
       <div class="dash-quick-links" aria-label="Dashboard shortcuts">
         <button class="dash-quick-link" data-dash-page="inventory">View inventory <span>→</span></button>
         <button class="dash-quick-link" data-dash-page="sales">View sales <span>→</span></button>
-        <button class="dash-quick-link" data-dash-page="analytics">Analytics & reports <span>→</span></button>
+${isAdmin ? '<button class="dash-quick-link" data-dash-page="analytics">Analytics & reports <span>→</span></button>' : '<button class="dash-quick-link" data-dash-page="sales">Sales analysis <span>→</span></button>'}
+        <button class="dash-quick-link" id="dashReportBtn" type="button">Generate report <span>↓</span></button>
         <a class="dash-quick-link" href="/inventory/export" target="_blank" rel="noopener">Export inventory <span>↓</span></a>
       </div>
       <section class="dash-kpi-grid" id="dashStats" aria-label="Business key performance indicators">
@@ -633,10 +640,10 @@
         <article class="panel dash-list-panel"><div class="panel-head"><div><div class="panel-title">Recent sales</div><div class="panel-sub">Latest completed transactions</div></div><button class="btn btn-sm" data-dash-page="sales">View all →</button></div><div id="dashRecentSales"><div class="dash-loading">Loading transactions…</div></div></article>
       </section>
       <section class="dash-secondary-grid">
-        <article class="panel dash-list-panel"><div class="panel-head"><div><div class="panel-title">Top-selling products</div><div class="panel-sub">Units sold over the last 30 days</div></div><button class="btn btn-sm" data-dash-page="analytics">Analytics →</button></div><div id="dashTopProducts"><div class="dash-loading">Loading product performance…</div></div></article>
+        <article class="panel dash-list-panel"><div class="panel-head"><div><div class="panel-title">Top-selling products</div><div class="panel-sub">Units sold over the last 30 days</div></div>${isAdmin ? '<button class="btn btn-sm" data-dash-page="analytics">Analytics →</button>' : '<button class="btn btn-sm" data-dash-page="sales">Sales →</button>'}</div><div id="dashTopProducts"><div class="dash-loading">Loading product performance…</div></div></article>
         <article class="panel dash-list-panel"><div class="panel-head"><div><div class="panel-title">Recent activity</div><div class="panel-sub">Latest recorded workspace events</div></div><button class="btn btn-sm" data-dash-page="activity">View history →</button></div><div id="dashRecentActivity"><div class="dash-loading">Loading activity…</div></div></article>
       </section>
-      <section class="panel dash-insights-panel"><div class="panel-head"><div><div class="panel-title">Smart Decision Support</div><div class="panel-sub">Recommendations based on current inventory and recorded sales</div></div><button class="btn btn-sm" data-dash-page="analytics">View analytics →</button></div><div class="insights" id="insightsContainer"><div class="dash-loading">Checking business signals…</div></div></section>
+      <section class="panel dash-insights-panel"><div class="panel-head"><div><div class="panel-title">Smart Decision Support</div><div class="panel-sub">Recommendations based on current inventory and recorded sales</div></div>${isAdmin ? '<button class="btn btn-sm" data-dash-page="analytics">View analytics →</button>' : '<button class="btn btn-sm" data-dash-page="sales">View sales →</button>'}</div><div class="insights" id="insightsContainer"><div class="dash-loading">Checking business signals…</div></div></section>
       <div class="dash-footer"><span>Last data refresh: <strong id="dashLastRefresh">Not refreshed yet</strong></span><span>Dashboard values are sourced from your InCraft database.</span></div>
     `;
 
@@ -644,6 +651,7 @@
     $('#dashAddProductBtn')?.addEventListener('click', () => openAddProductModal());
     $('#dashImportBtn')?.addEventListener('click', () => openImportModal());
     $('#dashPrintBtn').onclick = () => window.print();
+    $('#dashReportBtn').onclick = () => downloadDashboardReport();
     $('#dashRefreshBtn').onclick = () => refreshDashboardData(true);
     $$('[data-dash-page]').forEach(button => button.addEventListener('click', () => navigateTo(button.dataset.dashPage)));
     $$('[data-kpi]').forEach(button => button.addEventListener('click', () => navigateFromKpi(button.dataset.kpi)));
@@ -655,7 +663,7 @@
   function navigateFromKpi(kpi) {
     const routes = {
       products: ['inventory', ''], stock: ['inventory', ''], 'inventory-value': ['inventory', ''],
-      revenue: ['analytics', ''], orders: ['sales', ''], aov: ['sales', ''], today: ['sales', ''],
+      revenue: [state.user?.role === 'admin' ? 'analytics' : 'sales', ''], orders: ['sales', ''], aov: ['sales', ''], today: ['sales', ''],
       low: ['inventory', '?filter=low-stock'], out: ['inventory', '?filter=out-of-stock'],
       reorder: ['inventory', '?filter=low-stock']
     };
@@ -674,6 +682,69 @@
     const label = $('#dashLastRefresh');
     if (label) label.textContent = state.dashboardLastRefresh.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     if (showMessage) toast('Dashboard data refreshed.', 'success');
+  }
+
+  function csvCell(value) {
+    return `"${String(value ?? '').replace(/"/g, '""')}"`;
+  }
+
+  async function downloadDashboardReport() {
+    toast('Preparing the latest 90-day business report…');
+    const [summaryRes, trendRes] = await Promise.all([
+      api('/api/dashboard/summary'),
+      api('/api/dashboard/sales?days=90')
+    ]);
+    if (!summaryRes?.ok || !summaryRes.data?.success || !trendRes?.ok || !trendRes.data?.success) {
+      toast('The report could not be generated because live data is unavailable.', 'error');
+      return;
+    }
+
+    const metrics = summaryRes.data.metrics || {};
+    const trend = trendRes.data;
+    const rows = [
+      ['InCraft Business Report'],
+      ['Generated at', new Date().toLocaleString()],
+      ['Sales trend period', 'Last 90 days'],
+      [],
+      ['Key Metric', 'Value'],
+      ['Active products', metrics.total_products ?? 0],
+      ['Total stock units', metrics.total_stock ?? 0],
+      ['Inventory value', metrics.inventory_value === null ? 'Restricted' : metrics.inventory_value],
+      ['Total revenue', metrics.total_revenue ?? 0],
+      ['Total orders', metrics.total_orders ?? 0],
+      ['Average order value', metrics.average_order_value ?? 0],
+      ["Today's sales", metrics.todays_sales ?? 0],
+      ['Low-stock products', metrics.low_stock ?? 0],
+      ['Out-of-stock products', metrics.out_of_stock ?? 0],
+      [],
+      ['Daily Sales Trend', 'Revenue', 'Orders', 'Units Sold'],
+      ...(trend.labels || []).map((day, index) => [
+        day,
+        trend.revenue?.[index] ?? trend.values?.[index] ?? 0,
+        trend.orders?.[index] ?? 0,
+        trend.units_sold?.[index] ?? 0
+      ]),
+      [],
+      ['Top-selling Products (Last 30 Days)', 'Product Code', 'Units Sold', 'Revenue'],
+      ...(summaryRes.data.top_products || []).map(product => [
+        product.name || '',
+        product.product_code || '',
+        product.units_sold ?? 0,
+        product.revenue ?? 0
+      ])
+    ];
+
+    const csv = rows.map(row => row.map(csvCell).join(',')).join('\r\n');
+    const blob = new Blob(['\uFEFF', csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `incraft-business-report-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toast('Business report generated.', 'success');
   }
 
   async function loadDashboardSummary() {
@@ -835,7 +906,7 @@
       options: {
         responsive: true, maintainAspectRatio: false, interaction: { intersect: false, mode: 'index' },
         plugins: { legend: { display: false }, tooltip: { callbacks: { label: context => isRevenue ? `Revenue: ${fmtMoney(context.parsed.y)}` : `${metricLabels[metric]}: ${Number(context.parsed.y).toLocaleString()}` } } },
-        scales: { x: { grid: { display: false }, ticks: { color: '#8B9098', maxTicksLimit: days === 7 ? 7 : 10 } }, y: { beginAtZero: true, grid: { color: 'rgba(130,136,145,0.16)' }, ticks: { color: '#8B9098', callback: value => isRevenue ? `₹${Number(value).toLocaleString()}` : Number(value).toLocaleString() } } }
+        scales: { x: { grid: { display: false }, ticks: { color: '#8B9098', maxTicksLimit: days === 7 ? 7 : 10 } }, y: { beginAtZero: true, grid: { color: 'rgba(130,136,145,0.16)' }, ticks: { color: '#8B9098', callback: value => isRevenue ? `${state.currency}${Number(value).toLocaleString()}` : Number(value).toLocaleString() } } }
       }
     });
   }
@@ -860,7 +931,7 @@
     container.querySelectorAll('[data-insight-destination]').forEach(button => button.addEventListener('click', () => {
       if (button.dataset.insightDestination === 'product' && Number(button.dataset.productId) > 0) openProductDetails(button.dataset.productId);
       else if (button.dataset.insightDestination === 'inventory') navigateTo('inventory', { query: '?filter=low-stock' });
-      else navigateTo('analytics');
+      else navigateTo(state.user?.role === 'admin' ? 'analytics' : 'sales');
     }));
   }
 
@@ -1122,7 +1193,8 @@
       if (res && res.ok && res.data && res.data.success) {
         toast('Product added successfully!', 'success');
         closeModal();
-        loadInventoryData();
+        if (state.currentPage === 'dashboard') refreshDashboardData(false);
+        else loadInventoryData();
       } else {
         toast(res?.data?.message || 'Error adding product.', 'error');
       }
@@ -1197,7 +1269,8 @@
       if (res && res.ok && res.data && res.data.success) {
         toast('Product updated successfully!', 'success');
         closeModal();
-        loadInventoryData();
+        if (state.currentPage === 'dashboard') refreshDashboardData(false);
+        else loadInventoryData();
       } else {
         toast(res?.data?.message || 'Error updating product.', 'error');
       }
@@ -1223,7 +1296,8 @@
       if (res && res.ok) {
         toast('Product deleted.', 'info');
         closeModal();
-        loadInventoryData();
+        if (state.currentPage === 'dashboard') refreshDashboardData(false);
+        else loadInventoryData();
       } else {
         toast('Failed to delete product.', 'error');
       }
@@ -1267,7 +1341,8 @@
       if (res && res.ok) {
         toast('Inventory imported successfully!', 'success');
         closeModal();
-        loadInventoryData();
+        if (state.currentPage === 'dashboard') refreshDashboardData(false);
+        else loadInventoryData();
       } else {
         toast(res?.data?.message || 'Error importing CSV.', 'error');
       }
@@ -1474,7 +1549,7 @@
         toast(`Sale of ${qty} units completed successfully!`, 'success');
         closeModal();
         if (state.currentPage === 'sales') loadSalesData();
-        else if (state.currentPage === 'dashboard') loadDashboardSummary();
+        else if (state.currentPage === 'dashboard') refreshDashboardData(false);
       } else {
         toast(res?.data?.message || 'Error completing sale transaction.', 'error');
       }
@@ -1886,14 +1961,17 @@
       return;
     }
 
-    // Determine target page from URL
+    // Determine target page from URL, respecting the existing Analytics role restriction.
     let targetPage = 'dashboard';
     if (pathname.includes('inventory')) targetPage = 'inventory';
     else if (pathname.includes('sales')) targetPage = 'sales';
-    else if (pathname.includes('analytics')) targetPage = 'analytics';
+    else if (pathname.includes('analytics')) targetPage = state.user?.role === 'admin' ? 'analytics' : 'sales';
     else if (pathname.includes('activity')) targetPage = 'activity';
     else if (pathname.includes('settings')) targetPage = 'settings';
 
+    if (pathname.includes('analytics') && targetPage === 'sales') {
+      window.history.replaceState({ page: 'sales' }, '', '/sales');
+    }
     showAppShell(targetPage);
   }
 
