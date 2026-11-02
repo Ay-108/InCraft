@@ -27,7 +27,10 @@
     csrfToken: initialState.csrf_token || $('meta[name="csrf-token"]')?.getAttribute('content') || '',
     currentPage: initialState.page || 'dashboard',
     theme: localStorage.getItem('incraft_theme') || 'light',
-    currency: localStorage.getItem('incraft_currency') || '$',
+    currency: localStorage.getItem('incraft_currency') || '₹',
+    dashboardChart: null,
+    dashboardChartMetric: 'revenue',
+    dashboardLastRefresh: null,
     products: [],
     sales: [],
     summary: {},
@@ -56,6 +59,13 @@
     } catch {
       return String(dateStr);
     }
+  }
+
+  // --- Helper: Escape dynamic values before inserting them into HTML ---
+  function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, (character) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[character]));
   }
 
   // --- Helper: Show Toast Notification ---
@@ -449,6 +459,16 @@
   }
 
   function wireGlobalHandlers() {
+    if (!window.__incraftPopStateBound) {
+      window.addEventListener('popstate', () => {
+        const path = window.location.pathname.toLowerCase();
+        const page = path.includes('inventory') ? 'inventory' : path.includes('sales') ? 'sales' :
+          path.includes('analytics') ? 'analytics' : path.includes('activity') ? 'activity' :
+          path.includes('settings') ? 'settings' : 'dashboard';
+        navigateTo(page, { query: window.location.search, skipHistory: true });
+      });
+      window.__incraftPopStateBound = true;
+    }
     // Nav buttons
     $$('[data-page]').forEach(btn => {
       btn.onclick = () => {
@@ -534,33 +554,24 @@
     };
   }
 
-  function navigateTo(pageName) {
+  function navigateTo(pageName, options = {}) {
     state.currentPage = pageName;
-    $$('[data-page]').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.page === pageName);
-    });
-
+    $$('[data-page]').forEach(btn => btn.classList.toggle('active', btn.dataset.page === pageName));
     const crumb = $('#crumb');
-    if (crumb) {
-      crumb.textContent = pageName === 'dashboard' ? 'Dashboard' :
-        pageName === 'inventory' ? 'Inventory' :
-        pageName === 'sales' ? 'Sales' :
-        pageName === 'analytics' ? 'Analytics' :
-        pageName === 'activity' ? 'Activity history' : 'Settings';
-    }
-
-    // Close mobile drawer on navigation
+    if (crumb) crumb.textContent = pageName === 'dashboard' ? 'Dashboard' :
+      pageName === 'inventory' ? 'Inventory' : pageName === 'sales' ? 'Sales' :
+      pageName === 'analytics' ? 'Analytics' : pageName === 'activity' ? 'Activity history' : 'Settings';
     $('aside')?.classList.remove('open');
 
-    // Update browser URL
-    const targetUrl = pageName === 'dashboard' ? '/dashboard' : `/${pageName}`;
-    if (window.location.pathname !== targetUrl) {
-      window.history.pushState({ page: pageName }, '', targetUrl);
+    const targetPath = pageName === 'dashboard' ? '/dashboard' : `/${pageName}`;
+    const targetUrl = targetPath + (options.query !== undefined ? options.query : '');
+    if (!options.skipHistory && window.location.pathname + window.location.search !== targetUrl) {
+      if (options.replace) window.history.replaceState({ page: pageName }, '', targetUrl);
+      else window.history.pushState({ page: pageName }, '', targetUrl);
     }
 
     const content = $('#content');
     if (!content) return;
-
     if (pageName === 'dashboard') renderDashboard(content);
     else if (pageName === 'inventory') renderInventory(content);
     else if (pageName === 'sales') renderSales(content);
@@ -574,274 +585,285 @@
   // ============================================================
 
   async function renderDashboard(container) {
-    const name = state.user?.name || state.user?.username || 'there';
-    const firstName = name.split(' ')[0];
+    const name = escapeHtml((state.user?.name || state.user?.username || 'there').split(' ')[0]);
+    const hour = new Date().getHours();
+    const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+    const isAdmin = state.user?.role === 'admin';
 
     container.innerHTML = `
-      <div class="head">
-        <div>
-          <div class="eyebrow">Your workspace</div>
-          <h1>Good morning, ${firstName}.</h1>
-          <p>Real-time visibility across inventory, sales, and operations.</p>
-        </div>
-        <div class="actions">
-          <button class="btn" id="dashRecordSaleBtn">Record sale</button>
-          <button class="btn primary" id="dashAddProductBtn">+ Add product</button>
+      <div class="head dash-heading">
+        <div><div class="eyebrow">Your workspace · ${new Date().toLocaleDateString(undefined, { weekday:'long', day:'numeric', month:'long', year:'numeric' })}</div>
+          <h1>${greeting}, ${name}.</h1><p>Business performance, inventory health, and operational activity in one place.</p></div>
+        <div class="actions dash-heading-actions">
+          <button class="btn" id="dashRefreshBtn" type="button">↻ Refresh</button><button class="btn" id="dashPrintBtn" type="button">Print</button>
+          ${isAdmin ? '<button class="btn" id="dashImportBtn" type="button">Import data</button><button class="btn" id="dashAddProductBtn" type="button">+ Add product</button>' : ''}
+          <button class="btn primary" id="dashRecordSaleBtn" type="button">Record sale</button>
         </div>
       </div>
-
-      <div class="stats" id="dashStats">
-        <div class="stat"><div class="stat-top"><span>Total products</span><b class="stat-icon">▦</b></div><strong id="dashTotalProd">—</strong><small>Active in catalog</small></div>
-        <div class="stat"><div class="stat-top"><span>Inventory value</span><b class="stat-icon">◈</b></div><strong id="dashValue">—</strong><small>Total valuation</small></div>
-        <div class="stat"><div class="stat-top"><span>Low stock items</span><b class="stat-icon">⚠</b></div><strong id="dashLowStock">—</strong><small id="dashLowStockSub">Needs attention</small></div>
-        <div class="stat"><div class="stat-top"><span>Today's sales</span><b class="stat-icon">↗</b></div><strong id="dashTodaySales">—</strong><small>Recorded today</small></div>
+      <div class="dash-quick-links" aria-label="Dashboard shortcuts">
+        <button class="dash-quick-link" data-dash-page="inventory">View inventory <span>→</span></button>
+        <button class="dash-quick-link" data-dash-page="sales">View sales <span>→</span></button>
+        <button class="dash-quick-link" data-dash-page="analytics">Analytics & reports <span>→</span></button>
+        <a class="dash-quick-link" href="/inventory/export" target="_blank" rel="noopener">Export inventory <span>↓</span></a>
       </div>
-
-      <div class="grid">
-        <div class="panel">
-          <div class="panel-head">
-            <div>
-              <div class="panel-title">Revenue overview</div>
-              <div class="panel-sub" id="chartSub">Daily sales performance over the past 7 days</div>
-            </div>
-            <select class="select" id="salesPeriodSelect">
-              <option value="7">Last 7 days</option>
-              <option value="30">Last 30 days</option>
-              <option value="90">Last 90 days</option>
-            </select>
+      <section class="dash-kpi-grid" id="dashStats" aria-label="Business key performance indicators">
+        <button class="dash-kpi" data-kpi="products" type="button"><span class="dash-kpi-icon">▦</span><span class="dash-kpi-label">Total products</span><strong id="dashTotalProd">—</strong><small>Active in catalog</small></button>
+        <button class="dash-kpi" data-kpi="stock" type="button"><span class="dash-kpi-icon">▤</span><span class="dash-kpi-label">Total stock units</span><strong id="dashTotalStock">—</strong><small>Units available</small></button>
+        ${isAdmin ? '<button class="dash-kpi" data-kpi="inventory-value" type="button"><span class="dash-kpi-icon">◈</span><span class="dash-kpi-label">Inventory value</span><strong id="dashValue">—</strong><small>Current stock valuation</small></button>' : ''}
+        <button class="dash-kpi" data-kpi="revenue" type="button"><span class="dash-kpi-icon">₹</span><span class="dash-kpi-label">Total revenue</span><strong id="dashRevenue">—</strong><small>Visible transactions</small></button>
+        <button class="dash-kpi" data-kpi="orders" type="button"><span class="dash-kpi-icon">↗</span><span class="dash-kpi-label">Total orders</span><strong id="dashOrders">—</strong><small>Completed transactions</small></button>
+        <button class="dash-kpi" data-kpi="aov" type="button"><span class="dash-kpi-icon">◉</span><span class="dash-kpi-label">Average order value</span><strong id="dashAov">—</strong><small>Revenue per order</small></button>
+        <button class="dash-kpi" data-kpi="today" type="button"><span class="dash-kpi-icon">◷</span><span class="dash-kpi-label">Today's sales</span><strong id="dashTodaySales">—</strong><small>Revenue recorded today</small></button>
+        <button class="dash-kpi is-warning" data-kpi="low" type="button"><span class="dash-kpi-icon">⚠</span><span class="dash-kpi-label">Low stock</span><strong id="dashLowStock">—</strong><small>At or below minimum level</small></button>
+        <button class="dash-kpi is-danger" data-kpi="out" type="button"><span class="dash-kpi-icon">!</span><span class="dash-kpi-label">Out of stock</span><strong id="dashOutOfStock">—</strong><small>Products with zero stock</small></button>
+        <button class="dash-kpi" data-kpi="reorder" type="button"><span class="dash-kpi-icon">⟳</span><span class="dash-kpi-label">Pending reorders</span><strong id="dashPendingReorders">—</strong><small>Products requiring attention</small></button>
+      </section>
+      <section class="dash-main-grid">
+        <article class="panel dash-chart-panel">
+          <div class="panel-head dash-panel-head"><div><div class="panel-title">Sales trend</div><div class="panel-sub" id="chartSub">Database-backed performance over the last 7 days</div></div>
+            <div class="dash-chart-controls"><label for="salesMetricSelect">Metric</label><select class="select" id="salesMetricSelect"><option value="revenue">Revenue</option><option value="orders">Sales orders</option><option value="units_sold">Units sold</option></select><label for="salesPeriodSelect">Period</label><select class="select" id="salesPeriodSelect"><option value="7">7 days</option><option value="30">30 days</option><option value="90">90 days</option></select></div>
           </div>
-          <div class="chart" id="salesChartBox">
-            <div style="display:grid;place-items:center;height:100%;color:var(--muted);font-size:12px;">Loading sales trend...</div>
-          </div>
-        </div>
-
-        <div class="panel">
-          <div class="panel-head">
-            <div>
-              <div class="panel-title">Inventory health</div>
-              <div class="panel-sub">Stock distribution and readiness</div>
-            </div>
-          </div>
-          <div class="donut-wrap" id="donutBox">
-            <div style="display:grid;place-items:center;height:100%;color:var(--muted);font-size:12px;">Loading stock health...</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="wide">
-        <div class="head" style="margin-bottom:14px;">
-          <div>
-            <div class="panel-title" style="font-size:17px;">Smart Decision Support</div>
-            <div class="panel-sub">Automated recommendations based on stock velocity and demand.</div>
-          </div>
-        </div>
-        <div class="insights" id="insightsContainer">
-          <div class="insight"><b>✦</b><strong>Checking stock metrics...</strong><span>Insights will populate from your sales and inventory data.</span></div>
-        </div>
-      </div>
+          <div class="dash-chart-summary"><span id="dashChartMetricLabel">Revenue in selected period</span><strong id="dashChartTotal">—</strong></div>
+          <div class="dash-chart-canvas" id="salesChartBox" aria-live="polite"><div class="dash-loading">Loading sales trend…</div></div>
+        </article>
+        <article class="panel dash-inventory-panel"><div class="panel-head"><div><div class="panel-title">Inventory health</div><div class="panel-sub">Current active stock distribution</div></div></div><div class="donut-wrap" id="donutBox"><div class="dash-loading">Loading inventory health…</div></div></article>
+      </section>
+      <section class="dash-secondary-grid">
+        <article class="panel dash-table-panel"><div class="panel-head"><div><div class="panel-title">Inventory alerts</div><div class="panel-sub">Products at or below their minimum stock level</div></div><button class="btn btn-sm" data-dash-page="inventory">View inventory →</button></div><div class="dash-table-wrap" id="dashInventoryAlerts"><div class="dash-loading">Loading inventory alerts…</div></div></article>
+        <article class="panel dash-list-panel"><div class="panel-head"><div><div class="panel-title">Recent sales</div><div class="panel-sub">Latest completed transactions</div></div><button class="btn btn-sm" data-dash-page="sales">View all →</button></div><div id="dashRecentSales"><div class="dash-loading">Loading transactions…</div></div></article>
+      </section>
+      <section class="dash-secondary-grid">
+        <article class="panel dash-list-panel"><div class="panel-head"><div><div class="panel-title">Top-selling products</div><div class="panel-sub">Units sold over the last 30 days</div></div><button class="btn btn-sm" data-dash-page="analytics">Analytics →</button></div><div id="dashTopProducts"><div class="dash-loading">Loading product performance…</div></div></article>
+        <article class="panel dash-list-panel"><div class="panel-head"><div><div class="panel-title">Recent activity</div><div class="panel-sub">Latest recorded workspace events</div></div><button class="btn btn-sm" data-dash-page="activity">View history →</button></div><div id="dashRecentActivity"><div class="dash-loading">Loading activity…</div></div></article>
+      </section>
+      <section class="panel dash-insights-panel"><div class="panel-head"><div><div class="panel-title">Smart Decision Support</div><div class="panel-sub">Recommendations based on current inventory and recorded sales</div></div><button class="btn btn-sm" data-dash-page="analytics">View analytics →</button></div><div class="insights" id="insightsContainer"><div class="dash-loading">Checking business signals…</div></div></section>
+      <div class="dash-footer"><span>Last data refresh: <strong id="dashLastRefresh">Not refreshed yet</strong></span><span>Dashboard values are sourced from your InCraft database.</span></div>
     `;
 
     $('#dashRecordSaleBtn').onclick = () => openRecordSaleModal();
-    $('#dashAddProductBtn').onclick = () => openAddProductModal();
+    $('#dashAddProductBtn')?.addEventListener('click', () => openAddProductModal());
+    $('#dashImportBtn')?.addEventListener('click', () => openImportModal());
+    $('#dashPrintBtn').onclick = () => window.print();
+    $('#dashRefreshBtn').onclick = () => refreshDashboardData(true);
+    $$('[data-dash-page]').forEach(button => button.addEventListener('click', () => navigateTo(button.dataset.dashPage)));
+    $$('[data-kpi]').forEach(button => button.addEventListener('click', () => navigateFromKpi(button.dataset.kpi)));
+    $('#salesPeriodSelect').onchange = event => loadSalesTrend(Number(event.target.value), state.dashboardChartMetric);
+    $('#salesMetricSelect').onchange = event => { state.dashboardChartMetric = event.target.value; loadSalesTrend(Number($('#salesPeriodSelect')?.value || 7), state.dashboardChartMetric); };
+    refreshDashboardData(false);
+  }
 
-    // Load Live KPI Summary
-    loadDashboardSummary();
-
-    // Load Live Sales Trend Chart
-    loadSalesTrend(7);
-    $('#salesPeriodSelect').onchange = (e) => {
-      loadSalesTrend(Number(e.target.value));
+  function navigateFromKpi(kpi) {
+    const routes = {
+      products: ['inventory', ''], stock: ['inventory', ''], 'inventory-value': ['inventory', ''],
+      revenue: ['analytics', ''], orders: ['sales', ''], aov: ['sales', ''], today: ['sales', ''],
+      low: ['inventory', '?filter=low-stock'], out: ['inventory', '?filter=out-of-stock'],
+      reorder: ['inventory', '?filter=low-stock']
     };
+    const target = routes[kpi];
+    if (target) navigateTo(target[0], { query: target[1] });
+  }
 
-    // Load Live Insights
-    loadSmartInsights();
+  async function refreshDashboardData(showMessage = false) {
+    if (showMessage) toast('Refreshing dashboard data…');
+    await Promise.all([
+      loadDashboardSummary(),
+      loadSalesTrend(Number($('#salesPeriodSelect')?.value || 7), state.dashboardChartMetric),
+      loadSmartInsights()
+    ]);
+    state.dashboardLastRefresh = new Date();
+    const label = $('#dashLastRefresh');
+    if (label) label.textContent = state.dashboardLastRefresh.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    if (showMessage) toast('Dashboard data refreshed.', 'success');
   }
 
   async function loadDashboardSummary() {
     const res = await api('/api/dashboard/summary');
-    if (!res || !res.ok || !res.data) return;
-
+    if (!res?.ok || !res.data?.success) {
+      const message = res?.data?.message || 'Unable to load dashboard metrics.';
+      ['dashTotalProd','dashTotalStock','dashValue','dashRevenue','dashOrders','dashAov','dashTodaySales','dashLowStock','dashOutOfStock','dashPendingReorders'].forEach(id => {
+        const element = document.getElementById(id);
+        if (element) element.textContent = '—';
+      });
+      const alertBox = $('#dashInventoryAlerts');
+      if (alertBox) alertBox.innerHTML = `<div class="dash-empty">${escapeHtml(message)}</div>`;
+      return;
+    }
     const m = res.data.metrics || {};
     const d = res.data.stock_distribution || {};
     state.summary = m;
     state.stockDistribution = d;
-
-    const totalProdEl = $('#dashTotalProd');
-    const valueEl = $('#dashValue');
-    const lowStockEl = $('#dashLowStock');
-    const todaySalesEl = $('#dashTodaySales');
-
-    if (totalProdEl) totalProdEl.textContent = m.total_products?.toLocaleString() || '0';
-    if (valueEl) valueEl.textContent = m.inventory_value !== null ? fmtMoney(m.inventory_value) : `${m.total_stock || 0} units`;
-    if (lowStockEl) {
-      lowStockEl.textContent = m.low_stock || '0';
-      if (m.low_stock > 0) lowStockEl.style.color = 'var(--red)';
-    }
-    if (todaySalesEl) todaySalesEl.textContent = fmtMoney(m.todays_sales);
-
-    // Draw Donut Chart
+    const setText = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
+    setText('dashTotalProd', Number(m.total_products || 0).toLocaleString());
+    setText('dashTotalStock', Number(m.total_stock || 0).toLocaleString());
+    setText('dashValue', m.inventory_value === null ? 'Restricted' : fmtMoney(m.inventory_value));
+    setText('dashRevenue', fmtMoney(m.total_revenue));
+    setText('dashOrders', Number(m.total_orders || 0).toLocaleString());
+    setText('dashAov', fmtMoney(m.average_order_value));
+    setText('dashTodaySales', fmtMoney(m.todays_sales));
+    setText('dashLowStock', Number(m.low_stock || 0).toLocaleString());
+    setText('dashOutOfStock', Number(m.out_of_stock || 0).toLocaleString());
+    setText('dashPendingReorders', Number(m.pending_reorders || 0).toLocaleString());
     renderDonutChart(d);
+    renderDashboardSections(res.data);
+  }
+
+  function renderDashboardSections(data) {
+    const alerts = $('#dashInventoryAlerts');
+    if (alerts) {
+      const items = data.inventory_alerts || [];
+      alerts.innerHTML = items.length ? `
+        <table class="dash-table"><thead><tr><th>Product</th><th>Available</th><th>Minimum</th><th>Status</th></tr></thead><tbody>
+          ${items.map(product => `<tr class="dash-product-row" data-product-id="${Number(product.product_id)}" tabindex="0" role="button" aria-label="View ${escapeHtml(product.name)}"><td><strong>${escapeHtml(product.name)}</strong><small>${escapeHtml(product.product_code)}</small></td><td>${Number(product.quantity || 0)}</td><td>${Number(product.minimum_stock || 0)}</td><td><span class="dash-status ${Number(product.quantity || 0) <= 0 ? 'danger' : 'warning'}">${Number(product.quantity || 0) <= 0 ? 'Out of stock' : 'Low stock'}</span></td></tr>`).join('')}
+        </tbody></table>` : '<div class="dash-empty">No low-stock products found.</div>';
+      alerts.querySelectorAll('[data-product-id]').forEach(row => {
+        row.addEventListener('click', () => openProductDetails(row.dataset.productId));
+        row.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openProductDetails(row.dataset.productId); } });
+      });
+    }
+
+    const salesBox = $('#dashRecentSales');
+    if (salesBox) {
+      const sales = data.recent_sales || [];
+      salesBox.innerHTML = sales.length ? sales.map(sale => `<button class="dash-record-row" type="button" data-open-sales><span class="dash-record-icon">↗</span><span class="dash-record-main"><strong>${escapeHtml(sale.invoice_number || ('Sale #' + sale.sale_id))}</strong><small>${escapeHtml(sale.customer_name || 'Walk-in Customer')} · ${Number(sale.units_sold || 0)} units · ${escapeHtml(sale.payment_method || '—')}</small></span><span class="dash-record-end"><strong>${fmtMoney(sale.total_amount)}</strong><small>${escapeHtml(fmtDate(sale.sale_date))}</small></span></button>`).join('') : '<div class="dash-empty">No sales have been recorded yet.</div>';
+      salesBox.querySelectorAll('[data-open-sales]').forEach(row => row.addEventListener('click', () => navigateTo('sales')));
+    }
+
+    const topBox = $('#dashTopProducts');
+    if (topBox) {
+      const products = data.top_products || [];
+      topBox.innerHTML = products.length ? products.map((product, index) => `<button class="dash-record-row" type="button" data-product-id="${Number(product.product_id)}"><span class="dash-rank">${index + 1}</span><span class="dash-record-main"><strong>${escapeHtml(product.name)}</strong><small>${escapeHtml(product.product_code)} · ${escapeHtml(product.category)}</small></span><span class="dash-record-end"><strong>${Number(product.units_sold || 0).toLocaleString()} units</strong><small>${fmtMoney(product.revenue)}</small></span></button>`).join('') : '<div class="dash-empty">No product sales are available for the last 30 days.</div>';
+      topBox.querySelectorAll('[data-product-id]').forEach(row => row.addEventListener('click', () => openProductDetails(row.dataset.productId)));
+    }
+
+    const activityBox = $('#dashRecentActivity');
+    if (activityBox) {
+      const activities = data.recent_activities || [];
+      activityBox.innerHTML = activities.length ? activities.map(activity => `<button class="dash-record-row" type="button" data-activity-type="${escapeHtml(activity.entity_type || '')}"><span class="dash-record-icon">◷</span><span class="dash-record-main"><strong>${escapeHtml(activity.description || activity.action || 'Workspace activity')}</strong><small>${escapeHtml(activity.entity_type || 'Activity')} · ${escapeHtml(fmtDate(activity.created_at))}</small></span><span class="dash-record-arrow">→</span></button>`).join('') : '<div class="dash-empty">No recent activity is available.</div>';
+      activityBox.querySelectorAll('[data-activity-type]').forEach(row => row.addEventListener('click', () => {
+        const entity = (row.dataset.activityType || '').toLowerCase();
+        navigateTo(entity.includes('product') || entity.includes('inventory') ? 'inventory' : entity.includes('sale') ? 'sales' : 'activity');
+      }));
+    }
+  }
+
+  async function openProductDetails(productId) {
+    const id = Number(productId);
+    if (!Number.isInteger(id) || id <= 0) return;
+    const res = await api(`/api/products/${id}`);
+    if (!res?.ok || !res.data?.success || !res.data.product) {
+      toast(res?.data?.message || 'Unable to open this product.', 'error');
+      return;
+    }
+    const product = res.data.product;
+    openModal(escapeHtml(product.name || 'Product details'), `Product code: ${escapeHtml(product.product_code || '—')}`, `
+      <div class="dash-detail-grid">
+        <div><small>Category</small><strong>${escapeHtml(product.category || '—')}</strong></div>
+        <div><small>Available stock</small><strong>${Number(product.quantity || 0)}</strong></div>
+        <div><small>Minimum stock</small><strong>${Number(product.minimum_stock || 0)}</strong></div>
+        <div><small>Unit price</small><strong>${fmtMoney(product.price)}</strong></div>
+        <div><small>Stock value</small><strong>${fmtMoney(product.stock_value)}</strong></div>
+        <div><small>Status</small><strong>${escapeHtml(product.stock_status || '—')}</strong></div>
+      </div><div class="modal-actions"><button type="button" class="btn" id="productDetailsClose">Close</button><button type="button" class="btn primary" id="productDetailsInventory">Open inventory</button></div>`
+    );
+    $('#productDetailsClose').onclick = closeModal;
+    $('#productDetailsInventory').onclick = () => { closeModal(); navigateTo('inventory', { query: `?search=${encodeURIComponent(product.product_code || product.name || '')}` }); };
   }
 
   function renderDonutChart(dist) {
     const box = $('#donutBox');
     if (!box) return;
-
-    const inCount = dist.stock_in_count || 0;
-    const lowCount = dist.stock_low_count || 0;
-    const outCount = dist.stock_out_count || 0;
+    const inCount = Number(dist.stock_in_count || 0);
+    const lowCount = Number(dist.stock_low_count || 0);
+    const outCount = Number(dist.stock_out_count || 0);
     const total = inCount + lowCount + outCount;
-
-    if (total === 0) {
-      box.innerHTML = `<div style="margin:auto;text-align:center;color:var(--muted);"><span style="font-size:32px;">▦</span><p style="margin-top:8px;">No product stock data available yet.</p></div>`;
-      return;
-    }
-
-    const inPct = Math.round((inCount / total) * 100);
-    const lowPct = Math.round((lowCount / total) * 100);
-    const outPct = 100 - inPct - lowPct;
-
+    if (total === 0) { box.innerHTML = '<div class="dash-empty">No product stock data available yet.</div>'; return; }
+    const healthy = Math.round((inCount / total) * 100);
+    const low = Math.round((lowCount / total) * 100);
     box.innerHTML = `
-      <div class="donut" style="background: conic-gradient(var(--green) 0% ${inPct}%, var(--o) ${inPct}% ${inPct + lowPct}%, var(--red) ${inPct + lowPct}% 100%);">
-        <span>${inPct}%<small>HEALTHY</small></span>
-      </div>
+      <div class="donut" style="background:conic-gradient(var(--green) 0% ${healthy}%,var(--o) ${healthy}% ${healthy + low}%,var(--red) ${healthy + low}% 100%)"><span>${healthy}%<small>HEALTHY</small></span></div>
       <div class="legend">
-        <div><b style="background:var(--green)"></b>In stock <strong>${inCount}</strong></div>
-        <div><b style="background:var(--o)"></b>Low stock <strong>${lowCount}</strong></div>
-        <div><b style="background:var(--red)"></b>Out of stock <strong>${outCount}</strong></div>
-      </div>
-    `;
+        <button type="button" class="dash-legend-item" data-stock-filter="in-stock"><b style="background:var(--green)"></b>In stock <strong>${inCount}</strong></button>
+        <button type="button" class="dash-legend-item" data-stock-filter="low-stock"><b style="background:var(--o)"></b>Low stock <strong>${lowCount}</strong></button>
+        <button type="button" class="dash-legend-item" data-stock-filter="out-of-stock"><b style="background:var(--red)"></b>Out of stock <strong>${outCount}</strong></button>
+      </div>`;
+    box.querySelectorAll('[data-stock-filter]').forEach(button => button.addEventListener('click', () => navigateTo('inventory', { query: `?filter=${button.dataset.stockFilter}` })));
   }
 
-  async function loadSalesTrend(days = 7) {
+  async function loadSalesTrend(days = 7, metric = 'revenue') {
     const box = $('#salesChartBox');
+    if (!box) return;
     const sub = $('#chartSub');
-    if (sub) sub.textContent = `Daily sales performance over the past ${days} days`;
-
+    const label = $('#dashChartMetricLabel');
+    const totalEl = $('#dashChartTotal');
+    const metricLabels = { revenue: 'Revenue', orders: 'Sales orders', units_sold: 'Units sold' };
+    if (sub) sub.textContent = `Daily ${metricLabels[metric] || 'sales'} performance over the last ${days} days`;
+    if (label) label.textContent = `${metricLabels[metric] || 'Sales'} in selected period`;
+    box.innerHTML = '<div class="dash-loading">Loading live sales data…</div>';
     const res = await api(`/api/dashboard/sales?days=${days}`);
-    if (!res || !res.ok || !res.data || !res.data.values) {
-      if (box) box.innerHTML = `<div style="display:grid;place-items:center;height:100%;color:var(--muted);">No sales recorded in this period.</div>`;
+    if (!res?.ok || !res.data?.success) {
+      box.innerHTML = `<div class="dash-empty dash-error">${escapeHtml(res?.data?.message || 'Sales trend could not be loaded.')}<button class="btn btn-sm" id="retrySalesTrend">Retry</button></div>`;
+      $('#retrySalesTrend')?.addEventListener('click', () => loadSalesTrend(days, metric));
+      if (totalEl) totalEl.textContent = '—';
       return;
     }
-
-    const { labels, values, total } = res.data;
-    if (values.every(v => v === 0)) {
-      box.innerHTML = `
-        <div style="display:grid;place-items:center;height:100%;color:var(--muted);font-size:12px;text-align:center;">
-          <div>
-            <div style="font-size:24px;margin-bottom:6px;">📈</div>
-            <div>No sales transactions recorded in this period.</div>
-            <button class="btn btn-sm" id="chartAddSaleBtn" style="margin-top:10px;">Record first sale →</button>
-          </div>
-        </div>
-      `;
-      $('#chartAddSaleBtn').onclick = () => openRecordSaleModal();
+    const payload = res.data;
+    const values = metric === 'revenue' ? (payload.revenue || payload.values || []) : metric === 'orders' ? (payload.orders || []) : (payload.units_sold || []);
+    const labels = payload.labels || [];
+    const total = payload.totals?.[metric] ?? payload.total ?? 0;
+    if (totalEl) totalEl.textContent = metric === 'revenue' ? fmtMoney(total) : Number(total).toLocaleString();
+    if (!values.length || values.every(value => Number(value) === 0)) {
+      state.dashboardChart?.destroy();
+      state.dashboardChart = null;
+      box.innerHTML = '<div class="dash-empty">No transactions are recorded in this period.</div>';
       return;
     }
-
-    // Render Clean SVG Chart
-    const maxVal = Math.max(...values, 10);
-    const w = 600, h = 180, padL = 40, padR = 20, padT = 20, padB = 30;
-    const plotW = w - padL - padR;
-    const plotH = h - padT - padB;
-
-    const points = values.map((val, idx) => {
-      const x = padL + (idx / (values.length - 1 || 1)) * plotW;
-      const y = padT + plotH - (val / maxVal) * plotH;
-      return { x, y, val, label: labels[idx] };
+    const ready = window.InCraftChartReady ? await window.InCraftChartReady : Boolean(window.Chart);
+    if (!ready || !window.Chart) {
+      box.innerHTML = '<div class="dash-empty dash-error">Chart.js could not be loaded. Check your connection and retry.<button class="btn btn-sm" id="retrySalesTrend">Retry</button></div>';
+      $('#retrySalesTrend')?.addEventListener('click', () => loadSalesTrend(days, metric));
+      return;
+    }
+    state.dashboardChart?.destroy();
+    state.dashboardChart = null;
+    box.innerHTML = '<canvas id="salesTrendCanvas" role="img" aria-label="Daily sales trend chart"></canvas>';
+    const context = $('#salesTrendCanvas')?.getContext('2d');
+    if (!context) { box.innerHTML = '<div class="dash-empty dash-error">The chart canvas could not be initialized.</div>'; return; }
+    const isRevenue = metric === 'revenue';
+    state.dashboardChart = new window.Chart(context, {
+      type: isRevenue ? 'line' : 'bar',
+      data: { labels, datasets: [{ label: metricLabels[metric], data: values.map(value => Number(value || 0)), borderColor: '#F47521', backgroundColor: isRevenue ? 'rgba(244,117,33,0.14)' : 'rgba(244,117,33,0.72)', borderWidth: isRevenue ? 2.5 : 1, fill: isRevenue, tension: 0.32, pointRadius: isRevenue ? 2.5 : 0, pointHoverRadius: 5, borderRadius: isRevenue ? 0 : 5, maxBarThickness: 28 }] },
+      options: {
+        responsive: true, maintainAspectRatio: false, interaction: { intersect: false, mode: 'index' },
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: context => isRevenue ? `Revenue: ${fmtMoney(context.parsed.y)}` : `${metricLabels[metric]}: ${Number(context.parsed.y).toLocaleString()}` } } },
+        scales: { x: { grid: { display: false }, ticks: { color: '#8B9098', maxTicksLimit: days === 7 ? 7 : 10 } }, y: { beginAtZero: true, grid: { color: 'rgba(130,136,145,0.16)' }, ticks: { color: '#8B9098', callback: value => isRevenue ? `₹${Number(value).toLocaleString()}` : Number(value).toLocaleString() } } }
+      }
     });
-
-    const pathD = points.reduce((acc, p, i) => `${acc} ${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`, '');
-    const areaD = `${pathD} L ${points[points.length - 1].x} ${padT + plotH} L ${points[0].x} ${padT + plotH} Z`;
-
-    box.innerHTML = `
-      <svg viewBox="0 0 ${w} ${h}" style="width:100%;height:100%;overflow:visible;">
-        <defs>
-          <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="var(--o)" stop-opacity="0.28"/>
-            <stop offset="100%" stop-color="var(--o)" stop-opacity="0.0"/>
-          </linearGradient>
-        </defs>
-        <!-- Horizontal Gridlines -->
-        <line x1="${padL}" y1="${padT}" x2="${w - padR}" y2="${padT}" class="gridline"/>
-        <line x1="${padL}" y1="${padT + plotH * 0.5}" x2="${w - padR}" y2="${padT + plotH * 0.5}" class="gridline"/>
-        <line x1="${padL}" y1="${padT + plotH}" x2="${w - padR}" y2="${padT + plotH}" class="gridline"/>
-
-        <!-- Area & Line -->
-        <path d="${areaD}" fill="url(#chartGrad)"/>
-        <path d="${pathD}" fill="none" stroke="var(--o)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-
-        <!-- Points -->
-        ${points.map(p => `
-          <circle cx="${p.x}" cy="${p.y}" r="4" fill="var(--card)" stroke="var(--o)" stroke-width="2.5">
-            <title>${p.label}: ${fmtMoney(p.val)}</title>
-          </circle>
-        `).join('')}
-
-        <!-- X Axis Labels -->
-        ${points.filter((_, i) => i === 0 || i === Math.floor(points.length / 2) || i === points.length - 1).map(p => `
-          <text x="${p.x}" y="${h - 8}" text-anchor="middle" font-size="10" fill="var(--muted)">${p.label}</text>
-        `).join('')}
-      </svg>
-    `;
   }
 
   async function loadSmartInsights() {
     const container = $('#insightsContainer');
     if (!container) return;
-
     const res = await api('/api/dashboard/insights');
-    if (!res || !res.ok || !res.data) {
-      container.innerHTML = `
-        <div class="insight"><b>◈</b><strong>Ready for Decision Support</strong><span>As products are sold, automated inventory recommendations will appear here.</span></div>
-      `;
+    if (!res?.ok || !res.data?.success) {
+      container.innerHTML = `<div class="dash-empty">${escapeHtml(res?.data?.message || 'Decision support is temporarily unavailable.')}</div>`;
       return;
     }
-
-    const { stock_alerts, reorder_recommendations, fast_moving_products, revenue_insights } = res.data;
-    const cards = [];
-
-    if (stock_alerts && stock_alerts.length > 0) {
-      const topAlert = stock_alerts[0];
-      cards.push(`
-        <div class="insight">
-          <b style="color:var(--red);">⚠</b>
-          <strong>Critical: ${topAlert.name}</strong>
-          <span>Current stock: ${topAlert.quantity} (Min: ${topAlert.minimum_stock}). Immediate restock advised.</span>
-        </div>
-      `);
-    }
-
-    if (reorder_recommendations && reorder_recommendations.length > 0) {
-      const rec = reorder_recommendations[0];
-      cards.push(`
-        <div class="insight">
-          <b>✦</b>
-          <strong>Recommended Reorder</strong>
-          <span>Order ${rec.suggested_reorder || 25} units of ${rec.name} to maintain 30-day buffer.</span>
-        </div>
-      `);
-    }
-
-    if (fast_moving_products && fast_moving_products.length > 0) {
-      const topFast = fast_moving_products[0];
-      cards.push(`
-        <div class="insight">
-          <b style="color:var(--green);">↗</b>
-          <strong>Top Velocity: ${topFast.name}</strong>
-          <span>${topFast.quantity_sold || 0} units sold recently, generating healthy revenue.</span>
-        </div>
-      `);
-    }
-
-    if (cards.length === 0) {
-      cards.push(`
-        <div class="insight"><b>✓</b><strong>Optimal Stock Health</strong><span>No critical low stock alerts. All inventory is within target thresholds.</span></div>
-      `);
-    }
-
-    container.innerHTML = cards.join('');
+    const insights = res.data.insights || [];
+    if (!insights.length) { container.innerHTML = '<div class="dash-empty">No actionable insights were returned for the current records.</div>'; return; }
+    container.innerHTML = insights.map(insight => {
+      const data = insight.data || {};
+      const product = data.product || (data.products && data.products[0]) || {};
+      const productId = data.product_id || product.product_id || null;
+      const destination = productId ? 'product' : (['restock','slow-moving','optimization'].includes(insight.type) ? 'inventory' : 'analytics');
+      return `<article class="dash-insight-card priority-${escapeHtml(insight.priority || 'low')}"><div class="dash-insight-top"><span class="dash-priority">${escapeHtml(insight.priority || 'low')}</span><span class="dash-insight-metric">${escapeHtml(insight.metric || '')}</span></div><strong>${escapeHtml(insight.title || 'Business insight')}</strong><p>${escapeHtml(insight.message || '')}</p><button class="btn btn-sm" type="button" data-insight-destination="${destination}" data-product-id="${Number(productId || 0)}">${productId ? 'View product' : 'View analysis'} →</button></article>`;
+    }).join('');
+    container.querySelectorAll('[data-insight-destination]').forEach(button => button.addEventListener('click', () => {
+      if (button.dataset.insightDestination === 'product' && Number(button.dataset.productId) > 0) openProductDetails(button.dataset.productId);
+      else if (button.dataset.insightDestination === 'inventory') navigateTo('inventory', { query: '?filter=low-stock' });
+      else navigateTo('analytics');
+    }));
   }
+
 
   // ============================================================
   // 2. INVENTORY MODULE
@@ -910,7 +932,13 @@
     $('#invCategoryFilter').onchange = filterProducts;
     $('#invStatusFilter').onchange = filterProducts;
 
-    loadInventoryData();
+    const params = new URLSearchParams(window.location.search);
+    const incomingFilter = params.get('filter');
+    const filterMap = { 'low-stock': 'low', low: 'low', 'out-of-stock': 'out', out: 'out', 'in-stock': 'in', in: 'in' };
+    if (incomingFilter && filterMap[incomingFilter]) $('#invStatusFilter').value = filterMap[incomingFilter];
+    const incomingSearch = params.get('search');
+    if (incomingSearch) $('#inventorySearch').value = incomingSearch;
+    loadInventoryData().then(() => filterProducts());
   }
 
   async function loadInventoryData() {
@@ -1571,6 +1599,11 @@
     const box = $('#mlInsightsContainer');
     if (!box) return;
 
+    if (state.user?.role !== 'admin') {
+      box.innerHTML = '<div class="insight"><b>◈ ADMINISTRATOR ACCESS</b><strong>Machine learning recommendations are restricted</strong><span>Ask an administrator to review forecasting and reorder recommendations.</span></div>';
+      return;
+    }
+
     const [forecastRes, riskRes, reorderRes] = await Promise.all([
       api('/api/ml/forecast'),
       api('/api/ml/stockout-risk'),
@@ -1579,50 +1612,28 @@
 
     const cards = [];
 
-    if (riskRes?.ok && riskRes.data?.high_risk_products?.length > 0) {
-      const hr = riskRes.data.high_risk_products[0];
-      cards.push(`
-        <div class="insight">
-          <b style="color:var(--red);">⚠ HIGH STOCKOUT RISK</b>
-          <strong>${hr.name}</strong>
-          <span>Estimated stock depletion in <strong>${hr.days_remaining || 3} days</strong> based on 30-day velocity.</span>
-        </div>
-      `);
+    const risks = riskRes?.ok ? (riskRes.data?.risks || []) : [];
+    const forecasts = forecastRes?.ok ? (forecastRes.data?.forecasts || []) : [];
+    const recommendations = reorderRes?.ok ? (reorderRes.data?.recommendations || []) : [];
+    const riskByProduct = new Map(risks.map(item => [String(item.product_id), item]));
+    const forecastByProduct = new Map(forecasts.map(item => [String(item.product_id), item]));
+    const reorderByProduct = new Map(recommendations.map(item => [String(item.product_id), item]));
+    const ids = Array.from(new Set([...risks, ...forecasts, ...recommendations].map(item => String(item.product_id))));
+    ids.slice(0, 8).forEach(id => {
+      const risk = riskByProduct.get(id), forecast = forecastByProduct.get(id), reorder = reorderByProduct.get(id);
+      const product = risk || forecast || reorder;
+      const details = [];
+      if (forecast) details.push(`7-day demand ${Number(forecast.forecast_units_7d || 0)} units; 30-day demand ${Number(forecast.forecast_units_30d || 0)} units; ${escapeHtml(forecast.confidence || 'unknown')} confidence`);
+      if (risk) details.push(`Stockout risk ${escapeHtml(risk.risk_level || 'unknown')} (${Number(risk.risk_score || 0)}/100); ${escapeHtml(risk.reason || '')}`);
+      if (reorder && reorder.reorder_now) details.push(`Recommended reorder ${Number(reorder.recommended_order_quantity || 0)} units; ${escapeHtml(reorder.urgency || 'monitor')} urgency`);
+      cards.push(`<article class="insight dash-ml-card"><b>${risk?.risk_level === 'high' ? '⚠ HIGH STOCKOUT RISK' : '◈ INVENTORY INTELLIGENCE'}</b><strong>${escapeHtml(product?.name || 'Product')}</strong><span>Current stock: ${Number(product?.current_stock || 0)} units. ${details.join(' · ')}</span><button type="button" class="btn btn-sm" data-ml-product="${Number(product?.product_id || 0)}">View product →</button></article>`);
+    });
+    if (!cards.length) {
+      const failed = [forecastRes, riskRes, reorderRes].some(result => !result?.ok);
+      cards.push(`<div class="insight"><b>✦ INVENTORY INTELLIGENCE</b><strong>${failed ? 'Some model results are unavailable' : 'No product recommendations'}</strong><span>${failed ? 'One or more ML services could not return results. Retry the analysis later.' : 'The models returned no products requiring a recommendation for current inventory.'}</span></div>`);
     }
-
-    if (forecastRes?.ok && forecastRes.data?.predictions?.length > 0) {
-      const f = forecastRes.data.predictions[0];
-      cards.push(`
-        <div class="insight">
-          <b>◈ DEMAND FORECAST</b>
-          <strong>${f.name}</strong>
-          <span>Projected demand: <strong>${Math.round(f.predicted_sales || 20)} units</strong> next month (${f.trend || 'increasing'} trend).</span>
-        </div>
-      `);
-    }
-
-    if (reorderRes?.ok && reorderRes.data?.recommendations?.length > 0) {
-      const r = reorderRes.data.recommendations[0];
-      cards.push(`
-        <div class="insight">
-          <b style="color:var(--green);">✦ RECOMMENDED REORDER</b>
-          <strong>${r.name}</strong>
-          <span>Suggested batch: <strong>${r.recommended_quantity || 30} units</strong> from supplier ${r.supplier || 'Primary'}.</span>
-        </div>
-      `);
-    }
-
-    if (cards.length === 0) {
-      cards.push(`
-        <div class="insight">
-          <b>✦ ML MODELS ACTIVE</b>
-          <strong>Inventory Normalized</strong>
-          <span>No imminent stockout hazards detected. Machine learning predictive models are active.</span>
-        </div>
-      `);
-    }
-
     box.innerHTML = cards.join('');
+    box.querySelectorAll('[data-ml-product]').forEach(button => button.addEventListener('click', () => openProductDetails(button.dataset.mlProduct)));
   }
 
   // ============================================================
