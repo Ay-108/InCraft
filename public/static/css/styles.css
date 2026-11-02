@@ -414,3 +414,113 @@ header {
     padding: 0 12px;
   }
 }
+
+
+/* FINAL VERCEL EXPORT BUTTON OVERRIDES
+   Use exact export destinations and high-specificity selectors so global
+   anchor/link styles cannot turn these controls back into blue underlined links. */
+#content .head .actions > a.btn.btn-export[href="/inventory/export"],
+#content .head .actions > a.btn.btn-export[href="/sales/export"],
+#content .head .actions > a.btn[href="/inventory/export"],
+#content .head .actions > a.btn[href="/sales/export"] {
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  min-width: 126px !important;
+  height: 40px !important;
+  padding: 0 15px !important;
+  color: #B94D08 !important;
+  background: #FFF3E9 !important;
+  border: 1px solid #EDC3A4 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 2px 5px rgba(217, 93, 11, .07) !important;
+  font-family: 'DM Sans', sans-serif !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  text-decoration: none !important;
+  text-decoration-line: none !important;
+  text-underline-offset: 0 !important;
+  white-space: nowrap !important;
+  cursor: pointer !important;
+}
+
+#content .head .actions > a.btn.btn-export[href="/inventory/export"]:link,
+#content .head .actions > a.btn.btn-export[href="/inventory/export"]:visited,
+#content .head .actions > a.btn.btn-export[href="/sales/export"]:link,
+#content .head .actions > a.btn.btn-export[href="/sales/export"]:visited,
+#content .head .actions > a.btn[href="/inventory/export"]:link,
+#content .head .actions > a.btn[href="/inventory/export"]:visited,
+#content .head .actions > a.btn[href="/sales/export"]:link,
+#content .head .actions > a.btn[href="/sales/export"]:visited,
+#content .head .actions > a.btn.btn-export[href="/inventory/export"]:hover,
+#content .head .actions > a.btn.btn-export[href="/sales/export"]:hover,
+#content .head .actions > a.btn[href="/inventory/export"]:hover,
+#content .head .actions > a.btn[href="/sales/export"]:hover,
+#content .head .actions > a.btn.btn-export[href="/inventory/export"]:focus,
+#content .head .actions > a.btn.btn-export[href="/sales/export"]:focus,
+#content .head .actions > a.btn[href="/inventory/export"]:focus,
+#content .head .actions > a.btn[href="/sales/export"]:focus {
+  color: #B94D08 !important;
+  text-decoration: none !important;
+  text-decoration-line: none !important;
+  background: #FFF3E9 !important;
+}
+
+#content .head .actions > a.btn.btn-export[href="/inventory/export"]:hover,
+#content .head .actions > a.btn.btn-export[href="/sales/export"]:hover,
+#content .head .actions > a.btn[href="/inventory/export"]:hover,
+#content .head .actions > a.btn[href="/sales/export"]:hover {
+  color: #963B04 !important;
+  background: #FFE8D7 !important;
+  border-color: #E9A979 !important;
+  box-shadow: 0 4px 11px rgba(217, 93, 11, .13) !important;
+  transform: translateY(-1px);
+}
+
+#content .head .actions > a.btn.btn-export .btn-export-icon,
+#content .head .actions > a.btn[href="/inventory/export"] .btn-export-icon,
+#content .head .actions > a.btn[href="/sales/export"] .btn-export-icon {
+  width: 21px !important;
+  height: 21px !important;
+  min-width: 21px !important;
+  display: inline-grid !important;
+  place-items: center !important;
+  border-radius: 6px !important;
+  color: #FFFFFF !important;
+  background: #F47521 !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  text-decoration: none !important;
+}
+
+.dark #content .head .actions > a.btn.btn-export[href="/inventory/export"],
+.dark #content .head .actions > a.btn.btn-export[href="/sales/export"],
+.dark #content .head .actions > a.btn[href="/inventory/export"],
+.dark #content .head .actions > a.btn[href="/sales/export"] {
+  color: #FFD0AD !important;
+  background: #30251F !important;
+  border-color: #765036 !important;
+  box-shadow: none !important;
+}
+
+.dark #content .head .actions > a.btn.btn-export[href="/inventory/export"]:hover,
+.dark #content .head .actions > a.btn.btn-export[href="/sales/export"]:hover,
+.dark #content .head .actions > a.btn[href="/inventory/export"]:hover,
+.dark #content .head .actions > a.btn[href="/sales/export"]:hover {
+  color: #FFE0C7 !important;
+  background: #3A2A21 !important;
+  border-color: #A36A43 !important;
+}
+
+@media (max-width: 768px) {
+  #content .head .actions > a.btn[href="/inventory/export"],
+  #content .head .actions > a.btn[href="/sales/export"] {
+    min-width: 116px !important;
+    height: 38px !important;
+    padding: 0 12px !important;
+  }
+}
