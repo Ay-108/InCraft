@@ -58,6 +58,13 @@
     }
   }
 
+  // --- Helper: Escape database/user text before inserting it into HTML ---
+  function escapeHtml(value) {
+    return String(value == null ? '' : value).replace(/[&<>"']/g, (character) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[character]);
+  }
+
   // --- Helper: Show Toast Notification ---
   function toast(message, type = 'info') {
     const el = $('#toast');
@@ -374,7 +381,7 @@
             <button class="${initialPage === 'dashboard' ? 'active' : ''}" data-page="dashboard">⌂ <span>Dashboard</span></button>
             <button class="${initialPage === 'inventory' ? 'active' : ''}" data-page="inventory">▦ <span>Inventory</span></button>
             <button class="${initialPage === 'sales' ? 'active' : ''}" data-page="sales">↗ <span>Sales</span></button>
-            <button class="${initialPage === 'analytics' ? 'active' : ''}" data-page="analytics">◒ <span>Analytics</span></button>
+            ${state.user?.role === 'admin' ? `<button class="${initialPage === 'analytics' ? 'active' : ''}" data-page="analytics">◒ <span>Analytics</span></button>` : ''}
             <button class="${initialPage === 'activity' ? 'active' : ''}" data-page="activity">◷ <span>Activity history</span></button>
           </nav>
           <small class="label account">ACCOUNT</small>
@@ -382,9 +389,9 @@
             <button class="${initialPage === 'settings' ? 'active' : ''}" data-page="settings">⚙ <span>Settings</span></button>
           </nav>
           <div class="bottom">
-            <div class="smart" id="smartInsightsSidebar" style="cursor:pointer;">
+            ${state.user?.role === 'admin' ? `<div class="smart" id="smartInsightsSidebar" style="cursor:pointer;">
               ✦ <div><b>Smart insights</b><small>Make your next move count.</small></div> →
-            </div>
+            </div>` : ''}
             <div class="user">
               <b>${initials}</b>
               <div>
@@ -535,6 +542,10 @@
   }
 
   function navigateTo(pageName) {
+    if (pageName === 'analytics' && state.user?.role !== 'admin') {
+      toast('Analytics is available to administrators only.', 'error');
+      pageName = 'dashboard';
+    }
     state.currentPage = pageName;
     $$('[data-page]').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.page === pageName);
