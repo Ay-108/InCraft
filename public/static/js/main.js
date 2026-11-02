@@ -338,6 +338,51 @@ if (mobileQuery.addEventListener) {
         }
     });
 
+    /* =========================================
+       5B. NOTIFICATION DROPDOWN
+       ========================================= */
+
+    const notificationButton = document.getElementById("notificationButton");
+    const notificationDropdown = document.getElementById("notificationDropdown");
+    const markNotificationsRead = document.getElementById("markNotificationsRead");
+
+    function closeNotifications() {
+        if (!notificationButton || !notificationDropdown) return;
+        notificationDropdown.style.display = "none";
+        notificationButton.setAttribute("aria-expanded", "false");
+    }
+
+    if (notificationButton && notificationDropdown) {
+        notificationButton.addEventListener("click", function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            const open = notificationDropdown.style.display !== "none";
+            notificationDropdown.style.display = open ? "none" : "block";
+            notificationButton.setAttribute("aria-expanded", String(!open));
+        });
+
+        notificationDropdown.addEventListener("click", function (event) {
+            event.stopPropagation();
+        });
+
+        if (markNotificationsRead) {
+            markNotificationsRead.addEventListener("click", function () {
+                notificationDropdown.querySelectorAll(".notification-badge").forEach(function (badge) {
+                    badge.remove();
+                });
+                document.querySelectorAll(".notification-badge").forEach(function (badge) {
+                    badge.remove();
+                });
+            });
+        }
+
+        document.addEventListener("click", function (event) {
+            if (!notificationDropdown.contains(event.target) && !notificationButton.contains(event.target)) {
+                closeNotifications();
+            }
+        });
+    }
+
 
     /* =========================================
        6. GLOBAL ESCAPE HANDLER
@@ -366,6 +411,10 @@ if (mobileQuery.addEventListener) {
         dropdowns.forEach(function (dropdown) {
             dropdown.style.display = "none";
         });
+
+        if (notificationButton) {
+            notificationButton.setAttribute("aria-expanded", "false");
+        }
 
         // Preserve existing modal closing behavior.
         const modal = document.querySelector(".modal-overlay");
