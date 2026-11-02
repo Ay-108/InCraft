@@ -1216,14 +1216,14 @@
 
   function openImportModal() {
     openModal(
-      'Import Products from CSV',
-      'Upload a CSV file containing inventory products.',
+      'Import Inventory Data',
+      'Upload a CSV or Excel (.xlsx) file containing inventory products.',
       `
       <form id="importForm" enctype="multipart/form-data">
-        <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">CSV columns expected: <code>product_code, name, category, quantity, price, minimum_stock, supplier</code></p>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">Required columns: <code>product_code, name, category, quantity, price</code>. Optional: <code>minimum_stock, supplier</code></p>
         <label>
-          Select CSV File
-          <input type="file" id="csvFileInput" accept=".csv" required style="padding-top:8px;">
+          Select CSV or Excel File
+          <input type="file" id="csvFileInput" accept=".csv,.xlsx" required style="padding-top:8px;">
         </label>
         <div class="modal-actions" style="margin-top:20px;">
           <button type="button" class="btn" id="cancelImportBtn">Cancel</button>
@@ -1242,18 +1242,18 @@
       const fd = new FormData();
       fd.append('file', fileInput.files[0]);
 
-      toast('Importing CSV file...', 'info');
+      toast('Importing inventory file...', 'info');
       const res = await api('/inventory/import', {
         method: 'POST',
         body: fd
       });
 
       if (res && res.ok) {
-        toast('Inventory imported successfully!', 'success');
+        toast(res.data?.message || 'Inventory imported successfully!', 'success');
         closeModal();
         loadInventoryData();
       } else {
-        toast(res?.data?.message || 'Error importing CSV.', 'error');
+        toast(res?.data?.message || 'Error importing inventory file.', 'error');
       }
     };
   }
@@ -1654,9 +1654,13 @@
       cards.push('<div class="insight"><b>REORDER STATUS</b><strong>No immediate reorder condition</strong><span>No product currently meets the calculated reorder point using the available demand estimate and lead-time setting.</span></div>');
     }
 
-    const generatedAt = [forecastResponse.data.generated_at, riskResponse.data.generated_at, reorderResponse.data.generated_at].filter(Boolean).sort().pop();
+    const generatedAt = [
+      forecastResponse.data.generated_at,
+      riskResponse.data.generated_at,
+      reorderResponse.data.generated_at
+    ].filter(Boolean).sort().pop();
     if (generatedAt) {
-      cards.push('<div class="dashboard-ml-meta">ML assessments generated: ' + escapeHtml(fmtDate(generatedAt)) + '. Reorder suggestions are estimates and do not create purchase orders or change stock.</div>');
+      cards.push('<div class="dashboard-ml-meta">ML assessments generated: ' + escapeHtml(fmtDate(generatedAt)) + '. Reorder suggestions are estimates; they do not create purchase orders or change stock.</div>');
     }
     box.innerHTML = cards.join('');
   }
