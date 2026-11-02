@@ -26,7 +26,7 @@
         (function () {
             "use strict";
 
-            var preference = "dark";
+            var preference = "light";
 
             try {
                 var savedTheme = localStorage.getItem("incraftTheme");
@@ -39,7 +39,7 @@
                     preference = savedTheme;
                 }
             } catch (error) {
-                // Fall back to dark theme if storage is unavailable.
+                // Fall back to the light brand theme if storage is unavailable.
             }
 
             var systemThemeQuery = window.matchMedia
@@ -168,6 +168,13 @@
     <link
         rel="stylesheet"
         href="{{ url_for('static', filename='css/ui-redesign.css') }}"
+    >
+
+    <!-- Orange / Black / White visual identity, loaded last to override
+         presentation only while retaining existing page and component hooks. -->
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/crunchyroll-theme.css') }}"
     >
 
 </head>

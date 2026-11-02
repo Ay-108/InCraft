@@ -146,10 +146,10 @@ document.addEventListener("DOMContentLoaded", async function () {
         Chart.defaults.font.size = 11;
 
         Chart.defaults.color =
-            "#8B8B8B";
+            "#777777";
 
         Chart.defaults.borderColor =
-            "rgba(255, 255, 255, 0.08)";
+            "#E5E5E5";
     }
 
 
@@ -185,10 +185,10 @@ document.addEventListener("DOMContentLoaded", async function () {
                             data: revenueData,
 
                             borderColor:
-                                "#F0782B",
+                                "#F47521",
 
                             backgroundColor:
-                                "rgba(240, 120, 43, 0.10)",
+                                "rgba(244, 117, 33, 0.10)",
 
                             borderWidth: 2.5,
 
@@ -201,10 +201,10 @@ document.addEventListener("DOMContentLoaded", async function () {
                             pointHoverRadius: 6,
 
                             pointBackgroundColor:
-                                "#F0782B",
+                                "#F47521",
 
                             pointBorderColor:
-                                "#F0782B"
+                                "#F47521"
 
                         }
 
@@ -249,7 +249,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                                 "#D0D0D0",
 
                             borderColor:
-                                "rgba(249, 115, 22, 0.35)",
+                                "rgba(244, 117, 33, 0.38)",
 
                             borderWidth: 1,
 
@@ -297,7 +297,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                             ticks: {
 
                                 color:
-                                    "#8B8B8B"
+                                    "#777777"
 
                             }
 
@@ -311,14 +311,14 @@ document.addEventListener("DOMContentLoaded", async function () {
                             grid: {
 
                                 color:
-                                    "rgba(255, 255, 255, 0.06)"
+                                    "rgba(229, 229, 229, 0.85)"
 
                             },
 
                             ticks: {
 
                                 color:
-                                    "#8B8B8B",
+                                    "#777777",
 
 
                                 callback:
@@ -381,11 +381,11 @@ document.addEventListener("DOMContentLoaded", async function () {
 
                             backgroundColor: [
 
-                                "#F0782B",
-                                "#D9641F",
-                                "#B94F16",
-                                "#8F3D12",
-                                "#5F2B12"
+                                "#F47521",
+                                "#23252B",
+                                "#777777",
+                                "#A3A3A3",
+                                "#C7C7C7"
 
                             ],
 
@@ -422,7 +422,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                             labels: {
 
                                 color:
-                                    "#B8B8B8",
+                                    "#777777",
 
                                 padding: 14,
 
@@ -455,7 +455,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                                 "#D0D0D0",
 
                             borderColor:
-                                "rgba(249, 115, 22, 0.35)",
+                                "rgba(244, 117, 33, 0.38)",
 
                             borderWidth: 1,
 
@@ -507,7 +507,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                             data: topProductData,
 
                             backgroundColor:
-                                "#F0782B",
+                                "#F47521",
 
                             borderRadius: 6,
 
@@ -554,7 +554,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                                 "#D0D0D0",
 
                             borderColor:
-                                "rgba(249, 115, 22, 0.35)",
+                                "rgba(244, 117, 33, 0.38)",
 
                             borderWidth: 1,
 
@@ -592,14 +592,14 @@ document.addEventListener("DOMContentLoaded", async function () {
                             grid: {
 
                                 color:
-                                    "rgba(255, 255, 255, 0.06)"
+                                    "rgba(229, 229, 229, 0.85)"
 
                             },
 
                             ticks: {
 
                                 color:
-                                    "#8B8B8B"
+                                    "#777777"
 
                             }
 
@@ -617,7 +617,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                             ticks: {
 
                                 color:
-                                    "#B8B8B8"
+                                    "#777777"
 
                             }
 
@@ -705,7 +705,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                             labels: {
 
                                 color:
-                                    "#B8B8B8",
+                                    "#777777",
 
                                 padding: 14,
 
@@ -738,7 +738,7 @@ document.addEventListener("DOMContentLoaded", async function () {
                                 "#D0D0D0",
 
                             borderColor:
-                                "rgba(249, 115, 22, 0.35)",
+                                "rgba(244, 117, 33, 0.38)",
 
                             borderWidth: 1,
 
