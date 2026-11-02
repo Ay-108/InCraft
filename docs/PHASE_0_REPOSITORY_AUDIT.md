@@ -107,6 +107,7 @@ These are gaps relative to the future requirements, not a recommendation to add 
 ### C. Database consistency and audit gaps
 - Sales and sale-items are relationally modeled, but no stock movement ledger exists in the core schema.
 - Product deletion is restricted when linked to sale items; archive/status should be preferred for historical integrity.
+- **Confirmed sales schema mismatch:** `create_sale()` selects/inserts `sales.idempotency_key`, and the client sends a UUID, but the committed `database/schema.sql` did not define that column or unique index. A clean database initialized from the schema would fail sale creation. This has been addressed with a schema update and an idempotent migration for existing databases.
 - Returns, refunds, cancellation and inventory reversal are not represented as first-class schema concepts.
 - No explicit supplier lead-time field appears in the products table; ML route uses an assumed/default lead time unless separately configured.
 - Activity logs are not a substitute for a full quantity movement ledger.
@@ -125,6 +126,7 @@ These are gaps relative to the future requirements, not a recommendation to add 
 - Vercel storage is temporary under `/tmp`; durable uploaded files/exports require external object storage.
 - The configured 4 MB Vercel upload default leaves headroom under function request limits, but larger imports/exports need direct object storage workflows.
 - `config.allowed_file()` checks extension/path shape; uploaded content still needs validation and parser hardening.
+- **Confirmed health endpoint information leak:** `/api/health` included the raw MySQL connector message in the public `db_error` field when connectivity fails. This could disclose host/account/connection details. The response has been changed to a generic status message while exception details remain in server logs.
 - Database reachability and secrets cannot be fully verified without deployment environment access.
 
 ### G. Testing
@@ -161,9 +163,9 @@ These are positive controls, not a complete security certification. SQL query au
 
 **Completed:** Repository metadata and main baseline identified; application entry points and deployment configuration inspected; hybrid frontend architecture identified; schema and ML service structures reviewed; initial risk register documented; dedicated feature branch created.
 
-**Not completed in Phase 0:** Runtime/database tests, full route-by-route endpoint matrix, full frontend interaction test, external deployment verification, or implementation of phases 1–12.
+**Follow-on functional fixes on the same feature branch:** the sales idempotency column/index is now in the baseline schema with an idempotent migration for existing installations; the public health response is hardened and covered by a regression test.
 
-**No application source files, database schema, production configuration or deployment targets were modified.**
+**Not completed:** Runtime/database tests, full frontend interaction tests, external deployment verification, or implementation of phases 1–12.
 
 ## 10. References
 - Repository: https://github.com/Ay-108/InCraft
