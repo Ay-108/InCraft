@@ -1,7 +1,7 @@
 /* =========================================================
    InCraft — Resilient Chart.js loader
-   Uses a pinned Chart.js build and CDN failover so chart pages
-   do not silently fail when one delivery host is unavailable.
+   Uses a pinned Chart.js build with parallel CDN failover so
+   a chart page is not dependent on one delivery host.
    ========================================================= */
 (function () {
     "use strict";
@@ -18,58 +18,52 @@
     ];
 
     window.InCraftChartReady = new Promise(function (resolve) {
-        var index = 0;
+        var settled = false;
+        var failed = 0;
+        var scripts = [];
 
-        function tryNextSource() {
-            if (window.Chart) {
-                resolve(true);
-                return;
-            }
+        function finish(success) {
+            if (settled) return;
+            settled = true;
+            window.clearTimeout(timeoutId);
 
-            if (index >= sources.length) {
+            if (!success) {
+                scripts.forEach(function (script) {
+                    script.onload = null;
+                    script.onerror = null;
+                    if (script.parentNode) {
+                        script.parentNode.removeChild(script);
+                    }
+                });
                 console.error("InCraft charts: all Chart.js delivery sources failed.");
-                resolve(false);
-                return;
             }
 
-            var source = sources[index++];
+            resolve(Boolean(success && window.Chart));
+        }
+
+        var timeoutId = window.setTimeout(function () {
+            finish(Boolean(window.Chart));
+        }, 6500);
+
+        sources.forEach(function (source) {
             var script = document.createElement("script");
-            var settled = false;
-            var timeoutId = window.setTimeout(function () {
-                finish(false);
-            }, 6500);
-
-            function finish(success) {
-                if (settled) return;
-                settled = true;
-                window.clearTimeout(timeoutId);
-
-                if (success && window.Chart) {
-                    resolve(true);
-                    return;
-                }
-
-                script.onerror = null;
-                script.onload = null;
-                if (script.parentNode) {
-                    script.parentNode.removeChild(script);
-                }
-                tryNextSource();
-            }
-
+            scripts.push(script);
             script.src = source;
             script.async = true;
             script.crossOrigin = "anonymous";
             script.onload = function () {
-                finish(!!window.Chart);
+                if (window.Chart) {
+                    finish(true);
+                } else {
+                    failed += 1;
+                    if (failed === sources.length) finish(false);
+                }
             };
             script.onerror = function () {
-                finish(false);
+                failed += 1;
+                if (failed === sources.length) finish(false);
             };
-
             document.head.appendChild(script);
-        }
-
-        tryNextSource();
+        });
     });
 })();
