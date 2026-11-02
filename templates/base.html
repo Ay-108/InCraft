@@ -173,7 +173,7 @@
 </head>
 
 
-<body class="{% block body_class %}{% endblock %}">
+<body class="{% block body_class %}{% endblock %}" data-incraft-data-changed="{{ session.pop('incraft_data_changed', '') }}">
 
 
     {% if request.endpoint in ['main.login', 'main.register'] %}
@@ -232,6 +232,11 @@
 
     <script
         src="{{ url_for('static', filename='js/main.js') }}"
+    ></script>
+
+    <!-- Broadcast successful inventory and sales changes across open InCraft tabs. -->
+    <script
+        src="{{ url_for('static', filename='js/data-sync.js') }}"
     ></script>
 
     <!-- Decorative motion only; all application handlers remain in main.js
