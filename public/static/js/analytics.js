@@ -7,7 +7,10 @@
    ========================================= */
 
 
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", async function () {
+    if (window.InCraftChartReady) {
+        await window.InCraftChartReady;
+    }
 
 
     /* =========================================
