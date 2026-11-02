@@ -2689,6 +2689,7 @@ def dashboard_summary():
             INNER JOIN sales AS s ON s.sale_id = si.sale_id
             INNER JOIN products AS p ON p.product_id = si.product_id
             WHERE s.sale_date >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+              AND p.status = 'active'
         """
         top_products_params = ()
         if not is_admin:
