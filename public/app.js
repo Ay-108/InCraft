@@ -857,7 +857,7 @@
         </div>
         <div class="actions">
           <button class="btn" id="invImportBtn">Import CSV</button>
-          <a class="btn" href="/inventory/export" target="_blank" download>Export CSV</a>
+          <a class="btn btn-export" href="/inventory/export" target="_blank" rel="noopener" download aria-label="Export inventory as CSV"><span class="btn-export-icon" aria-hidden="true">↓</span><span>Export CSV</span></a>
           <button class="btn primary" id="invAddBtn">+ Add product</button>
         </div>
       </div>
@@ -1259,7 +1259,7 @@
           <p>Record transactions and monitor revenue generation.</p>
         </div>
         <div class="actions">
-          <a class="btn" href="/sales/export" target="_blank" download>Export sales</a>
+          <a class="btn btn-export" href="/sales/export" target="_blank" rel="noopener" download aria-label="Export sales as CSV"><span class="btn-export-icon" aria-hidden="true">↓</span><span>Export sales</span></a>
           <button class="btn primary" id="recordSaleBtn">+ Record sale</button>
         </div>
       </div>
