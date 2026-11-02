@@ -29,6 +29,7 @@
     theme: localStorage.getItem('incraft_theme') || 'light',
     currency: localStorage.getItem('incraft_currency') || '₹',
     dashboardChart: null,
+    dashboardTrendRequestId: 0,
     dashboardChartMetric: 'revenue',
     dashboardLastRefresh: null,
     products: [],
@@ -863,6 +864,9 @@ ${isAdmin ? '<button class="dash-quick-link" data-dash-page="analytics">Analytic
   async function loadSalesTrend(days = 7, metric = 'revenue') {
     const box = $('#salesChartBox');
     if (!box) return;
+    const requestId = ++state.dashboardTrendRequestId;
+    state.dashboardChart?.destroy();
+    state.dashboardChart = null;
     const sub = $('#chartSub');
     const label = $('#dashChartMetricLabel');
     const totalEl = $('#dashChartTotal');
@@ -871,6 +875,7 @@ ${isAdmin ? '<button class="dash-quick-link" data-dash-page="analytics">Analytic
     if (label) label.textContent = `${metricLabels[metric] || 'Sales'} in selected period`;
     box.innerHTML = '<div class="dash-loading">Loading live sales data…</div>';
     const res = await api(`/api/dashboard/sales?days=${days}`);
+    if (requestId !== state.dashboardTrendRequestId || !$('#salesChartBox')) return;
     if (!res?.ok || !res.data?.success) {
       box.innerHTML = `<div class="dash-empty dash-error">${escapeHtml(res?.data?.message || 'Sales trend could not be loaded.')}<button class="btn btn-sm" id="retrySalesTrend">Retry</button></div>`;
       $('#retrySalesTrend')?.addEventListener('click', () => loadSalesTrend(days, metric));
@@ -889,6 +894,7 @@ ${isAdmin ? '<button class="dash-quick-link" data-dash-page="analytics">Analytic
       return;
     }
     const ready = window.InCraftChartReady ? await window.InCraftChartReady : Boolean(window.Chart);
+    if (requestId !== state.dashboardTrendRequestId || !$('#salesChartBox')) return;
     if (!ready || !window.Chart) {
       box.innerHTML = '<div class="dash-empty dash-error">Chart.js could not be loaded. Check your connection and retry.<button class="btn btn-sm" id="retrySalesTrend">Retry</button></div>';
       $('#retrySalesTrend')?.addEventListener('click', () => loadSalesTrend(days, metric));
