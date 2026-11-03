@@ -445,7 +445,21 @@
 
     applyTheme(state.theme);
     wireGlobalHandlers();
-    navigateTo(initialPage);
+
+    // Direct refreshes are served by Flask's unified index.html route. Keep
+    // browser back/forward navigation inside that same SPA shell as well.
+    window.addEventListener('popstate', () => {
+      const pathname = window.location.pathname.toLowerCase();
+      let page = 'dashboard';
+      if (pathname.includes('/inventory')) page = 'inventory';
+      else if (pathname.includes('/sales')) page = 'sales';
+      else if (pathname.includes('/analytics')) page = 'analytics';
+      else if (pathname.includes('/activity')) page = 'activity';
+      else if (pathname.includes('/settings')) page = 'settings';
+      navigateTo(page, false);
+    });
+
+    navigateTo(initialPage, false);
   }
 
   function wireGlobalHandlers() {
@@ -534,7 +548,12 @@
     };
   }
 
-  function navigateTo(pageName) {
+  function navigateTo(pageName, updateHistory = true) {
+    const allowedPages = new Set([
+      'dashboard', 'inventory', 'sales', 'analytics', 'activity', 'settings'
+    ]);
+    if (!allowedPages.has(pageName)) pageName = 'dashboard';
+
     state.currentPage = pageName;
     $$('[data-page]').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.page === pageName);
@@ -554,7 +573,7 @@
 
     // Update browser URL
     const targetUrl = pageName === 'dashboard' ? '/dashboard' : `/${pageName}`;
-    if (window.location.pathname !== targetUrl) {
+    if (updateHistory && window.location.pathname !== targetUrl) {
       window.history.pushState({ page: pageName }, '', targetUrl);
     }
 
@@ -1517,31 +1536,138 @@
 
   async function loadAnalyticsData(months = 6) {
     const res = await api(`/api/analytics?months=${months}`);
-    if (!res || !res.ok || !res.data) return;
+    const monthly_sales = res?.data?.monthly_sales || [];
+    const top_products = res?.data?.top_products || [];
 
-    const { monthly_sales, top_products } = res.data;
-
-    // Monthly Chart
+    // Monthly Revenue Chart
+    // Render with explicit SVG coordinates; percentage-height flex children
+    // can collapse when their parent has no computed content height.
     const chartBox = $('#analyticsMonthlyChart');
     if (chartBox) {
-      if (!monthly_sales || monthly_sales.length === 0) {
-        chartBox.innerHTML = `No historical monthly sales records available yet.`;
-      } else {
-        const maxVal = Math.max(...monthly_sales.map(m => m.revenue || m.total || 0), 10);
+      chartBox.style.display = 'block';
+      chartBox.style.width = '100%';
+      chartBox.style.height = '250px';
+      chartBox.style.minWidth = '0';
+
+      if (!res || !res.ok || !res.data || res.data.success === false) {
         chartBox.innerHTML = `
-          <div style="display:flex;align-items:flex-end;gap:14px;height:100%;padding:10px 0;">
-            ${monthly_sales.map(m => {
-              const val = m.revenue || m.total || 0;
-              const hPct = Math.max(12, Math.round((val / maxVal) * 100));
-              return `
-                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;">
-                  <div style="width:100%;height:${hPct}%;background:var(--o);border-radius:6px 6px 0 0;" title="${m.month}: ${fmtMoney(val)}"></div>
-                  <small style="font-size:10px;color:var(--muted);">${m.month || ''}</small>
-                </div>
-              `;
-            }).join('')}
+          <div style="height:100%;display:grid;place-items:center;text-align:center;color:var(--muted);font-size:12px;">
+            Unable to load monthly revenue. Refresh the page to try again.
           </div>
         `;
+      } else {
+        const monthlyRows = (Array.isArray(monthly_sales) ? monthly_sales : []).map(row => {
+          const amount = Number(row?.revenue ?? row?.total ?? 0);
+          return {
+            month: String(row?.month || ''),
+            revenue: Number.isFinite(amount) && amount > 0 ? amount : 0,
+            transactions: Number(row?.transactions || 0)
+          };
+        });
+
+        if (monthlyRows.length === 0) {
+          chartBox.innerHTML = `
+            <div style="height:100%;display:grid;place-items:center;text-align:center;color:var(--muted);font-size:12px;">
+              No monthly sales records are available for this period.
+            </div>
+          `;
+        } else {
+          const width = 680;
+          const height = 250;
+          const margin = { top: 16, right: 18, bottom: 42, left: 82 };
+          const plotWidth = width - margin.left - margin.right;
+          const plotHeight = height - margin.top - margin.bottom;
+          const baseline = margin.top + plotHeight;
+          const maxRevenue = Math.max(...monthlyRows.map(row => row.revenue), 0);
+          const axisMaximum = maxRevenue > 0 ? maxRevenue * 1.12 : 1;
+
+          const compactMoney = value => {
+            const amount = Number(value) || 0;
+            if (amount >= 10000000) return `${state.currency}${(amount / 10000000).toFixed(1)}Cr`;
+            if (amount >= 100000) return `${state.currency}${(amount / 100000).toFixed(1)}L`;
+            if (amount >= 1000) return `${state.currency}${(amount / 1000).toFixed(1)}k`;
+            return `${state.currency}${Math.round(amount)}`;
+          };
+
+          const getMonthLabel = monthKey => {
+            const parts = String(monthKey).split('-');
+            const year = Number(parts[0]);
+            const month = Number(parts[1]);
+            if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) {
+              return String(monthKey).slice(0, 8);
+            }
+            return new Date(year, month - 1, 1)
+              .toLocaleDateString(undefined, { month: 'short' });
+          };
+
+          const grid = Array.from({ length: 5 }, (_, index) => {
+            const ratio = index / 4;
+            const y = margin.top + plotHeight * ratio;
+            const tickValue = axisMaximum * (1 - ratio);
+            return `
+              <g>
+                <line x1="${margin.left}" y1="${y.toFixed(2)}"
+                      x2="${(width - margin.right).toFixed(2)}" y2="${y.toFixed(2)}"
+                      stroke="var(--line)" stroke-width="1" stroke-dasharray="3 4"></line>
+                <text x="${margin.left - 10}" y="${(y + 4).toFixed(2)}"
+                      text-anchor="end" font-size="10" fill="var(--muted)">
+                  ${compactMoney(tickValue)}
+                </text>
+              </g>
+            `;
+          }).join('');
+
+          const slotWidth = plotWidth / monthlyRows.length;
+          const barWidth = Math.min(48, slotWidth * 0.58);
+          const bars = monthlyRows.map((row, index) => {
+            const slotStart = margin.left + index * slotWidth;
+            const x = slotStart + (slotWidth - barWidth) / 2;
+            const barHeight = row.revenue > 0
+              ? Math.max(3, (row.revenue / axisMaximum) * plotHeight)
+              : 0;
+            const y = baseline - barHeight;
+            const center = slotStart + slotWidth / 2;
+            const tooltip = `${row.month || 'Month'}: ${fmtMoney(row.revenue)} · ${row.transactions} transaction(s)`;
+
+            return `
+              <g>
+                ${row.revenue > 0 ? `
+                  <rect x="${x.toFixed(2)}" y="${y.toFixed(2)}"
+                        width="${barWidth.toFixed(2)}" height="${barHeight.toFixed(2)}"
+                        rx="5" fill="var(--o)" opacity="0.92">
+                    <title>${tooltip}</title>
+                  </rect>
+                ` : ''}
+                <text x="${center.toFixed(2)}" y="${(baseline + 24).toFixed(2)}"
+                      text-anchor="middle" font-size="11" fill="var(--muted)">
+                  ${getMonthLabel(row.month)}
+                </text>
+              </g>
+            `;
+          }).join('');
+
+          const emptyRevenue = maxRevenue === 0 ? `
+            <text x="${(margin.left + plotWidth / 2).toFixed(2)}"
+                  y="${(margin.top + plotHeight / 2).toFixed(2)}"
+                  text-anchor="middle" font-size="12" fill="var(--muted)">
+              No revenue recorded in this period
+            </text>
+          ` : '';
+
+          chartBox.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg"
+                 viewBox="0 0 ${width} ${height}"
+                 role="img" aria-label="Monthly revenue bar chart"
+                 style="display:block;width:100%;height:100%;overflow:visible;">
+              ${grid}
+              <line x1="${margin.left}" y1="${baseline}"
+                    x2="${width - margin.right}" y2="${baseline}"
+                    stroke="var(--line)" stroke-width="1.2"></line>
+              ${bars}
+              ${emptyRevenue}
+            </svg>
+          `;
+        }
       }
     }
 
