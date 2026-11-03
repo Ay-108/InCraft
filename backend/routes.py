@@ -33,7 +33,6 @@ from flask import (
     get_flashed_messages
 )
 from flask_wtf.csrf import generate_csrf
-from jinja2 import TemplateNotFound
 from flask.typing import ResponseReturnValue
 
 from werkzeug.security import (
@@ -124,15 +123,26 @@ def _get_initial_state(current_page="dashboard"):
     }
 
 
-def _render_app_page(page_name="dashboard", fallback_template=None, **template_kwargs):
-    """Render modern unified index.html or fallback to legacy template."""
+def _render_app_page(page_name="dashboard", **template_kwargs):
+    """Render every workspace page through the unified application shell."""
     initial_state = _get_initial_state(page_name)
-    try:
-        return render_template("index.html", initial_state=initial_state, **template_kwargs)
-    except TemplateNotFound:
-        if fallback_template:
-            return render_template(fallback_template, **template_kwargs)
-        raise
+    return render_template("index.html", initial_state=initial_state, **template_kwargs)
+
+
+def _unified_form_error(page_name, status=400):
+    """Return form validation errors to the SPA or redirect HTML requests."""
+    messages = get_flashed_messages(with_categories=True)
+    message = messages[-1][1] if messages else "Unable to complete the requested action."
+
+    is_json = (
+        request.is_json
+        or "application/json" in request.headers.get("Accept", "")
+    )
+    if is_json:
+        return jsonify({"success": False, "message": message}), status
+
+    flash(message, "danger")
+    return redirect(url_for(f"main.{page_name}"))
 
 
 
@@ -806,8 +816,7 @@ def dashboard():
 
     if request.is_json or "application/json" in request.headers.get("Accept", ""):
         return dashboard_summary()
-    return _render_app_page("dashboard", fallback_template="dashboard.html",
-        total_products=(cast(Any, total_products_row) or {}).get("total", 0),
+    return _render_app_page("dashboard", total_products=(cast(Any, total_products_row) or {}).get("total", 0),
         total_stock=(cast(Any, total_stock_row) or {}).get("total", 0),
         total_sales=(cast(Any, total_sales_row) or {}).get("total", 0),
         inventory_value=(
@@ -939,8 +948,7 @@ def inventory():
 
     if request.is_json or "application/json" in request.headers.get("Accept", ""):
         return jsonify({"success": True, "products": products, "search": search, "is_admin": is_admin})
-    return _render_app_page("inventory", fallback_template="inventory.html",
-        products=products,
+    return _render_app_page("inventory", products=products,
         search=search,
         is_admin=is_admin
     )
@@ -987,10 +995,7 @@ def add_product():
                 "Product fields exceed the allowed length.",
                 "danger"
             )
-            return render_template(
-                "product_form.html",
-                product=None
-            )
+            return _unified_form_error("inventory")
 
         required, missing = validate_required_fields(
             {
@@ -1012,10 +1017,7 @@ def add_product():
                 "danger"
             )
 
-            return render_template(
-                "product_form.html",
-                product=None
-            )
+            return _unified_form_error("inventory")
 
         if (
             not str(quantity).strip().isdigit()
@@ -1027,10 +1029,7 @@ def add_product():
                 "danger"
             )
 
-            return render_template(
-                "product_form.html",
-                product=None
-            )
+            return _unified_form_error("inventory")
 
         if not validate_positive_number(
             price
@@ -1041,10 +1040,7 @@ def add_product():
                 "danger"
             )
 
-            return render_template(
-                "product_form.html",
-                product=None
-            )
+            return _unified_form_error("inventory")
 
         if (
             not str(minimum_stock).strip().isdigit()
@@ -1056,10 +1052,7 @@ def add_product():
                 "danger"
             )
 
-            return render_template(
-                "product_form.html",
-                product=None
-            )
+            return _unified_form_error("inventory")
 
         existing_product = fetch_one(
             """
@@ -1078,10 +1071,7 @@ def add_product():
                 "danger"
             )
 
-            return render_template(
-                "product_form.html",
-                product=None
-            )
+            return _unified_form_error("inventory")
 
         product_id = execute_query(
             """
@@ -1122,10 +1112,7 @@ def add_product():
                 "danger"
             )
 
-            return render_template(
-                "product_form.html",
-                product=None
-            )
+            return _unified_form_error("inventory")
 
         execute_query(
             """
@@ -1160,10 +1147,7 @@ def add_product():
         flash("Product added successfully.", "success")
         return redirect(url_for("main.inventory"))
 
-    return render_template(
-        "product_form.html",
-        product=None
-    )
+    return _unified_form_error("inventory")
 
 
 # ============================================================
@@ -1225,10 +1209,7 @@ def edit_product(product_id):
                 "Product fields exceed the allowed length.",
                 "danger"
             )
-            return render_template(
-                "product_form.html",
-                product=product
-            )
+            return _unified_form_error("inventory")
 
         if not name or not category:
 
@@ -1237,10 +1218,7 @@ def edit_product(product_id):
                 "danger"
             )
 
-            return render_template(
-                "product_form.html",
-                product=product
-            )
+            return _unified_form_error("inventory")
 
         if (
             not str(quantity).strip().isdigit()
@@ -1252,10 +1230,7 @@ def edit_product(product_id):
                 "danger"
             )
 
-            return render_template(
-                "product_form.html",
-                product=product
-            )
+            return _unified_form_error("inventory")
 
         if not validate_positive_number(
             price
@@ -1266,10 +1241,7 @@ def edit_product(product_id):
                 "danger"
             )
 
-            return render_template(
-                "product_form.html",
-                product=product
-            )
+            return _unified_form_error("inventory")
 
         if (
             not str(minimum_stock).strip().isdigit()
@@ -1281,10 +1253,7 @@ def edit_product(product_id):
                 "danger"
             )
 
-            return render_template(
-                "product_form.html",
-                product=product
-            )
+            return _unified_form_error("inventory")
 
         update_result = execute_query(
             """
@@ -1318,10 +1287,7 @@ def edit_product(product_id):
                 "danger"
             )
 
-            return render_template(
-                "product_form.html",
-                product=product
-            )
+            return _unified_form_error("inventory")
 
         execute_query(
             """
@@ -1362,10 +1328,7 @@ def edit_product(product_id):
             url_for("main.inventory")
         )
 
-    return render_template(
-        "product_form.html",
-        product=product
-    )
+    return _unified_form_error("inventory")
 
 
 # ============================================================
@@ -2202,8 +2165,7 @@ def sales():
 
     if request.is_json or "application/json" in request.headers.get("Accept", ""):
         return jsonify({"success": True, "sales": sales_records or [], "products": products or [], "summary": dict(sales_summary or {}), "is_admin": is_admin})
-    return _render_app_page("sales", fallback_template="sales.html",
-        sales=sales_records or [],
+    return _render_app_page("sales", sales=sales_records or [],
         products=products or [],
         todays_sales=summary.get("todays_sales", 0),
         total_orders=summary.get("total_orders", 0),
@@ -3668,8 +3630,7 @@ def activity():
             if x.get("created_at"):
                 x["created_at"] = str(x["created_at"])
         return jsonify({"success": True, "activities": serialized})
-    return _render_app_page("activity", fallback_template="activity.html",
-        activities=activities
+    return _render_app_page("activity", activities=activities
     )
 
 
@@ -3744,10 +3705,7 @@ def settings():
             if request.is_json or "application/json" in request.headers.get("Accept", ""):
                 return jsonify({"success": False, "message": msg}), 400
             flash(msg, "danger")
-            return render_template(
-                "settings.html",
-                user=user
-            )
+            return _unified_form_error("settings")
 
         if not validate_email(email):
 
@@ -3756,10 +3714,7 @@ def settings():
                 "danger"
             )
 
-            return render_template(
-                "settings.html",
-                user=user
-            )
+            return _unified_form_error("settings")
 
         existing_email = fetch_one(
             """
@@ -3782,10 +3737,7 @@ def settings():
                 "danger"
             )
 
-            return render_template(
-                "settings.html",
-                user=user
-            )
+            return _unified_form_error("settings")
 
         password_hash = None
 
@@ -3798,10 +3750,7 @@ def settings():
                     "danger"
                 )
 
-                return render_template(
-                    "settings.html",
-                    user=user
-                )
+                return _unified_form_error("settings")
 
             password_record = fetch_one(
                 """
@@ -3832,10 +3781,7 @@ def settings():
                     "danger"
                 )
 
-                return render_template(
-                    "settings.html",
-                    user=user
-                )
+                return _unified_form_error("settings")
 
             if not validate_password(
                 new_password
@@ -3848,10 +3794,7 @@ def settings():
                     "danger"
                 )
 
-                return render_template(
-                    "settings.html",
-                    user=user
-                )
+                return _unified_form_error("settings")
 
             if new_password != confirm_password:
 
@@ -3860,10 +3803,7 @@ def settings():
                     "danger"
                 )
 
-                return render_template(
-                    "settings.html",
-                    user=user
-                )
+                return _unified_form_error("settings")
 
             password_hash = generate_password_hash(
                 new_password
@@ -3895,10 +3835,7 @@ def settings():
                 "danger"
             )
 
-            return render_template(
-                "settings.html",
-                user=user
-            )
+            return _unified_form_error("settings")
 
         session["username"] = username
         session["email"] = email
@@ -3949,7 +3886,7 @@ def settings():
         u_copy = dict(user or {})
         u_copy.pop("password", None)
         return jsonify({"success": True, "user": u_copy})
-    return _render_app_page("settings", fallback_template="settings.html", user=user)
+    return _render_app_page("settings", user=user)
 
 
 
