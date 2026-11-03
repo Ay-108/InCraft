@@ -85,36 +85,10 @@
 
     try {
       const res = await fetch(url, options);
-      const responseText = await res.text();
-      let data = null;
-
-      if (responseText) {
-        try {
-          data = JSON.parse(responseText);
-        } catch {
-          data = null;
-        }
-      }
-
-      // Do not silently replace HTML/server failures with a misleading
-      // generic registration or login message.
-      if (!data && !res.ok) {
-        const messageByStatus = {
-          400: 'The request was rejected. Refresh the page and try again (security token may have expired).',
-          401: 'Invalid email or password.',
-          403: 'You do not have permission to complete this request.',
-          404: 'The requested authentication endpoint was not found.',
-          500: 'The server encountered an error. Check the Flask/Vercel logs for details.',
-          503: 'The database or application service is unavailable. Check the deployment configuration and server logs.'
-        };
-        data = {
-          success: false,
-          message: messageByStatus[res.status] || `Request failed (HTTP ${res.status}).`
-        };
-      }
+      const data = await res.json().catch(() => null);
 
       if (res.status === 401 || res.status === 403) {
-        if (data && data.message && data.message.toLowerCase().includes('sign in')) {
+        if (data && data.message && data.message.includes('sign in')) {
           state.user = null;
           showLanding();
           toast(data.message, 'error');
@@ -267,8 +241,8 @@
           <label>
             Role
             <select id="loginRole" style="height:42px;border:1px solid var(--line);border-radius:7px;padding:0 10px;background:var(--card);color:var(--ink);">
-              <option value="staff" selected>Staff Member</option>
               <option value="admin">Administrator</option>
+              <option value="staff">Staff Member</option>
             </select>
           </label>
           <div id="formMessage" class="form-message"></div>
@@ -1285,7 +1259,6 @@
           <p>Record transactions and monitor revenue generation.</p>
         </div>
         <div class="actions">
-          ${state.user?.role === 'admin' ? '<button class="btn" id="salesImportBtn">Import sales</button>' : ''}
           <a class="btn btn-export" href="/sales/export" target="_blank" rel="noopener" download aria-label="Export sales as CSV"><span class="btn-export-icon" aria-hidden="true">↓</span><span>Export sales</span></a>
           <button class="btn primary" id="recordSaleBtn">+ Record sale</button>
         </div>
@@ -1323,7 +1296,6 @@
     `;
 
     $('#recordSaleBtn').onclick = () => openRecordSaleModal();
-    $('#salesImportBtn')?.addEventListener('click', openSalesImportModal);
     $('#refreshSalesBtn').onclick = () => loadSalesData();
 
     loadSalesData();
@@ -1363,85 +1335,6 @@
         <td style="color:var(--muted);font-size:11px;">${fmtDate(s.sale_date || s.created_at)}</td>
       </tr>
     `).join('');
-  }
-
-  function openSalesImportModal() {
-    openModal(
-      'Import Sales from CSV',
-      'Import historical transactions into Sales and automatically deduct their quantities from inventory.',
-      `
-      <form id="salesImportForm" enctype="multipart/form-data">
-        <p style="font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:14px;">
-          Required columns: <code>product_code, quantity</code><br>
-          Optional columns: <code>invoice_number, sale_date, customer_name, payment_method, unit_price, line_total</code><br>
-          Multiple rows with the same invoice number are grouped into one invoice. Unit prices in the CSV are used when supplied; otherwise the current product price is used.
-        </p>
-        <label>
-          Select Sales CSV File
-          <input type="file" id="salesCsvFile" accept=".csv,text/csv" required style="padding-top:8px;">
-        </label>
-        <p style="font-size:11px;color:var(--muted);margin-top:10px;">
-          The entire file is validated before saving. If any invoice already exists, a product code is invalid, or stock is insufficient, the complete import is cancelled.
-        </p>
-        <div class="modal-actions" style="margin-top:20px;">
-          <button type="button" class="btn" id="cancelSalesImportBtn">Cancel</button>
-          <button type="submit" class="btn primary" id="submitSalesImportBtn">Import sales</button>
-        </div>
-      </form>
-      `
-    );
-
-    $('#cancelSalesImportBtn').onclick = closeModal;
-    $('#salesImportForm').onsubmit = async (event) => {
-      event.preventDefault();
-
-      const input = $('#salesCsvFile');
-      const file = input?.files?.[0];
-      if (!file) {
-        toast('Select a CSV file first.', 'error');
-        return;
-      }
-
-      const submitButton = $('#submitSalesImportBtn');
-      submitButton.disabled = true;
-      submitButton.textContent = 'Importing…';
-
-      const formData = new FormData();
-      formData.append('file', file);
-
-      try {
-        const result = await api('/sales/import', {
-          method: 'POST',
-          body: formData
-        });
-
-        if (result?.ok && result.data?.success) {
-          toast(result.data.message || 'Sales imported successfully.', 'success');
-          closeModal();
-          await loadSalesData();
-          if (state.currentPage === 'dashboard') {
-            loadDashboardSummary();
-          }
-        } else {
-          const details = result?.data?.errors;
-          const message = result?.data?.message || 'Sales import failed.';
-          toast(
-            Array.isArray(details) && details.length
-              ? `${message} ${details[0]}`
-              : message,
-            'error'
-          );
-        }
-      } catch (error) {
-        console.error('Sales CSV import failed:', error);
-        toast('Unable to import the sales CSV. Check the connection and try again.', 'error');
-      } finally {
-        if ($('#submitSalesImportBtn')) {
-          $('#submitSalesImportBtn').disabled = false;
-          $('#submitSalesImportBtn').textContent = 'Import sales';
-        }
-      }
-    };
   }
 
   async function openRecordSaleModal() {
@@ -1628,132 +1521,26 @@
 
     const { monthly_sales, top_products } = res.data;
 
-    // Monthly Revenue Chart
-    // Use an SVG viewBox with fixed chart geometry. Percentage-height HTML bars
-    // inside auto-height flex items can collapse to zero in some browsers.
+    // Monthly Chart
     const chartBox = $('#analyticsMonthlyChart');
     if (chartBox) {
-      const monthlyRows = (Array.isArray(monthly_sales) ? monthly_sales : []).map(row => {
-        const numericRevenue = Number(row?.revenue ?? row?.total ?? 0);
-        return {
-          month: String(row?.month || ''),
-          revenue: Number.isFinite(numericRevenue) && numericRevenue > 0
-            ? numericRevenue
-            : 0,
-          transactions: Number(row?.transactions || 0)
-        };
-      });
-
-      chartBox.style.display = 'block';
-      chartBox.style.width = '100%';
-      chartBox.style.height = '250px';
-      chartBox.style.minWidth = '0';
-      chartBox.style.position = 'relative';
-      chartBox.style.color = 'var(--muted)';
-
-      if (monthlyRows.length === 0) {
-        chartBox.innerHTML = `
-          <div style="height:100%;display:grid;place-items:center;text-align:center;color:var(--muted);font-size:12px;">
-            No monthly sales data is available for this period.
-          </div>
-        `;
+      if (!monthly_sales || monthly_sales.length === 0) {
+        chartBox.innerHTML = `No historical monthly sales records available yet.`;
       } else {
-        const svgWidth = 640;
-        const svgHeight = 250;
-        const margin = { top: 18, right: 18, bottom: 42, left: 78 };
-        const plotWidth = svgWidth - margin.left - margin.right;
-        const plotHeight = svgHeight - margin.top - margin.bottom;
-        const baselineY = margin.top + plotHeight;
-        const maxRevenue = Math.max(...monthlyRows.map(row => row.revenue), 0);
-        const axisMax = maxRevenue > 0 ? maxRevenue * 1.15 : 1;
-
-        const formatAxisValue = value => {
-          const amount = Number(value) || 0;
-          if (amount >= 10000000) return `${state.currency}${(amount / 10000000).toFixed(1)}Cr`;
-          if (amount >= 100000) return `${state.currency}${(amount / 100000).toFixed(1)}L`;
-          if (amount >= 1000) return `${state.currency}${(amount / 1000).toFixed(1)}k`;
-          return `${state.currency}${Math.round(amount)}`;
-        };
-
-        const monthLabel = monthKey => {
-          const parts = String(monthKey).split('-');
-          const year = Number(parts[0]);
-          const month = Number(parts[1]);
-          if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) {
-            return String(monthKey).slice(0, 8);
-          }
-          const date = new Date(year, month - 1, 1);
-          return date.toLocaleDateString(undefined, { month: 'short' });
-        };
-
-        const gridLines = Array.from({ length: 5 }, (_, index) => {
-          const ratio = index / 4;
-          const y = margin.top + plotHeight * ratio;
-          const value = axisMax * (1 - ratio);
-          return `
-            <g>
-              <line x1="${margin.left}" y1="${y.toFixed(2)}"
-                    x2="${(svgWidth - margin.right).toFixed(2)}" y2="${y.toFixed(2)}"
-                    stroke="var(--line)" stroke-width="1" stroke-dasharray="3 4" />
-              <text x="${margin.left - 10}" y="${(y + 4).toFixed(2)}"
-                    text-anchor="end" font-size="10" fill="var(--muted)">
-                ${formatAxisValue(value)}
-              </text>
-            </g>
-          `;
-        }).join('');
-
-        const slotWidth = plotWidth / monthlyRows.length;
-        const barWidth = Math.min(44, slotWidth * 0.58);
-
-        const bars = monthlyRows.map((row, index) => {
-          const slotStart = margin.left + index * slotWidth;
-          const barX = slotStart + (slotWidth - barWidth) / 2;
-          const scaledHeight = (row.revenue / axisMax) * plotHeight;
-          const barHeight = row.revenue > 0
-            ? Math.max(3, scaledHeight)
-            : 0;
-          const barY = baselineY - barHeight;
-          const centerX = slotStart + slotWidth / 2;
-          const title = `${row.month || 'Month'}: ${fmtMoney(row.revenue)} · ${row.transactions} transaction(s)`;
-          return `
-            <g>
-              ${row.revenue > 0 ? `
-                <rect x="${barX.toFixed(2)}" y="${barY.toFixed(2)}"
-                      width="${barWidth.toFixed(2)}" height="${barHeight.toFixed(2)}"
-                      rx="5" fill="var(--o)" opacity="0.92">
-                  <title>${title}</title>
-                </rect>
-              ` : ''}
-              <text x="${centerX.toFixed(2)}" y="${(baselineY + 24).toFixed(2)}"
-                    text-anchor="middle" font-size="11" fill="var(--muted)">
-                ${monthLabel(row.month)}
-              </text>
-            </g>
-          `;
-        }).join('');
-
-        const noRevenueMessage = maxRevenue === 0 ? `
-          <text x="${(margin.left + plotWidth / 2).toFixed(2)}"
-                y="${(margin.top + plotHeight / 2).toFixed(2)}"
-                text-anchor="middle" font-size="12" fill="var(--muted)">
-            No revenue recorded in this period
-          </text>
-        ` : '';
-
+        const maxVal = Math.max(...monthly_sales.map(m => m.revenue || m.total || 0), 10);
         chartBox.innerHTML = `
-          <svg xmlns="http://www.w3.org/2000/svg"
-               viewBox="0 0 ${svgWidth} ${svgHeight}"
-               role="img"
-               aria-label="Monthly revenue bar chart"
-               style="display:block;width:100%;height:100%;overflow:visible;">
-            ${gridLines}
-            <line x1="${margin.left}" y1="${baselineY}"
-                  x2="${svgWidth - margin.right}" y2="${baselineY}"
-                  stroke="var(--line)" stroke-width="1.2" />
-            ${bars}
-            ${noRevenueMessage}
-          </svg>
+          <div style="display:flex;align-items:flex-end;gap:14px;height:100%;padding:10px 0;">
+            ${monthly_sales.map(m => {
+              const val = m.revenue || m.total || 0;
+              const hPct = Math.max(12, Math.round((val / maxVal) * 100));
+              return `
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;">
+                  <div style="width:100%;height:${hPct}%;background:var(--o);border-radius:6px 6px 0 0;" title="${m.month}: ${fmtMoney(val)}"></div>
+                  <small style="font-size:10px;color:var(--muted);">${m.month || ''}</small>
+                </div>
+              `;
+            }).join('')}
+          </div>
         `;
       }
     }
@@ -2041,41 +1828,21 @@
         const res = await api('/settings', {
           method: 'POST',
           body: {
-            username: newName
+            username: newName,
+            email: state.user?.email || ''
           }
         });
 
-        if (res?.ok && res.data?.success) {
-          // Use the canonical profile returned by the server.
-          const savedUser = res.data.user || {};
-          state.user = {
-            ...state.user,
-            ...savedUser,
-            name: savedUser.username || newName,
-            username: savedUser.username || newName
-          };
-
-          // Refresh all visible profile labels without rebuilding the shell.
-          const initials = newName
-            .split(' ')
-            .filter(Boolean)
-            .map(part => part[0])
-            .join('')
-            .slice(0, 2)
-            .toUpperCase();
+        if (res && res.ok) {
+          // Update in-memory state
+          state.user.name = newName;
+          state.user.username = newName;
+          // Refresh header avatar & display name
           const avatarEl = $('#headerAvatar');
-          const sideAvatarEl = $('#userAvatar');
           const nameEl = $('#profileName');
-          const sideNameEl = $('#userName');
-          const menuNameEl = $('#menuUserName');
-
-          if (avatarEl) avatarEl.textContent = initials || 'U';
-          if (sideAvatarEl) sideAvatarEl.textContent = initials || 'U';
+          if (avatarEl) avatarEl.textContent = newName.slice(0, 2).toUpperCase();
           if (nameEl) nameEl.textContent = newName;
-          if (sideNameEl) sideNameEl.textContent = newName;
-          if (menuNameEl) menuNameEl.textContent = newName;
-
-          toast(res.data.message || 'Settings saved successfully!', 'success');
+          toast('Settings saved successfully!', 'success');
         } else {
           const msg = res?.data?.message || 'Could not save settings. Please try again.';
           toast(msg, 'error');
