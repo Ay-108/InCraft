@@ -525,21 +525,34 @@ def register():
             flash(msg, "danger")
             return _render_app_page("register", fallback_template="register.html")
 
-        existing_user = fetch_one("SELECT user_id FROM users WHERE email = %s LIMIT 1", (email,))
-        if existing_user:
-            msg = "An account with that email already exists."
+        # Fail early with a clear response when MySQL is unavailable. The
+        # database helpers intentionally return None on connection/query errors,
+        # so registration must not treat a failed lookup as "email is available".
+        if not _auth_database_available():
+            msg = "Registration is temporarily unavailable because the database cannot be reached. Please try again later."
             if is_json:
-                return jsonify({"success": False, "message": msg}), 400
+                return jsonify({"success": False, "message": msg}), 503
             flash(msg, "danger")
             return _render_app_page("register", fallback_template="register.html")
 
-        role = payload.get("role", "staff").strip().lower()
+        existing_user = fetch_one(
+            "SELECT user_id FROM users WHERE email = %s LIMIT 1",
+            (email,)
+        )
+        if existing_user:
+            msg = "An account with that email already exists."
+            if is_json:
+                return jsonify({"success": False, "message": msg}), 409
+            flash(msg, "danger")
+            return _render_app_page("register", fallback_template="register.html")
+
+        role = str(payload.get("role") or "staff").strip().lower()
         if role not in ("admin", "staff"):
             role = "staff"
 
         hashed_password = generate_password_hash(password)
         try:
-            execute_query(
+            inserted_user_id = execute_query(
                 """
                 INSERT INTO users (username, email, password, role, status, created_at)
                 VALUES (%s, %s, %s, %s, 'active', %s)
@@ -548,9 +561,14 @@ def register():
             )
         except Exception as error:
             print(f"Registration failed: {error}")
-            msg = "Failed to create account. Please try again."
+            inserted_user_id = None
+
+        # execute_query() reports SQL failures by returning None rather than
+        # raising. Verify the insert result before telling the client it worked.
+        if inserted_user_id is None:
+            msg = "Account creation failed. The database rejected the registration. Check the server log for the exact SQL error."
             if is_json:
-                return jsonify({"success": False, "message": msg}), 500
+                return jsonify({"success": False, "message": msg}), 503
             flash(msg, "danger")
             return _render_app_page("register", fallback_template="register.html")
 
