@@ -164,26 +164,14 @@ InCraft/
 │   └── schema.sql
 │
 ├── templates/
-│   ├── components/
-│   │   ├── navbar.html
-│   │   ├── sidebar.html
-│   │   └── footer.html
-│   │
-│   ├── login.html
-│   ├── register.html
-│   └── index.html            # Unified application shell for all workspace pages
-
-├── public/
-│   └── static/
-│       ├── css/
-│       └── js/
-│           └── app.js        # Dashboard, Inventory, Sales, Analytics, Activity and Settings
+│   └── index.html              # Single shell for all signed-in pages
 │
 ├── public/
 │   └── static/
 │       ├── css/
 │       ├── images/
 │       └── js/
+│           └── app.js          # Unified client-side workspace
 │
 ├── pyproject.toml
 ├── vercel.json
