@@ -1147,7 +1147,7 @@ def add_product():
         flash("Product added successfully.", "success")
         return redirect(url_for("main.inventory"))
 
-    return _unified_form_error("inventory")
+    return redirect(url_for("main.inventory"))
 
 
 # ============================================================
@@ -1328,7 +1328,7 @@ def edit_product(product_id):
             url_for("main.inventory")
         )
 
-    return _unified_form_error("inventory")
+    return redirect(url_for("main.inventory"))
 
 
 # ============================================================
