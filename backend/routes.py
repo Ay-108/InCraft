@@ -3574,48 +3574,14 @@ def _load_analytics_data(months, period_start):
 @admin_required
 def analytics():
     """
-    Display period-filtered sales performance together with current inventory health.
-    Analytics remains Admin-only, preserving the existing access policy.
+    Serve Analytics inside the same unified application shell as Dashboard.
+
+    The client-side Analytics module loads all period-filtered chart data from
+    /api/analytics. Keeping this route on index.html ensures that clicking
+    Analytics and refreshing /analytics render the same application, rather
+    than the retired base.html analytics page.
     """
-    months, period_start = _get_analytics_month_window()
-    datasets = _load_analytics_data(months, period_start)
-
-    sales_summary = cast(Any, datasets["sales_summary"])
-    inventory_value = fetch_one(
-        """
-        SELECT COALESCE(SUM(quantity * price), 0) AS total
-        FROM products
-        WHERE status = 'active'
-        """
-    ) or {}
-
-    low_stock_products = fetch_all(
-        """
-        SELECT
-            product_id,
-            product_code AS sku,
-            name,
-            quantity,
-            minimum_stock
-        FROM products
-        WHERE status = 'active'
-          AND quantity <= minimum_stock
-        ORDER BY quantity ASC, name ASC
-        """
-    ) or []
-
-    return render_template(
-        "analytics.html",
-        selected_months=months,
-        total_revenue=sales_summary.get("total_revenue", 0),
-        total_transactions=sales_summary.get("total_transactions", 0),
-        inventory_value=cast(Any, inventory_value).get("total", 0),
-        category_data=datasets["category_data"],
-        monthly_sales=datasets["monthly_sales"],
-        top_products=datasets["top_products"],
-        stock_distribution=datasets["stock_distribution"],
-        low_stock_products=low_stock_products
-    )
+    return _render_app_page("analytics")
 
 
 @main_bp.route(
