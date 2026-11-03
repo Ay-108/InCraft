@@ -1628,26 +1628,128 @@
 
     const { monthly_sales, top_products } = res.data;
 
-    // Monthly Chart
+    // Monthly Revenue Chart
+    // Use an SVG viewBox with fixed chart geometry. Percentage-height HTML bars
+    // inside auto-height flex items can collapse to zero in some browsers.
     const chartBox = $('#analyticsMonthlyChart');
     if (chartBox) {
-      if (!monthly_sales || monthly_sales.length === 0) {
-        chartBox.innerHTML = `No historical monthly sales records available yet.`;
-      } else {
-        const maxVal = Math.max(...monthly_sales.map(m => m.revenue || m.total || 0), 10);
+      const monthlyRows = (Array.isArray(monthly_sales) ? monthly_sales : []).map(row => {
+        const numericRevenue = Number(row?.revenue ?? row?.total ?? 0);
+        return {
+          month: String(row?.month || ''),
+          revenue: Number.isFinite(numericRevenue) && numericRevenue > 0
+            ? numericRevenue
+            : 0,
+          transactions: Number(row?.transactions || 0)
+        };
+      });
+
+      chartBox.style.display = 'block';
+      chartBox.style.width = '100%';
+      chartBox.style.height = '250px';
+      chartBox.style.minWidth = '0';
+      chartBox.style.position = 'relative';
+      chartBox.style.color = 'var(--muted)';
+
+      if (monthlyRows.length === 0) {
         chartBox.innerHTML = `
-          <div style="display:flex;align-items:flex-end;gap:14px;height:100%;padding:10px 0;">
-            ${monthly_sales.map(m => {
-              const val = m.revenue || m.total || 0;
-              const hPct = Math.max(12, Math.round((val / maxVal) * 100));
-              return `
-                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;">
-                  <div style="width:100%;height:${hPct}%;background:var(--o);border-radius:6px 6px 0 0;" title="${m.month}: ${fmtMoney(val)}"></div>
-                  <small style="font-size:10px;color:var(--muted);">${m.month || ''}</small>
-                </div>
-              `;
-            }).join('')}
+          <div style="height:100%;display:grid;place-items:center;text-align:center;color:var(--muted);font-size:12px;">
+            No monthly sales data is available for this period.
           </div>
+        `;
+      } else {
+        const svgWidth = 640;
+        const svgHeight = 250;
+        const margin = { top: 18, right: 18, bottom: 42, left: 78 };
+        const plotWidth = svgWidth - margin.left - margin.right;
+        const plotHeight = svgHeight - margin.top - margin.bottom;
+        const baselineY = margin.top + plotHeight;
+        const maxRevenue = Math.max(...monthlyRows.map(row => row.revenue), 0);
+        const axisMax = maxRevenue > 0 ? maxRevenue * 1.15 : 1;
+
+        const formatAxisValue = value => {
+          const amount = Number(value) || 0;
+          if (amount >= 10000000) return `${state.currency}${(amount / 10000000).toFixed(1)}Cr`;
+          if (amount >= 100000) return `${state.currency}${(amount / 100000).toFixed(1)}L`;
+          if (amount >= 1000) return `${state.currency}${(amount / 1000).toFixed(1)}k`;
+          return `${state.currency}${Math.round(amount)}`;
+        };
+
+        const monthLabel = monthKey => {
+          const match = /^(\\d{4})-(\\d{2})$/.exec(monthKey);
+          if (!match) return monthKey.slice(0, 8);
+          const date = new Date(Number(match[1]), Number(match[2]) - 1, 1);
+          return date.toLocaleDateString(undefined, { month: 'short' });
+        };
+
+        const gridLines = Array.from({ length: 5 }, (_, index) => {
+          const ratio = index / 4;
+          const y = margin.top + plotHeight * ratio;
+          const value = axisMax * (1 - ratio);
+          return `
+            <g>
+              <line x1="${margin.left}" y1="${y.toFixed(2)}"
+                    x2="${(svgWidth - margin.right).toFixed(2)}" y2="${y.toFixed(2)}"
+                    stroke="var(--line)" stroke-width="1" stroke-dasharray="3 4" />
+              <text x="${margin.left - 10}" y="${(y + 4).toFixed(2)}"
+                    text-anchor="end" font-size="10" fill="var(--muted)">
+                ${formatAxisValue(value)}
+              </text>
+            </g>
+          `;
+        }).join('');
+
+        const slotWidth = plotWidth / monthlyRows.length;
+        const barWidth = Math.min(44, slotWidth * 0.58);
+
+        const bars = monthlyRows.map((row, index) => {
+          const slotStart = margin.left + index * slotWidth;
+          const barX = slotStart + (slotWidth - barWidth) / 2;
+          const scaledHeight = (row.revenue / axisMax) * plotHeight;
+          const barHeight = row.revenue > 0
+            ? Math.max(3, scaledHeight)
+            : 0;
+          const barY = baselineY - barHeight;
+          const centerX = slotStart + slotWidth / 2;
+          const title = `${row.month || 'Month'}: ${fmtMoney(row.revenue)} · ${row.transactions} transaction(s)`;
+          return `
+            <g>
+              ${row.revenue > 0 ? `
+                <rect x="${barX.toFixed(2)}" y="${barY.toFixed(2)}"
+                      width="${barWidth.toFixed(2)}" height="${barHeight.toFixed(2)}"
+                      rx="5" fill="var(--o)" opacity="0.92">
+                  <title>${title}</title>
+                </rect>
+              ` : ''}
+              <text x="${centerX.toFixed(2)}" y="${(baselineY + 24).toFixed(2)}"
+                    text-anchor="middle" font-size="11" fill="var(--muted)">
+                ${monthLabel(row.month)}
+              </text>
+            </g>
+          `;
+        }).join('');
+
+        const noRevenueMessage = maxRevenue === 0 ? `
+          <text x="${(margin.left + plotWidth / 2).toFixed(2)}"
+                y="${(margin.top + plotHeight / 2).toFixed(2)}"
+                text-anchor="middle" font-size="12" fill="var(--muted)">
+            No revenue recorded in this period
+          </text>
+        ` : '';
+
+        chartBox.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg"
+               viewBox="0 0 ${svgWidth} ${svgHeight}"
+               role="img"
+               aria-label="Monthly revenue bar chart"
+               style="display:block;width:100%;height:100%;overflow:visible;">
+            ${gridLines}
+            <line x1="${margin.left}" y1="${baselineY}"
+                  x2="${svgWidth - margin.right}" y2="${baselineY}"
+                  stroke="var(--line)" stroke-width="1.2" />
+            ${bars}
+            ${noRevenueMessage}
+          </svg>
         `;
       }
     }
