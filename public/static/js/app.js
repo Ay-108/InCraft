@@ -85,10 +85,36 @@
 
     try {
       const res = await fetch(url, options);
-      const data = await res.json().catch(() => null);
+      const responseText = await res.text();
+      let data = null;
+
+      if (responseText) {
+        try {
+          data = JSON.parse(responseText);
+        } catch {
+          data = null;
+        }
+      }
+
+      // Do not silently replace HTML/server failures with a misleading
+      // generic registration or login message.
+      if (!data && !res.ok) {
+        const messageByStatus = {
+          400: 'The request was rejected. Refresh the page and try again (security token may have expired).',
+          401: 'Invalid email or password.',
+          403: 'You do not have permission to complete this request.',
+          404: 'The requested authentication endpoint was not found.',
+          500: 'The server encountered an error. Check the Flask/Vercel logs for details.',
+          503: 'The database or application service is unavailable. Check the deployment configuration and server logs.'
+        };
+        data = {
+          success: false,
+          message: messageByStatus[res.status] || `Request failed (HTTP ${res.status}).`
+        };
+      }
 
       if (res.status === 401 || res.status === 403) {
-        if (data && data.message && data.message.includes('sign in')) {
+        if (data && data.message && data.message.toLowerCase().includes('sign in')) {
           state.user = null;
           showLanding();
           toast(data.message, 'error');
