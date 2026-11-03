@@ -267,8 +267,8 @@
           <label>
             Role
             <select id="loginRole" style="height:42px;border:1px solid var(--line);border-radius:7px;padding:0 10px;background:var(--card);color:var(--ink);">
+              <option value="staff" selected>Staff Member</option>
               <option value="admin">Administrator</option>
-              <option value="staff">Staff Member</option>
             </select>
           </label>
           <div id="formMessage" class="form-message"></div>
