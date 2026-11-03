@@ -145,6 +145,12 @@ Jinja2       Server-side HTML templating
 
 🏗️ Project Architecture
 
+The signed-in workspace uses one unified application shell (templates/index.html).
+Dashboard, Inventory, Sales, Analytics, Activity History and Settings are rendered
+by the shared client application (public/static/js/app.js). Each page URL, including
+a direct refresh on /analytics, returns the same shell; page data is loaded through
+the corresponding Flask API routes.
+
 InCraft/
 │
 ├── backend/
@@ -158,26 +164,14 @@ InCraft/
 │   └── schema.sql
 │
 ├── templates/
-│   ├── components/
-│   │   ├── navbar.html
-│   │   ├── sidebar.html
-│   │   └── footer.html
-│   │
-│   ├── login.html
-│   ├── register.html
-│   ├── dashboard.html
-│   ├── inventory.html
-│   ├── product_form.html
-│   ├── sales.html
-│   ├── analytics.html
-│   ├── activity.html
-│   └── settings.html
+│   └── index.html              # Single shell for all signed-in pages
 │
 ├── public/
 │   └── static/
 │       ├── css/
 │       ├── images/
 │       └── js/
+│           └── app.js          # Unified client-side workspace
 │
 ├── pyproject.toml
 ├── vercel.json
