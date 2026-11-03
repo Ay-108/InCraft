@@ -314,7 +314,7 @@ def index():
     user_id = get_current_user_id()
     if user_id and get_current_user_role():
         return redirect(url_for("main.dashboard"))
-    return _render_app_page("landing", fallback_template="login.html")
+    return _render_app_page("landing")
 
 
 @main_bp.route("/api/auth/me", methods=["GET"])
@@ -391,7 +391,7 @@ def login():
             if is_json:
                 return jsonify({"success": False, "message": msg}), 400
             flash(msg, "danger")
-            return _render_app_page("login", fallback_template="login.html")
+            return _render_app_page("login")
 
         allowed_roles = {"admin", "staff"}
         if selected_role not in allowed_roles:
@@ -399,7 +399,7 @@ def login():
             if is_json:
                 return jsonify({"success": False, "message": msg}), 400
             flash(msg, "danger")
-            return _render_app_page("login", fallback_template="login.html")
+            return _render_app_page("login")
 
         user = fetch_one(
             """
@@ -417,7 +417,7 @@ def login():
             if is_json:
                 return jsonify({"success": False, "message": msg}), 401
             flash(msg, "danger")
-            return _render_app_page("login", fallback_template="login.html")
+            return _render_app_page("login")
 
         account_status = str(cast(Any, user).get("status") or "").strip().lower()
         if account_status != "active":
@@ -425,7 +425,7 @@ def login():
             if is_json:
                 return jsonify({"success": False, "message": msg}), 403
             flash(msg, "danger")
-            return _render_app_page("login", fallback_template="login.html")
+            return _render_app_page("login")
 
         actual_role = str(cast(Any, user).get("role", "")).strip().lower()
         if actual_role != selected_role:
@@ -433,7 +433,7 @@ def login():
             if is_json:
                 return jsonify({"success": False, "message": msg}), 400
             flash(msg, "danger")
-            return _render_app_page("login", fallback_template="login.html")
+            return _render_app_page("login")
 
         stored_password = cast(Any, user).get("password", "")
         try:
@@ -446,7 +446,7 @@ def login():
             if is_json:
                 return jsonify({"success": False, "message": msg}), 401
             flash(msg, "danger")
-            return _render_app_page("login", fallback_template="login.html")
+            return _render_app_page("login")
 
         login_user(user)
 
@@ -486,7 +486,7 @@ def login():
 
     if get_current_user_id() and get_current_user_role():
         return redirect(url_for("main.dashboard"))
-    return _render_app_page("login", fallback_template="login.html")
+    return _render_app_page("login")
 
 @main_bp.route("/register", methods=["GET", "POST"])
 def register():
@@ -505,35 +505,35 @@ def register():
             if is_json:
                 return jsonify({"success": False, "message": msg}), 400
             flash(msg, "danger")
-            return _render_app_page("register", fallback_template="register.html")
+            return _render_app_page("register")
 
         if not username or not email or not password:
             msg = "All required fields must be completed."
             if is_json:
                 return jsonify({"success": False, "message": msg}), 400
             flash(msg, "danger")
-            return _render_app_page("register", fallback_template="register.html")
+            return _render_app_page("register")
 
         if password != confirm_password:
             msg = "Passwords do not match."
             if is_json:
                 return jsonify({"success": False, "message": msg}), 400
             flash(msg, "danger")
-            return _render_app_page("register", fallback_template="register.html")
+            return _render_app_page("register")
 
         if not validate_email(email):
             msg = "Please enter a valid email address."
             if is_json:
                 return jsonify({"success": False, "message": msg}), 400
             flash(msg, "danger")
-            return _render_app_page("register", fallback_template="register.html")
+            return _render_app_page("register")
 
         if not validate_password(password):
             msg = "Password must be at least 8 characters long."
             if is_json:
                 return jsonify({"success": False, "message": msg}), 400
             flash(msg, "danger")
-            return _render_app_page("register", fallback_template="register.html")
+            return _render_app_page("register")
 
         existing_user = fetch_one("SELECT user_id FROM users WHERE email = %s LIMIT 1", (email,))
         if existing_user:
@@ -541,7 +541,7 @@ def register():
             if is_json:
                 return jsonify({"success": False, "message": msg}), 400
             flash(msg, "danger")
-            return _render_app_page("register", fallback_template="register.html")
+            return _render_app_page("register")
 
         role = payload.get("role", "staff").strip().lower()
         if role not in ("admin", "staff"):
@@ -562,7 +562,7 @@ def register():
             if is_json:
                 return jsonify({"success": False, "message": msg}), 500
             flash(msg, "danger")
-            return _render_app_page("register", fallback_template="register.html")
+            return _render_app_page("register")
 
         if is_json:
             return jsonify({"success": True, "message": "Account created successfully!"})
@@ -570,7 +570,7 @@ def register():
         flash("Account created successfully! Please sign in.", "success")
         return redirect(url_for("main.login"))
 
-    return _render_app_page("register", fallback_template="register.html")
+    return _render_app_page("register")
 
 @main_bp.route("/logout", methods=["POST"])
 def logout():
