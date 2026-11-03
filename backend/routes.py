@@ -3418,13 +3418,30 @@ def _load_analytics_data(months, period_start):
     Load period-filtered sales analytics and current active-inventory health.
     Sales charts use sales + sale_items as their source of truth.
     """
+    # Sales headers and sale_items are both retained for transaction history.
+    # Historical/imported records can have a zero sales.total_amount even when
+    # their line items contain valid quantities and prices. Use item totals as
+    # the analytics source of truth, falling back to the header only when a
+    # transaction has no sale_items rows. The derived table has one row per
+    # sale_id, so multi-product invoices are not double-counted.
     sales_summary = fetch_one(
         """
         SELECT
-            COALESCE(SUM(total_amount), 0) AS total_revenue,
+            COALESCE(
+                SUM(COALESCE(item_totals.item_revenue, s.total_amount, 0)),
+                0
+            ) AS total_revenue,
             COUNT(*) AS total_transactions
-        FROM sales
-        WHERE sale_date >= %s
+        FROM sales AS s
+        LEFT JOIN (
+            SELECT
+                sale_id,
+                SUM(quantity * unit_price) AS item_revenue
+            FROM sale_items
+            GROUP BY sale_id
+        ) AS item_totals
+            ON item_totals.sale_id = s.sale_id
+        WHERE s.sale_date >= %s
         """,
         (period_start,)
     ) or {}
@@ -3432,12 +3449,23 @@ def _load_analytics_data(months, period_start):
     monthly_rows = fetch_all(
         """
         SELECT
-            CONCAT(YEAR(sale_date), '-', LPAD(MONTH(sale_date), 2, '0')) AS month,
+            DATE_FORMAT(s.sale_date, '%Y-%m') AS month,
             COUNT(*) AS transactions,
-            COALESCE(SUM(total_amount), 0) AS revenue
-        FROM sales
-        WHERE sale_date >= %s
-        GROUP BY YEAR(sale_date), MONTH(sale_date)
+            COALESCE(
+                SUM(COALESCE(item_totals.item_revenue, s.total_amount, 0)),
+                0
+            ) AS revenue
+        FROM sales AS s
+        LEFT JOIN (
+            SELECT
+                sale_id,
+                SUM(quantity * unit_price) AS item_revenue
+            FROM sale_items
+            GROUP BY sale_id
+        ) AS item_totals
+            ON item_totals.sale_id = s.sale_id
+        WHERE s.sale_date >= %s
+        GROUP BY YEAR(s.sale_date), MONTH(s.sale_date)
         ORDER BY month ASC
         """,
         (period_start,)
