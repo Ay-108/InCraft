@@ -1676,9 +1676,13 @@
         };
 
         const monthLabel = monthKey => {
-          const match = /^(\\d{4})-(\\d{2})$/.exec(monthKey);
-          if (!match) return monthKey.slice(0, 8);
-          const date = new Date(Number(match[1]), Number(match[2]) - 1, 1);
+          const parts = String(monthKey).split('-');
+          const year = Number(parts[0]);
+          const month = Number(parts[1]);
+          if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) {
+            return String(monthKey).slice(0, 8);
+          }
+          const date = new Date(year, month - 1, 1);
           return date.toLocaleDateString(undefined, { month: 'short' });
         };
 
