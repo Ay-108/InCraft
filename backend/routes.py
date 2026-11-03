@@ -2575,7 +2575,6 @@ def import_sales():
     """
     import csv
     import io
-    import math
 
     is_json = (
         request.is_json
@@ -2639,6 +2638,7 @@ def import_sales():
     payment_aliases = {
         "netbanking": "bank_transfer",
         "net banking": "bank_transfer",
+        "bank transfer": "bank_transfer",
         "upi / digital": "upi",
         "credit / debit card": "card",
     }
@@ -2655,18 +2655,26 @@ def import_sales():
         )
         if not cleaned:
             return None
+        if len(cleaned) > 32:
+            row_errors.append(f"Row {row_number}: {field_name} is too long.")
+            return None
         try:
             amount = Decimal(cleaned)
+            if (
+                not amount.is_finite()
+                or amount < 0
+                or amount > Decimal("9999999999.99")
+            ):
+                row_errors.append(f"Row {row_number}: {field_name} is outside the supported range.")
+                return None
+            rounded_amount = amount.quantize(Decimal("0.01"))
         except (InvalidOperation, ValueError):
             row_errors.append(f"Row {row_number}: {field_name} is not a valid amount.")
             return None
-        if not amount.is_finite() or amount < 0 or amount > Decimal("9999999999.99"):
-            row_errors.append(f"Row {row_number}: {field_name} is outside the supported range.")
-            return None
-        if amount != amount.quantize(Decimal("0.01")):
+        if amount != rounded_amount:
             row_errors.append(f"Row {row_number}: {field_name} can have at most 2 decimal places.")
             return None
-        return amount.quantize(Decimal("0.01"))
+        return rounded_amount
 
     for row_number, source_row in enumerate(reader, start=2):
         normalized = {
@@ -4324,15 +4332,13 @@ def settings():
             SET
                 username = %s,
                 email = %s,
-                password = COALESCE(%s, password),
-                updated_at = %s
+                password = COALESCE(%s, password)
             WHERE user_id = %s
             """,
             (
                 username,
                 email,
                 password_hash,
-                datetime.now(),
                 user_id
             )
         )
