@@ -16,6 +16,7 @@ Application routes and request handling for:
 """
 
 from datetime import datetime, timedelta
+from decimal import Decimal, InvalidOperation
 from uuid import UUID
 from functools import wraps
 from typing import Any, Callable, ParamSpec, cast
@@ -525,21 +526,34 @@ def register():
             flash(msg, "danger")
             return _render_app_page("register", fallback_template="register.html")
 
-        existing_user = fetch_one("SELECT user_id FROM users WHERE email = %s LIMIT 1", (email,))
-        if existing_user:
-            msg = "An account with that email already exists."
+        # Fail early with a clear response when MySQL is unavailable. The
+        # database helpers intentionally return None on connection/query errors,
+        # so registration must not treat a failed lookup as "email is available".
+        if not _auth_database_available():
+            msg = "Registration is temporarily unavailable because the database cannot be reached. Please try again later."
             if is_json:
-                return jsonify({"success": False, "message": msg}), 400
+                return jsonify({"success": False, "message": msg}), 503
             flash(msg, "danger")
             return _render_app_page("register", fallback_template="register.html")
 
-        role = payload.get("role", "staff").strip().lower()
+        existing_user = fetch_one(
+            "SELECT user_id FROM users WHERE email = %s LIMIT 1",
+            (email,)
+        )
+        if existing_user:
+            msg = "An account with that email already exists."
+            if is_json:
+                return jsonify({"success": False, "message": msg}), 409
+            flash(msg, "danger")
+            return _render_app_page("register", fallback_template="register.html")
+
+        role = str(payload.get("role") or "staff").strip().lower()
         if role not in ("admin", "staff"):
             role = "staff"
 
         hashed_password = generate_password_hash(password)
         try:
-            execute_query(
+            inserted_user_id = execute_query(
                 """
                 INSERT INTO users (username, email, password, role, status, created_at)
                 VALUES (%s, %s, %s, %s, 'active', %s)
@@ -548,9 +562,14 @@ def register():
             )
         except Exception as error:
             print(f"Registration failed: {error}")
-            msg = "Failed to create account. Please try again."
+            inserted_user_id = None
+
+        # execute_query() reports SQL failures by returning None rather than
+        # raising. Verify the insert result before telling the client it worked.
+        if inserted_user_id is None:
+            msg = "Account creation failed. The database rejected the registration. Check the server log for the exact SQL error."
             if is_json:
-                return jsonify({"success": False, "message": msg}), 500
+                return jsonify({"success": False, "message": msg}), 503
             flash(msg, "danger")
             return _render_app_page("register", fallback_template="register.html")
 
@@ -2531,6 +2550,490 @@ def create_sale():
 
 
 # ============================================================
+# SALES CSV IMPORT
+# ============================================================
+
+@main_bp.route(
+    "/sales/import",
+    methods=["POST"]
+)
+@admin_required
+def import_sales():
+    """
+    Import sales transactions from CSV in one atomic database transaction.
+
+    Required columns:
+        product_code, quantity
+
+    Optional columns:
+        invoice_number, sale_date, customer_name, payment_method,
+        unit_price, line_total
+
+    Multiple rows with the same invoice_number become multiple sale items
+    within one invoice. A failed row, duplicate invoice, or stock conflict
+    rejects the entire batch; the database is never left partially imported.
+    """
+    import csv
+    import io
+
+    is_json = (
+        request.is_json
+        or "application/json" in request.headers.get("Accept", "")
+    )
+
+    def import_error(message, status=400, **details):
+        if is_json:
+            payload = {"success": False, "message": message}
+            payload.update(details)
+            return jsonify(payload), status
+        flash(message, "danger")
+        return redirect(url_for("main.sales"))
+
+    uploaded_file = request.files.get("file")
+    if uploaded_file is None or not uploaded_file.filename:
+        return import_error("Choose a sales CSV file to import.", 400)
+
+    if not uploaded_file.filename.lower().endswith(".csv"):
+        return import_error("Sales import supports CSV files only.", 400)
+
+    max_import_bytes = 5 * 1024 * 1024
+    raw_content = uploaded_file.stream.read(max_import_bytes + 1)
+
+    if len(raw_content) > max_import_bytes:
+        return import_error("The sales CSV exceeds the 5 MB import limit.", 413)
+
+    if not raw_content:
+        return import_error("The selected sales CSV is empty.", 400)
+
+    try:
+        csv_text = raw_content.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        return import_error("The sales CSV must use UTF-8 encoding.", 400)
+
+    reader = csv.DictReader(io.StringIO(csv_text))
+    if not reader.fieldnames:
+        return import_error("The CSV must contain a header row.", 400)
+
+    headers = [
+        str(header or "").strip().lower()
+        for header in reader.fieldnames
+    ]
+    if len(headers) != len(set(headers)):
+        return import_error("The CSV contains duplicate column headers.", 400)
+
+    required_headers = {"product_code", "quantity"}
+    missing_headers = sorted(required_headers - set(headers))
+    if missing_headers:
+        return import_error(
+            "Missing required CSV column(s): " + ", ".join(missing_headers) + ".",
+            400
+        )
+
+    orders = {}
+    parsed_item_count = 0
+    row_errors = []
+    allowed_payment_methods = {
+        "cash", "card", "upi", "bank_transfer", "other"
+    }
+    payment_aliases = {
+        "netbanking": "bank_transfer",
+        "net banking": "bank_transfer",
+        "bank transfer": "bank_transfer",
+        "upi / digital": "upi",
+        "credit / debit card": "card",
+    }
+
+    def parse_money(raw_value, field_name, row_number):
+        cleaned = (
+            str(raw_value or "")
+            .strip()
+            .replace(",", "")
+            .replace("$", "")
+            .replace("₹", "")
+            .replace("€", "")
+            .replace("£", "")
+        )
+        if not cleaned:
+            return None
+        if len(cleaned) > 32:
+            row_errors.append(f"Row {row_number}: {field_name} is too long.")
+            return None
+        try:
+            amount = Decimal(cleaned)
+            if (
+                not amount.is_finite()
+                or amount < 0
+                or amount > Decimal("9999999999.99")
+            ):
+                row_errors.append(f"Row {row_number}: {field_name} is outside the supported range.")
+                return None
+            rounded_amount = amount.quantize(Decimal("0.01"))
+        except (InvalidOperation, ValueError):
+            row_errors.append(f"Row {row_number}: {field_name} is not a valid amount.")
+            return None
+        if amount != rounded_amount:
+            row_errors.append(f"Row {row_number}: {field_name} can have at most 2 decimal places.")
+            return None
+        return rounded_amount
+
+    for row_number, source_row in enumerate(reader, start=2):
+        normalized = {
+            str(key or "").strip().lower(): value
+            for key, value in source_row.items()
+            if key is not None
+        }
+
+        if not any(str(value or "").strip() for value in normalized.values()):
+            continue
+
+        if parsed_item_count >= 500:
+            row_errors.append("The CSV exceeds the 500 sales-item import limit.")
+            break
+
+        product_code = str(normalized.get("product_code") or "").strip()
+        raw_quantity = str(normalized.get("quantity") or "").strip()
+        if not product_code or not raw_quantity.isdigit():
+            row_errors.append(
+                f"Row {row_number}: product_code and a whole-number quantity are required."
+            )
+            continue
+
+        quantity = int(raw_quantity)
+        if quantity <= 0 or quantity > 2147483647:
+            row_errors.append(f"Row {row_number}: quantity must be a positive whole number.")
+            continue
+
+        if len(product_code) > 50:
+            row_errors.append(f"Row {row_number}: product_code exceeds 50 characters.")
+            continue
+
+        invoice_number = str(normalized.get("invoice_number") or "").strip()
+        if not invoice_number:
+            invoice_number = generate_reference("INV")
+        if len(invoice_number) > 50:
+            row_errors.append(f"Row {row_number}: invoice_number exceeds 50 characters.")
+            continue
+
+        customer_name = str(normalized.get("customer_name") or "").strip()
+        if len(customer_name) > 150:
+            row_errors.append(f"Row {row_number}: customer_name exceeds 150 characters.")
+            continue
+
+        payment_method = str(normalized.get("payment_method") or "cash").strip().lower()
+        payment_method = payment_aliases.get(payment_method, payment_method)
+        if payment_method not in allowed_payment_methods:
+            row_errors.append(
+                f"Row {row_number}: unsupported payment_method '{payment_method}'."
+            )
+            continue
+
+        raw_sale_date = str(normalized.get("sale_date") or "").strip()
+        parsed_sale_date = None
+        if raw_sale_date:
+            try:
+                parsed_sale_date = datetime.fromisoformat(
+                    raw_sale_date.replace("Z", "+00:00")
+                )
+                # MySQL DATETIME is timezone-naive. Keep the supplied wall-clock
+                # value instead of passing a timezone-aware object to Connector.
+                if parsed_sale_date.tzinfo is not None:
+                    parsed_sale_date = parsed_sale_date.replace(tzinfo=None)
+            except ValueError:
+                row_errors.append(
+                    f"Row {row_number}: sale_date must use YYYY-MM-DD or YYYY-MM-DD HH:MM:SS."
+                )
+                continue
+
+        raw_unit_price = normalized.get("unit_price")
+        unit_price = parse_money(raw_unit_price, "unit_price", row_number)
+        if raw_unit_price not in (None, "") and unit_price is None:
+            continue
+        if unit_price is not None and unit_price <= 0:
+            row_errors.append(f"Row {row_number}: unit_price must be greater than zero.")
+            continue
+
+        raw_line_total = normalized.get("line_total")
+        line_total = parse_money(raw_line_total, "line_total", row_number)
+        if raw_line_total not in (None, "") and line_total is None:
+            continue
+
+        order = orders.get(invoice_number)
+        if order is None:
+            if len(orders) >= 250:
+                row_errors.append("The CSV exceeds the 250 invoice import limit.")
+                break
+            order = {
+                "invoice_number": invoice_number,
+                "customer_name": customer_name or None,
+                "payment_method": payment_method,
+                "sale_date": parsed_sale_date or datetime.now(),
+                "source_sale_date": parsed_sale_date,
+                "items": [],
+                "total_amount": Decimal("0.00"),
+            }
+            orders[invoice_number] = order
+        else:
+            if customer_name and order["customer_name"] and customer_name != order["customer_name"]:
+                row_errors.append(
+                    f"Row {row_number}: customer_name conflicts with another row for invoice {invoice_number}."
+                )
+                continue
+            if customer_name and not order["customer_name"]:
+                order["customer_name"] = customer_name
+            if payment_method != order["payment_method"]:
+                row_errors.append(
+                    f"Row {row_number}: payment_method conflicts with another row for invoice {invoice_number}."
+                )
+                continue
+            if (
+                parsed_sale_date is not None
+                and order["source_sale_date"] is not None
+                and parsed_sale_date != order["source_sale_date"]
+            ):
+                row_errors.append(
+                    f"Row {row_number}: sale_date conflicts with another row for invoice {invoice_number}."
+                )
+                continue
+            if parsed_sale_date is not None and order["source_sale_date"] is None:
+                order["sale_date"] = parsed_sale_date
+                order["source_sale_date"] = parsed_sale_date
+
+        order["items"].append({
+            "row_number": row_number,
+            "product_code": product_code,
+            "quantity": quantity,
+            "unit_price": unit_price,
+            "line_total": line_total,
+        })
+        parsed_item_count += 1
+
+    if row_errors:
+        return import_error(
+            "Sales import was cancelled. Correct the CSV errors and upload it again.",
+            400,
+            errors=row_errors[:10]
+        )
+
+    if not orders:
+        return import_error("The CSV contains no valid sales rows.", 400)
+
+    products = fetch_all(
+        """
+        SELECT product_id, product_code, name, quantity, price
+        FROM products
+        WHERE status = 'active'
+        """
+    ) or []
+    products_by_code = {
+        str(cast(Any, product).get("product_code") or "").strip().casefold(): dict(cast(Any, product))
+        for product in products
+    }
+
+    stock_required = {}
+    product_rows_by_code = {}
+    for order in orders.values():
+        for item in order["items"]:
+            code_key = item["product_code"].casefold()
+            product = products_by_code.get(code_key)
+            if product is None:
+                row_errors.append(
+                    f"Row {item['row_number']}: product code '{item['product_code']}' does not match an active inventory product."
+                )
+                continue
+
+            unit_price = item["unit_price"]
+            if unit_price is None:
+                unit_price = Decimal(str(product.get("price") or "0")).quantize(Decimal("0.01"))
+
+            if unit_price <= 0:
+                row_errors.append(
+                    f"Row {item['row_number']}: the product has no valid sale price."
+                )
+                continue
+
+            calculated_line_total = (
+                unit_price * item["quantity"]
+            ).quantize(Decimal("0.01"))
+
+            if item["line_total"] is not None and item["line_total"] != calculated_line_total:
+                row_errors.append(
+                    f"Row {item['row_number']}: line_total does not equal quantity × unit_price."
+                )
+                continue
+
+            item["product_id"] = int(product["product_id"])
+            item["product_name"] = str(product.get("name") or item["product_code"])
+            item["unit_price"] = unit_price
+            item["calculated_line_total"] = calculated_line_total
+
+            order["total_amount"] += calculated_line_total
+            stock_required[item["product_id"]] = (
+                stock_required.get(item["product_id"], 0) + item["quantity"]
+            )
+            product_rows_by_code[item["product_id"]] = product
+
+    if row_errors:
+        return import_error(
+            "Sales import was cancelled because one or more rows do not match the active product catalog.",
+            400,
+            errors=row_errors[:10]
+        )
+
+    for product_id, required_quantity in stock_required.items():
+        product = product_rows_by_code[product_id]
+        available_quantity = safe_int(product.get("quantity"))
+        if required_quantity > available_quantity:
+            row_errors.append(
+                f"{product.get('product_code')}: CSV requests {required_quantity} units, but only {available_quantity} are in stock."
+            )
+
+    if row_errors:
+        return import_error(
+            "Sales import was cancelled because inventory does not have enough stock for the full batch.",
+            409,
+            errors=row_errors[:10]
+        )
+
+    for invoice_number in orders:
+        existing_invoice = fetch_one(
+            "SELECT sale_id FROM sales WHERE invoice_number = %s LIMIT 1",
+            (invoice_number,)
+        )
+        if existing_invoice is not None:
+            row_errors.append(
+                f"Invoice number '{invoice_number}' already exists. Use unique invoice numbers or remove the duplicate."
+            )
+
+    if row_errors:
+        return import_error(
+            "Sales import was cancelled because one or more invoice numbers already exist.",
+            409,
+            errors=row_errors[:10]
+        )
+
+    transaction_queries = []
+    current_user_id = get_current_user_id()
+
+    for order in orders.values():
+        invoice_number = order["invoice_number"]
+        transaction_queries.append((
+            """
+            INSERT INTO sales
+            (
+                invoice_number,
+                customer_name,
+                total_amount,
+                payment_method,
+                sale_date,
+                user_id
+            )
+            VALUES (%s, %s, %s, %s, %s, %s)
+            """,
+            (
+                invoice_number,
+                order["customer_name"],
+                order["total_amount"],
+                order["payment_method"],
+                order["sale_date"],
+                current_user_id,
+            ),
+            1
+        ))
+
+        for item in order["items"]:
+            transaction_queries.append((
+                """
+                INSERT INTO sale_items
+                (
+                    sale_id,
+                    product_id,
+                    quantity,
+                    unit_price
+                )
+                SELECT sale_id, %s, %s, %s
+                FROM sales
+                WHERE invoice_number = %s
+                LIMIT 1
+                """,
+                (
+                    item["product_id"],
+                    item["quantity"],
+                    item["unit_price"],
+                    invoice_number,
+                ),
+                1
+            ))
+
+            transaction_queries.append((
+                """
+                UPDATE products
+                SET quantity = quantity - %s,
+                    updated_at = %s
+                WHERE product_id = %s
+                  AND status = 'active'
+                  AND quantity >= %s
+                """,
+                (
+                    item["quantity"],
+                    datetime.now(),
+                    item["product_id"],
+                    item["quantity"],
+                ),
+                1
+            ))
+
+        transaction_queries.append((
+            """
+            INSERT INTO activity_logs
+            (
+                user_id,
+                action,
+                entity_type,
+                description,
+                created_at
+            )
+            VALUES (%s, %s, %s, %s, %s)
+            """,
+            (
+                current_user_id,
+                "IMPORT",
+                "SALES",
+                f"Imported invoice {invoice_number} with {len(order['items'])} item(s)",
+                datetime.now(),
+            ),
+            1
+        ))
+
+    if not execute_transaction(transaction_queries):
+        print("Sales CSV import failed: transaction was rolled back.")
+        return import_error(
+            "Sales import failed. The full batch was rolled back; no sales or stock changes were saved. Check the server logs for the database error.",
+            500
+        )
+
+    session["incraft_data_changed"] = "sales_inventory"
+    total_revenue = sum(
+        (order["total_amount"] for order in orders.values()),
+        Decimal("0.00")
+    )
+
+    message = (
+        f"Imported {len(orders)} invoice(s) containing {parsed_item_count} sale item(s) successfully."
+    )
+    if is_json:
+        return jsonify({
+            "success": True,
+            "message": message,
+            "imported_transactions": len(orders),
+            "imported_items": parsed_item_count,
+            "total_revenue": str(total_revenue),
+        })
+
+    flash(message, "success")
+    return redirect(url_for("main.sales"))
+
+
+# ============================================================
 # SALES EXPORT
 # ============================================================
 
@@ -3718,18 +4221,30 @@ def activity():
 @active_user_required
 def settings():
     """
-    User settings and password update.
-    """
+    Read and update the current user's account settings.
 
+    The modern JavaScript client sends JSON and must receive JSON for every
+    validation, authorization, and database outcome. Traditional HTML forms
+    continue to use flash messages and redirects.
+    """
     user_id = get_current_user_id()
+    is_json = (
+        request.is_json
+        or "application/json" in request.headers.get("Accept", "")
+    )
+
+    def settings_error(message, status=400):
+        if is_json:
+            return jsonify({
+                "success": False,
+                "message": message
+            }), status
+        flash(message, "danger")
+        return redirect(url_for("main.settings"))
 
     user = fetch_one(
         """
-        SELECT
-            user_id,
-            username,
-            email,
-            role
+        SELECT user_id, username, email, role
         FROM users
         WHERE user_id = %s
         LIMIT 1
@@ -3738,170 +4253,78 @@ def settings():
     )
 
     if user is None:
-
         logout_user()
-
-        return redirect(
-            url_for("main.login")
-        )
+        if is_json:
+            return jsonify({
+                "success": False,
+                "message": "Your session is no longer valid. Please sign in again."
+            }), 401
+        return redirect(url_for("main.login"))
 
     if request.method == "POST":
+        payload = request.get_json(silent=True) or request.form
 
-        # Support both JSON body (SPA) and HTML form
-        _payload = request.get_json(silent=True) or {}
+        username = str(payload.get("username") or "").strip()
+        # Email is not editable in the current Settings UI. Use the verified
+        # database value unless a future dedicated email-change flow is added.
+        email = str(cast(Any, user).get("email") or "").strip().lower()
 
-        username = (
-            _payload.get("username") or request.form.get("username", "")
-        ).strip()
+        current_password = str(payload.get("current_password") or "")
+        new_password = str(payload.get("new_password") or "")
+        confirm_password = str(payload.get("confirm_password") or "")
 
-        # Fall back to the user's existing email when not provided
-        email = (
-            _payload.get("email") or request.form.get("email", "")
-            or (user or {}).get("email", "")
-        ).strip().lower()
+        if not username:
+            return settings_error("Full name is required.", 400)
 
-        current_password = (
-            _payload.get("current_password") or request.form.get("current_password", "")
-        )
+        if len(username) > 100:
+            return settings_error("Full name must be 100 characters or fewer.", 400)
 
-        new_password = (
-            _payload.get("new_password") or request.form.get("new_password", "")
-        )
-
-        confirm_password = (
-            _payload.get("confirm_password") or request.form.get("confirm_password", "")
-        )
-
-        if not username or not email:
-
-            msg = "Username is required."
-            if request.is_json or "application/json" in request.headers.get("Accept", ""):
-                return jsonify({"success": False, "message": msg}), 400
-            flash(msg, "danger")
-            return render_template(
-                "settings.html",
-                user=user
-            )
-
-        if not validate_email(email):
-
-            flash(
-                "Please enter a valid email address.",
-                "danger"
-            )
-
-            return render_template(
-                "settings.html",
-                user=user
-            )
-
-        existing_email = fetch_one(
-            """
-            SELECT user_id
-            FROM users
-            WHERE LOWER(TRIM(email)) = %s
-            AND user_id != %s
-            LIMIT 1
-            """,
-            (
-                email,
-                user_id
-            )
-        )
-
-        if existing_email:
-
-            flash(
-                "This email is already in use.",
-                "danger"
-            )
-
-            return render_template(
-                "settings.html",
-                user=user
+        if not email or not validate_email(email):
+            return settings_error(
+                "The account email address is invalid. Contact an administrator.",
+                400
             )
 
         password_hash = None
-
-        if new_password:
-
+        if current_password or new_password or confirm_password:
             if not current_password:
+                return settings_error("Enter your current password to change it.", 400)
 
-                flash(
-                    "Current password is required.",
-                    "danger"
-                )
+            if not new_password:
+                return settings_error("Enter a new password.", 400)
 
-                return render_template(
-                    "settings.html",
-                    user=user
-                )
+            if not confirm_password:
+                return settings_error("Confirm your new password.", 400)
 
             password_record = fetch_one(
-                """
-                SELECT password
-                FROM users
-                WHERE user_id = %s
-                LIMIT 1
-                """,
+                "SELECT password FROM users WHERE user_id = %s LIMIT 1",
                 (user_id,)
+            )
+            stored_hash = str(
+                (cast(Any, password_record) or {}).get("password") or ""
             )
 
             try:
-                password_valid = (
-                    password_record is not None
-                    and bool(cast(Any, password_record)["password"])
-                    and check_password_hash(
-                        cast(Any, password_record)["password"],
-                        current_password
-                    )
+                password_valid = bool(stored_hash) and check_password_hash(
+                    stored_hash,
+                    current_password
                 )
             except (TypeError, ValueError):
                 password_valid = False
 
             if not password_valid:
+                return settings_error("Your current password is incorrect.", 400)
 
-                flash(
-                    "Current password is incorrect.",
-                    "danger"
-                )
-
-                return render_template(
-                    "settings.html",
-                    user=user
-                )
-
-            if not validate_password(
-                new_password
-            ):
-
-                flash(
-                    "New password must contain at least "
-                    "8 characters, including a letter "
-                    "and a number.",
-                    "danger"
-                )
-
-                return render_template(
-                    "settings.html",
-                    user=user
+            if not validate_password(new_password):
+                return settings_error(
+                    "New password must contain at least 8 characters, including a letter and a number.",
+                    400
                 )
 
             if new_password != confirm_password:
+                return settings_error("New passwords do not match.", 400)
 
-                flash(
-                    "New passwords do not match.",
-                    "danger"
-                )
-
-                return render_template(
-                    "settings.html",
-                    user=user
-                )
-
-            password_hash = generate_password_hash(
-                new_password
-            )
+            password_hash = generate_password_hash(new_password)
 
         update_result = execute_query(
             """
@@ -3909,35 +4332,30 @@ def settings():
             SET
                 username = %s,
                 email = %s,
-                password = COALESCE(%s, password),
-                updated_at = %s
+                password = COALESCE(%s, password)
             WHERE user_id = %s
             """,
             (
                 username,
                 email,
                 password_hash,
-                datetime.now(),
                 user_id
             )
         )
 
         if update_result is None:
-
-            flash(
-                "Unable to update your settings.",
-                "danger"
-            )
-
-            return render_template(
-                "settings.html",
-                user=user
+            print("Settings update failed: users UPDATE returned None.")
+            return settings_error(
+                "The database could not save your settings. Check the database connection and server logs.",
+                500
             )
 
         session["username"] = username
         session["email"] = email
 
-        execute_query(
+        # Audit logging is best-effort: a logging failure must not turn a
+        # successfully saved profile into a failed Settings operation.
+        audit_result = execute_query(
             """
             INSERT INTO activity_logs
             (
@@ -3959,32 +4377,45 @@ def settings():
                 datetime.now()
             )
         )
+        if audit_result is None:
+            print("Settings saved, but the activity log could not be written.")
 
-        flash(
-            "Settings updated successfully.",
-            "success"
-        )
+        updated_user = fetch_one(
+            """
+            SELECT user_id, username, email, role
+            FROM users
+            WHERE user_id = %s
+            LIMIT 1
+            """,
+            (user_id,)
+        ) or {
+            "user_id": user_id,
+            "username": username,
+            "email": email,
+            "role": cast(Any, user).get("role"),
+        }
 
-        # Return JSON for SPA; redirect for traditional form posts
-        if request.is_json or "application/json" in request.headers.get("Accept", ""):
-            # Re-fetch updated user
-            updated_user = fetch_one(
-                "SELECT user_id, username, email, role FROM users WHERE user_id = %s LIMIT 1",
-                (user_id,)
-            )
-            u_copy = dict(updated_user or {})
-            u_copy.pop("password", None)
-            return jsonify({"success": True, "message": "Settings updated successfully.", "user": u_copy})
-        return redirect(
-            url_for("main.settings")
-        )
+        if is_json:
+            return jsonify({
+                "success": True,
+                "message": "Settings updated successfully.",
+                "user": dict(cast(Any, updated_user))
+            })
 
-    if request.is_json or "application/json" in request.headers.get("Accept", ""):
-        u_copy = dict(user or {})
-        u_copy.pop("password", None)
-        return jsonify({"success": True, "user": u_copy})
-    return _render_app_page("settings", fallback_template="settings.html", user=user)
+        flash("Settings updated successfully.", "success")
+        return redirect(url_for("main.settings"))
 
+    if is_json:
+        return jsonify({
+            "success": True,
+            "user": dict(cast(Any, user))
+        })
+
+    return _render_app_page(
+        "settings",
+        fallback_template="settings.html",
+        user=user
+    )
 
 
 # ============================================================

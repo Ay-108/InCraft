@@ -85,10 +85,36 @@
 
     try {
       const res = await fetch(url, options);
-      const data = await res.json().catch(() => null);
+      const responseText = await res.text();
+      let data = null;
+
+      if (responseText) {
+        try {
+          data = JSON.parse(responseText);
+        } catch {
+          data = null;
+        }
+      }
+
+      // Do not silently replace HTML/server failures with a misleading
+      // generic registration or login message.
+      if (!data && !res.ok) {
+        const messageByStatus = {
+          400: 'The request was rejected. Refresh the page and try again (security token may have expired).',
+          401: 'Invalid email or password.',
+          403: 'You do not have permission to complete this request.',
+          404: 'The requested authentication endpoint was not found.',
+          500: 'The server encountered an error. Check the Flask/Vercel logs for details.',
+          503: 'The database or application service is unavailable. Check the deployment configuration and server logs.'
+        };
+        data = {
+          success: false,
+          message: messageByStatus[res.status] || `Request failed (HTTP ${res.status}).`
+        };
+      }
 
       if (res.status === 401 || res.status === 403) {
-        if (data && data.message && data.message.includes('sign in')) {
+        if (data && data.message && data.message.toLowerCase().includes('sign in')) {
           state.user = null;
           showLanding();
           toast(data.message, 'error');
@@ -241,8 +267,8 @@
           <label>
             Role
             <select id="loginRole" style="height:42px;border:1px solid var(--line);border-radius:7px;padding:0 10px;background:var(--card);color:var(--ink);">
+              <option value="staff" selected>Staff Member</option>
               <option value="admin">Administrator</option>
-              <option value="staff">Staff Member</option>
             </select>
           </label>
           <div id="formMessage" class="form-message"></div>
@@ -1259,6 +1285,7 @@
           <p>Record transactions and monitor revenue generation.</p>
         </div>
         <div class="actions">
+          ${state.user?.role === 'admin' ? '<button class="btn" id="salesImportBtn">Import sales</button>' : ''}
           <a class="btn btn-export" href="/sales/export" target="_blank" rel="noopener" download aria-label="Export sales as CSV"><span class="btn-export-icon" aria-hidden="true">↓</span><span>Export sales</span></a>
           <button class="btn primary" id="recordSaleBtn">+ Record sale</button>
         </div>
@@ -1296,6 +1323,7 @@
     `;
 
     $('#recordSaleBtn').onclick = () => openRecordSaleModal();
+    $('#salesImportBtn')?.addEventListener('click', openSalesImportModal);
     $('#refreshSalesBtn').onclick = () => loadSalesData();
 
     loadSalesData();
@@ -1335,6 +1363,85 @@
         <td style="color:var(--muted);font-size:11px;">${fmtDate(s.sale_date || s.created_at)}</td>
       </tr>
     `).join('');
+  }
+
+  function openSalesImportModal() {
+    openModal(
+      'Import Sales from CSV',
+      'Import historical transactions into Sales and automatically deduct their quantities from inventory.',
+      `
+      <form id="salesImportForm" enctype="multipart/form-data">
+        <p style="font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:14px;">
+          Required columns: <code>product_code, quantity</code><br>
+          Optional columns: <code>invoice_number, sale_date, customer_name, payment_method, unit_price, line_total</code><br>
+          Multiple rows with the same invoice number are grouped into one invoice. Unit prices in the CSV are used when supplied; otherwise the current product price is used.
+        </p>
+        <label>
+          Select Sales CSV File
+          <input type="file" id="salesCsvFile" accept=".csv,text/csv" required style="padding-top:8px;">
+        </label>
+        <p style="font-size:11px;color:var(--muted);margin-top:10px;">
+          The entire file is validated before saving. If any invoice already exists, a product code is invalid, or stock is insufficient, the complete import is cancelled.
+        </p>
+        <div class="modal-actions" style="margin-top:20px;">
+          <button type="button" class="btn" id="cancelSalesImportBtn">Cancel</button>
+          <button type="submit" class="btn primary" id="submitSalesImportBtn">Import sales</button>
+        </div>
+      </form>
+      `
+    );
+
+    $('#cancelSalesImportBtn').onclick = closeModal;
+    $('#salesImportForm').onsubmit = async (event) => {
+      event.preventDefault();
+
+      const input = $('#salesCsvFile');
+      const file = input?.files?.[0];
+      if (!file) {
+        toast('Select a CSV file first.', 'error');
+        return;
+      }
+
+      const submitButton = $('#submitSalesImportBtn');
+      submitButton.disabled = true;
+      submitButton.textContent = 'Importing…';
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const result = await api('/sales/import', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (result?.ok && result.data?.success) {
+          toast(result.data.message || 'Sales imported successfully.', 'success');
+          closeModal();
+          await loadSalesData();
+          if (state.currentPage === 'dashboard') {
+            loadDashboardSummary();
+          }
+        } else {
+          const details = result?.data?.errors;
+          const message = result?.data?.message || 'Sales import failed.';
+          toast(
+            Array.isArray(details) && details.length
+              ? `${message} ${details[0]}`
+              : message,
+            'error'
+          );
+        }
+      } catch (error) {
+        console.error('Sales CSV import failed:', error);
+        toast('Unable to import the sales CSV. Check the connection and try again.', 'error');
+      } finally {
+        if ($('#submitSalesImportBtn')) {
+          $('#submitSalesImportBtn').disabled = false;
+          $('#submitSalesImportBtn').textContent = 'Import sales';
+        }
+      }
+    };
   }
 
   async function openRecordSaleModal() {
@@ -1828,21 +1935,41 @@
         const res = await api('/settings', {
           method: 'POST',
           body: {
-            username: newName,
-            email: state.user?.email || ''
+            username: newName
           }
         });
 
-        if (res && res.ok) {
-          // Update in-memory state
-          state.user.name = newName;
-          state.user.username = newName;
-          // Refresh header avatar & display name
+        if (res?.ok && res.data?.success) {
+          // Use the canonical profile returned by the server.
+          const savedUser = res.data.user || {};
+          state.user = {
+            ...state.user,
+            ...savedUser,
+            name: savedUser.username || newName,
+            username: savedUser.username || newName
+          };
+
+          // Refresh all visible profile labels without rebuilding the shell.
+          const initials = newName
+            .split(' ')
+            .filter(Boolean)
+            .map(part => part[0])
+            .join('')
+            .slice(0, 2)
+            .toUpperCase();
           const avatarEl = $('#headerAvatar');
+          const sideAvatarEl = $('#userAvatar');
           const nameEl = $('#profileName');
-          if (avatarEl) avatarEl.textContent = newName.slice(0, 2).toUpperCase();
+          const sideNameEl = $('#userName');
+          const menuNameEl = $('#menuUserName');
+
+          if (avatarEl) avatarEl.textContent = initials || 'U';
+          if (sideAvatarEl) sideAvatarEl.textContent = initials || 'U';
           if (nameEl) nameEl.textContent = newName;
-          toast('Settings saved successfully!', 'success');
+          if (sideNameEl) sideNameEl.textContent = newName;
+          if (menuNameEl) menuNameEl.textContent = newName;
+
+          toast(res.data.message || 'Settings saved successfully!', 'success');
         } else {
           const msg = res?.data?.message || 'Could not save settings. Please try again.';
           toast(msg, 'error');

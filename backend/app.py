@@ -13,7 +13,7 @@ from html import escape
 
 from flask import Flask, jsonify, render_template, request
 from jinja2 import TemplateNotFound
-from flask_wtf.csrf import CSRFProtect
+from flask_wtf.csrf import CSRFProtect, CSRFError
 
 from backend.config import (
     APP_NAME,
@@ -106,6 +106,32 @@ def create_app():
     # CSRF token before these requests will be accepted.
 
     CSRFProtect(app)
+
+    # --------------------------------------------------------
+    # CSRF ERROR RESPONSES
+    # --------------------------------------------------------
+    # AJAX clients expect JSON. Flask-WTF otherwise returns an HTML error
+    # page, which hides the actual authentication failure in the frontend.
+    @app.errorhandler(CSRFError)
+    def handle_csrf_error(error):
+        is_json = (
+            request.is_json
+            or "application/json" in request.headers.get("Accept", "")
+        )
+        message = (
+            "Your security token has expired or is invalid. Refresh the page and try again."
+        )
+        if is_json:
+            return jsonify({
+                "success": False,
+                "message": message,
+                "error": "csrf_validation_failed",
+            }), 400
+        return render_error_page(
+            "400",
+            "Security Check Failed",
+            message,
+        ), 400
 
     # --------------------------------------------------------
     # Template context
